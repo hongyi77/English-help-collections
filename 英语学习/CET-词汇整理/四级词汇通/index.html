@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>四级词汇通</title>
+<style>
+  :root {
+    --paper: #F6F0E4;
+    --card: #FFFCF5;
+    --ink: #23283A;
+    --ink-soft: #7A7666;
+    --muted: #7A7666;
+    --ink-blue: #1F4E79;
+    --ink-blue-deep: #163A5C;
+    --pen-red: #C0442B;
+    --green: #2F7D4F;
+    --amber: #B07B1E;
+    --hairline: #E6DCC7;
+    --blue-soft: #E2ECF4;
+    --red-soft: #F8E4DD;
+    --green-soft: #E3F0E7;
+    --amber-soft: #F6EBD3;
+    --shadow: 0 3px 12px rgba(90, 70, 30, .10);
+    --serif: Georgia, "Times New Roman", "Songti SC", "STSong", "SimSun", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    background-image: radial-gradient(rgba(31, 78, 121, .05) 1px, transparent 1px);
+    background-size: 18px 18px;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--ink-blue); outline-offset: 2px; }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--card); border-bottom: 1px solid var(--hairline); z-index: 10;
+  }
+  .topbar::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, var(--ink-blue), transparent 60%);
+  }
+  .topbar .back { position: absolute; left: 10px; background: none; border: none; font-size: 24px; color: var(--ink-soft); cursor: pointer; padding: 8px; }
+  #topTitle { font-family: var(--serif); font-size: 18px; font-weight: 700; letter-spacing: 1px; color: var(--ink); }
+  .topbar .sub { position: absolute; right: 14px; font-size: 12px; color: var(--ink-soft); font-weight: 400; font-family: var(--mono); letter-spacing: .5px; }
+
+  /* ---------- 主内容 ---------- */
+  .screen { display: none; padding-top: 54px; height: 100vh; overflow-y: auto; }
+  .screen.active { display: block; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; }
+
+  /* ---------- 首页 · 词卡 hero ---------- */
+  .hero-card {
+    position: relative; overflow: hidden;
+    background: var(--card); border: 1px solid var(--hairline); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 22px 20px; margin-bottom: 16px;
+  }
+  .hero-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: linear-gradient(180deg, var(--ink-blue), var(--amber));
+  }
+  .hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--ink-soft); text-transform: uppercase; margin-bottom: 6px; }
+  .hero-card h1 { font-family: var(--serif); font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: 1px; padding-right: 74px; }
+  .hero-sub { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .resume-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px;
+  }
+  .resume-banner .rb-title { font-size: 15px; font-weight: 600; color: var(--amber); }
+  .resume-banner .rb-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .resume-banner .rb-btn {
+    margin-left: auto; padding: 9px 18px; border-radius: 9px; border: none;
+    background: var(--amber); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .resume-banner .rb-discard {
+    padding: 9px 10px; border-radius: 9px; border: 1px solid var(--hairline);
+    background: var(--card); color: var(--ink-soft); font-size: 13px; cursor: pointer;
+  }
+  .hero-deck { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 58px; height: 76px; }
+  .mini-card { position: absolute; inset: 0; border-radius: 8px; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); }
+  .mini-card.back { transform: rotate(-4deg) translate(-4px, 3px); background: var(--paper); }
+  .mini-card.front { transform: rotate(3deg); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--serif); color: var(--ink-blue); }
+  .mini-card.front b { font-size: 20px; letter-spacing: 1px; }
+  .mini-card.front span { font-size: 9px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---------- 统计 · 账本行 ---------- */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  }
+  .stat-card { padding: 14px 4px; text-align: center; border-right: 1px solid var(--hairline); }
+  .stat-card:last-child { border-right: none; }
+  .stat-card .num { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--ink-blue); line-height: 1.1; }
+  .stat-card .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .stat-card .num.green { color: var(--green); }
+  .stat-card .num.amber { color: var(--amber); }
+  .stat-card .num.red { color: var(--pen-red); }
+
+  /* ---------- 首页 · 功能清单 ---------- */
+  .action-list {
+    background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  }
+  .action-btn {
+    width: 100%; padding: 15px 16px; display: flex; align-items: center; gap: 14px;
+    background: none; border: none; border-bottom: 1px solid var(--hairline); cursor: pointer; text-align: left;
+  }
+  .action-btn:last-child { border-bottom: none; }
+  .action-btn:active { background: var(--paper); }
+  .action-ico { width: 40px; height: 40px; flex: none; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .ico-blue { background: var(--blue-soft); }
+  .ico-amber { background: var(--amber-soft); }
+  .ico-red { background: var(--red-soft); }
+  .ico-green { background: var(--green-soft); }
+  .ico-slate { background: #ECE7DB; }
+  .action-txt { flex: 1; display: flex; flex-direction: column; }
+  .action-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .action-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .badge.new { background: var(--blue-soft); color: var(--ink-blue); }
+  .badge.rev { background: var(--amber-soft); color: var(--amber); }
+  .badge.book { background: var(--red-soft); color: var(--pen-red); }
+  .action-btn .arrow { font-size: 22px; color: var(--ink-soft); }
+
+  /* ---------- 设置 ---------- */
+  .settings-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+  .settings-card h3 { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin-bottom: 12px; letter-spacing: .5px; }
+  .set-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .set-row:last-child { margin-bottom: 0; }
+  .set-row label { font-size: 15px; }
+  .set-ctrl { display: flex; align-items: center; gap: 12px; }
+  .set-ctrl button {
+    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--hairline);
+    background: var(--card); font-size: 18px; cursor: pointer; color: var(--ink-blue);
+  }
+  .set-ctrl button:active { background: var(--paper); }
+  .set-ctrl span { min-width: 36px; text-align: center; font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--ink); }
+  .danger-btn { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--pen-red); background: var(--card); color: var(--pen-red); font-size: 15px; cursor: pointer; }
+  .danger-btn:active { background: var(--red-soft); }
+  .data-btn {
+    flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--ink-blue);
+    background: var(--card); color: var(--ink-blue); font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .data-btn:active { background: var(--blue-soft); }
+
+  /* ---------- 学习/复习答题 · 词卡 ---------- */
+  .quiz-card {
+    position: relative; background: var(--card); border: 1px solid var(--hairline); border-radius: 18px;
+    box-shadow: var(--shadow); padding: 26px 20px 22px; margin-bottom: 16px;
+    animation: rise .28s ease-out;
+  }
+  @keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .quiz-card::after {
+    content: "CET-4"; position: absolute; top: 0; right: 18px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px; color: var(--ink-soft);
+    background: var(--paper); border: 1px solid var(--hairline); border-top: none; border-radius: 0 0 6px 6px; padding: 3px 10px;
+  }
+  .quiz-type { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 10px; border-radius: 5px; background: var(--blue-soft); color: var(--ink-blue); }
+  .quiz-type.rev { background: var(--amber-soft); color: var(--amber); }
+  .quiz-prompt { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--ink); margin: 16px 0 8px; word-break: break-word; }
+  .quiz-prompt.small { font-size: 24px; }
+  .progress-line { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 6px; }
+  .options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+  @media (min-width: 420px) { .options { grid-template-columns: 1fr 1fr; } }
+  .opt {
+    padding: 15px 14px; border-radius: 11px; border: 1px solid var(--hairline);
+    background: var(--card); font-size: 16px; color: var(--ink); cursor: pointer; text-align: left;
+    transition: transform .12s, box-shadow .12s, border-color .12s;
+  }
+  .opt:active { transform: scale(.98); }
+  .opt.correct { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 600; }
+  .opt.wrong { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); animation: shake .25s; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .opt:disabled { cursor: default; }
+  .feedback { margin-top: 18px; padding: 16px; border-radius: 12px; font-size: 16px; line-height: 1.7; }
+  .feedback.good { background: var(--green-soft); border-left: 4px solid var(--green); }
+  .feedback.bad { background: var(--red-soft); border-left: 4px solid var(--pen-red); }
+  .feedback .ans-word { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); }
+  .feedback .ans-def { color: var(--ink-soft); margin-top: 4px; }
+  .next-btn { width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 12px; background: var(--ink-blue); color: #fff; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(31, 78, 121, .25); }
+  .next-btn:active { background: var(--ink-blue-deep); }
+  .book-toggle { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--card); font-size: 15px; cursor: pointer; color: var(--ink); }
+  .book-toggle.in-book { border-color: var(--pen-red); color: var(--pen-red); background: var(--red-soft); }
+  .wrong-actions { display: flex; gap: 10px; margin-top: 10px; align-items: stretch; }
+  .wrong-actions .book-toggle { flex: 1; margin-top: 0; }
+  .wrong-actions .next-btn { flex: 1; margin-top: 0; }
+  .wrong-pair {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;
+    font-family: var(--serif);
+  }
+  .wrong-pair .wp-ans { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: .5px; }
+  .wrong-pair .wp-sep { font-size: 16px; color: var(--ink-soft); }
+  .wrong-pair .wp-def { font-size: 15px; color: var(--ink-soft); flex: 1; line-height: 1.5; }
+  .wrong-hint {
+    margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
+    border: 1px dashed var(--hairline); font-size: 14px; color: var(--ink-soft); line-height: 1.6;
+  }
+
+  /* ---------- 学习：不会按钮 / 拼写 / 重学提示 ---------- */
+  .show-ans-wrap { text-align: center; margin-top: 14px; }
+  .show-ans-btn {
+    padding: 10px 22px; border-radius: 999px; border: 1px dashed var(--ink-soft);
+    background: transparent; color: var(--ink-soft); font-size: 14px; cursor: pointer;
+  }
+  .show-ans-btn:active { background: var(--paper); }
+  .retry-note {
+    text-align: center; font-size: 13px; color: var(--amber); margin-top: 12px;
+  }
+  .spell-input-wrap {
+    display: flex; gap: 10px; margin-top: 18px; align-items: stretch;
+  }
+  .spell-input {
+    flex: 1; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--ink-blue);
+    background: var(--card); font-size: 19px; font-family: var(--serif); color: var(--ink);
+    letter-spacing: 1px; outline: none;
+  }
+  .spell-input:focus { box-shadow: 0 0 0 3px rgba(31, 78, 121, .15); }
+  .spell-check {
+    padding: 0 20px; border-radius: 12px; border: none; background: var(--ink-blue);
+    color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  .spell-check:active { background: var(--ink-blue-deep); }
+  .session-done { text-align: center; padding: 44px 0; }
+  .session-done .icon { font-size: 46px; margin-bottom: 12px; }
+  .session-done h2 { font-family: var(--serif); font-size: 24px; margin-bottom: 8px; color: var(--ink); }
+  .session-done p { color: var(--ink-soft); margin-bottom: 24px; }
+
+  /* ---------- 生词本 / 列表 ---------- */
+  .list-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 10px; }
+  .list-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--hairline); gap: 12px; }
+  .list-item:last-child { border-bottom: none; }
+  .list-word { font-family: var(--serif); font-weight: 700; font-size: 18px; color: var(--ink); min-width: 100px; }
+  .list-def { flex: 1; color: var(--ink-soft); font-size: 13px; line-height: 1.6; word-break: break-word; }
+  .list-del { background: none; border: none; font-size: 19px; color: var(--pen-red); cursor: pointer; padding: 6px; }
+  .list-del:active { opacity: .6; }
+  .empty-tip { text-align: center; color: var(--ink-soft); padding: 60px 0; font-size: 15px; }
+
+  /* ---------- 掌握情况 ---------- */
+  .master-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .master-tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 14px; cursor: pointer; color: var(--ink-soft); }
+  .master-tab.active { background: var(--ink-blue); border-color: var(--ink-blue); color: #fff; font-weight: 600; }
+  .mt-cnt { opacity: .7; font-family: var(--mono); }
+  .ms-badge { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+  .ms-badge.ms-mastered { background: var(--green-soft); color: var(--green); }
+  .ms-badge.ms-due { background: var(--amber-soft); color: var(--amber); }
+  .ms-badge.ms-learning { background: var(--blue-soft); color: var(--ink-blue); }
+  .master-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+  .toolbar-btn { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--pen-red); background: var(--card); color: var(--pen-red); font-size: 13px; cursor: pointer; }
+  .toolbar-btn:active { background: var(--red-soft); }
+
+  /* ---------- 对话框 ---------- */
+  .modal-mask { position: fixed; inset: 0; background: rgba(35, 30, 20, .45); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+  .modal-mask.show { display: flex; }
+  .modal { background: var(--card); width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 24px 20px 30px; border-top: 1px solid var(--hairline); }
+  .modal h3 { font-family: var(--serif); font-size: 19px; margin-bottom: 12px; color: var(--ink); }
+  .modal p { color: var(--ink-soft); font-size: 14px; line-height: 1.8; margin-bottom: 18px; }
+  .modal-btns { display: flex; gap: 12px; }
+  .modal-btns button { flex: 1; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; }
+  .btn-ghost { background: var(--paper); border: 1px solid var(--hairline); color: var(--ink); }
+  .btn-danger { background: var(--pen-red); border: none; color: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back" id="topBack" onclick="goHome()" style="display:none">‹</button>
+  <span id="topTitle">四级词汇通</span>
+  <span class="sub" id="topSub"></span>
+</div>
+
+<!-- ==================== 首页 ==================== -->
+<div class="screen active" id="screen-home">
+  <div class="wrap">
+    <div class="hero-card">
+      <div class="hero-deck">
+        <div class="mini-card back"></div>
+        <div class="mini-card front"><b>word</b><span>释义</span></div>
+      </div>
+      <div class="hero-eyebrow">CET-4 · 4543 WORDS</div>
+      <h1>四级词汇通</h1>
+      <div class="hero-sub">艾宾浩斯记忆曲线 · 汉译英 / 英译汉 · 生词本</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
+      <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
+      <div class="stat-card"><div class="num amber" id="statDue">0</div><div class="lbl">待复习</div></div>
+      <div class="stat-card"><div class="num" id="statUnseen">0</div><div class="lbl">未学习</div></div>
+    </div>
+    <div class="resume-banner" id="resumeBanner" style="display:none">
+      <div>
+        <div class="rb-title">⏳ 有未完成的学习</div>
+        <div class="rb-sub" id="resumeInfo"></div>
+      </div>
+      <button class="rb-btn" onclick="resumeSession()">继续</button>
+      <button class="rb-discard" onclick="discardResume()">放弃</button>
+    </div>
+    <div class="action-list">
+      <button class="action-btn" onclick="startStudy()">
+        <span class="action-ico ico-blue">📖</span>
+        <span class="action-txt"><span class="action-title">学习新词</span><span class="action-sub">未学单词随机抽选</span></span>
+        <span class="badge new" id="badgeNew">0</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" onclick="startReview()">
+        <span class="action-ico ico-amber">🔁</span>
+        <span class="action-txt"><span class="action-title">复习单词</span><span class="action-sub">到期单词按曲线复习</span></span>
+        <span class="badge rev" id="badgeReview">0</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" onclick="go('screen-book')">
+        <span class="action-ico ico-red">📌</span>
+        <span class="action-txt"><span class="action-title">生词本</span><span class="action-sub">记错的词都在这里</span></span>
+        <span class="badge book" id="badgeBook">0</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" onclick="go('screen-master')">
+        <span class="action-ico ico-green">📊</span>
+        <span class="action-txt"><span class="action-title">掌握情况</span><span class="action-sub">分类查看 · 可重置</span></span>
+        <span class="badge new" id="badgeLearning">0</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" onclick="go('screen-history')">
+        <span class="action-ico ico-amber">📅</span>
+        <span class="action-txt"><span class="action-title">学习记录</span><span class="action-sub">每天学了复习了什么</span></span>
+        <span class="badge rev" id="badgeHistory">今天</span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" onclick="go('screen-settings')">
+        <span class="action-ico ico-slate">⚙️</span>
+        <span class="action-txt"><span class="action-title">设置</span><span class="action-sub">每日计划 · 数据管理</span></span>
+        <span class="arrow">›</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 学习 ==================== -->
+<div class="screen" id="screen-study">
+  <div class="wrap">
+    <div id="studyQuiz"></div>
+  </div>
+</div>
+
+<!-- ==================== 复习 ==================== -->
+<div class="screen" id="screen-review">
+  <div class="wrap">
+    <div id="reviewQuiz"></div>
+  </div>
+</div>
+
+<!-- ==================== 生词本 ==================== -->
+<div class="screen" id="screen-book">
+  <div class="wrap">
+    <div class="settings-card" style="text-align:center">
+      <p style="color:var(--muted);font-size:14px;line-height:1.8">点击 📌 可从生词本移除。<br>答错或没记住的单词会自动加入生词本。</p>
+    </div>
+    <div id="bookList"></div>
+  </div>
+</div>
+
+<!-- ==================== 掌握情况 ==================== -->
+<div class="screen" id="screen-master">
+  <div class="wrap">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="mUnlearned">0</div><div class="lbl">未学习</div></div>
+      <div class="stat-card"><div class="num" id="mLearning">0</div><div class="lbl">学习中</div></div>
+      <div class="stat-card"><div class="num amber" id="mDue">0</div><div class="lbl">待复习</div></div>
+      <div class="stat-card"><div class="num green" id="mMastered">0</div><div class="lbl">已掌握</div></div>
+    </div>
+    <div class="settings-card">
+      <h3>按分类查看并重置</h3>
+      <div id="masterTabs"></div>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.7">
+        点击某个单词可重置它(回到未学习);<br>
+        点分类旁「重置全部」可清空该分类所有单词。
+      </p>
+    </div>
+    <div id="masterList"></div>
+  </div>
+</div>
+
+<!-- ==================== 学习记录 ==================== -->
+<div class="screen" id="screen-history">
+  <div class="wrap">
+    <div class="settings-card">
+      <h3>选择日期</h3>
+      <div id="historyDates"></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="hLearned">0</div><div class="lbl">新学</div></div>
+      <div class="stat-card"><div class="num green" id="hReviewed">0</div><div class="lbl">复习</div></div>
+      <div class="stat-card"><div class="num red" id="hWrongs">0</div><div class="lbl">答错</div></div>
+    </div>
+    <div id="historyDetail"></div>
+  </div>
+</div>
+
+<!-- ==================== 设置 ==================== -->
+<div class="screen" id="screen-settings">
+  <div class="wrap">
+    <div class="settings-card">
+      <h3>每日计划</h3>
+      <div class="set-row">
+        <label>每日新学单词</label>
+        <div class="set-ctrl">
+          <button onclick="adjSetting('dailyNew',-5)">−</button>
+          <span id="setNew">20</span>
+          <button onclick="adjSetting('dailyNew',5)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>每日复习单词</label>
+        <div class="set-ctrl">
+          <button onclick="adjSetting('dailyReview',-5)">−</button>
+          <span id="setReview">30</span>
+          <button onclick="adjSetting('dailyReview',5)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>数据管理（跨设备同步）</h3>
+      <p style="font-size:13px;color:var(--ink-soft);line-height:1.8;margin-bottom:12px">
+        电脑上学完，手机想接着学？<br>
+        在电脑上「导出进度」→ 把文件发到手机 → 手机上「导入进度」，学习记录、生词本、掌握情况就同步过来了。
+      </p>
+      <div style="display:flex;gap:10px">
+        <button class="data-btn" onclick="exportProgressFile()">⬇ 导出进度</button>
+        <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ 导入进度</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="handleImport(event)">
+      </div>
+      <p id="importMsg" style="font-size:13px;margin-top:10px;min-height:18px"></p>
+    </div>
+    <div class="settings-card">
+      <h3>关于</h3>
+      <p style="font-size:14px;color:var(--muted);line-height:1.8">
+        艾宾浩斯记忆曲线：1 / 2 / 4 / 7 / 15 天复习。<br>
+        连续答对升级，答错降级并进生词本。<br>
+        达到最高级后不再出现，即"完全记住"。<br>
+        数据保存在浏览器本地，换设备用「导入进度」同步。
+      </p>
+    </div>
+    <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
+  </div>
+</div>
+
+<!-- ==================== 重置确认弹窗 ==================== -->
+<div class="modal-mask" id="resetModal">
+  <div class="modal">
+    <h3 id="resetTitle">确认重置？</h3>
+    <p id="resetDesc">将清空全部学习进度、生词本和复习记录，所有 4543 个单词回到"未学习"状态。此操作不可恢复。</p>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeReset()">取消</button>
+      <button class="btn-danger" onclick="doReset()">确认重置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 分类重置确认 -->
+<div class="modal-mask" id="resetClassModal">
+  <div class="modal">
+    <h3 id="resetClassTitle">确认重置？</h3>
+    <p id="resetClassDesc"></p>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeResetClass()">取消</button>
+      <button class="btn-danger" onclick="doResetClass()">确认重置</button>
+    </div>
+  </div>
+</div>
+
+<script src="vocab-data.js"></script>
+<script src="app.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
