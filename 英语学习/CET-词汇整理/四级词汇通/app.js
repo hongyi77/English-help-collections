@@ -1,7 +1,7 @@
 /* ============================================================
  * 四级词汇通 - 核心学习逻辑
  * 功能：新学 / 复习(艾宾浩斯) / 生词本 / 统计
- * 双题型：汉译英、英译汉
+ * 题型：英译汉（看单词选释义）
  * 数据：localStorage 持久化，双击 index.html 即可使用
  * ============================================================ */
 
@@ -322,22 +322,11 @@ function noteWrong(word, addBook) {
   saveState();
 }
 
-/* ---------------- 出题（汉译英 / 英译汉 随机） ---------------- */
+/* ---------------- 出题（英译汉：看单词选释义） ---------------- */
 function makeQuestion(word) {
-  const chineseToEnglish = Math.random() < 0.5;
   // 干扰项：从词库随机抽 3 个不同的词
   const others = pickRandom(WORD_LIST.filter(w => w !== word), 3);
   const distractors = others.map(w => WORD_MAP.get(w));
-  const wordOptions = [word, ...others];
-
-  if (chineseToEnglish) {
-    return {
-      type: '汉译英',
-      prompt: WORD_MAP.get(word),
-      answer: word,
-      options: shuffle(wordOptions.map(w => ({ text: w, isAnswer: w === word }))),
-    };
-  }
   return {
     type: '英译汉',
     prompt: word,
@@ -355,4 +344,21 @@ function stats() {
   const due = dueWords().length;
   const unseen = total - seen;
   return { total, seen, mastered, inBook, due, unseen, learning: classCount('learning'), learnedToday: state.learnedToday.length, reviewedToday: state.reviewedToday.length };
+}
+
+/* ---------------- 每日目标 ---------------- */
+function goalInfo() {
+  const target = state.settings.dailyNew;
+  const learned = state.learnedToday.length;
+  const dueToday = dueWords().length;
+  const allDone = learned >= target && unseenWords().length === 0;
+  return {
+    target,
+    learned,
+    remaining: Math.max(0, target - learned),
+    done: learned >= target,
+    allDone,
+    dueToday,
+    reviewedToday: state.reviewedToday.length,
+  };
 }

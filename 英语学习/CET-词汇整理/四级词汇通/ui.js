@@ -42,7 +42,40 @@ function refreshHome() {
   const today = state.history && state.history[dateKey()];
   const cnt = today ? today.learned.length + today.reviewed.length : 0;
   document.getElementById('badgeHistory').textContent = cnt > 0 ? cnt + ' 词' : '今天';
+  renderGoalCard();
   updateResumeBanner();
+}
+
+function renderGoalCard() {
+  const g = goalInfo();
+  const d = new Date();
+  document.getElementById('goalDate').textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
+  const newNum = document.getElementById('goalNewNum');
+  const newBar = document.getElementById('goalNewBar');
+  const newStatus = document.getElementById('goalNewStatus');
+  newNum.textContent = `${Math.min(g.learned, g.target)}/${g.target}`;
+  const pct = Math.min(100, (g.learned / g.target) * 100);
+  newBar.style.width = pct + '%';
+  if (g.allDone) {
+    newStatus.textContent = '全部学完 🏆';
+    newStatus.className = 'goal-status done';
+  } else if (g.done) {
+    newStatus.textContent = '已完成 ✓';
+    newStatus.className = 'goal-status done';
+  } else {
+    newStatus.textContent = `还差 ${g.remaining} 个`;
+    newStatus.className = 'goal-status';
+  }
+  const revNum = document.getElementById('goalReviewNum');
+  const revStatus = document.getElementById('goalReviewStatus');
+  revNum.textContent = `${g.dueToday} 词`;
+  if (g.dueToday > 0) {
+    revStatus.textContent = '有到期复习';
+    revStatus.className = 'goal-status';
+  } else {
+    revStatus.textContent = '今日无待复习';
+    revStatus.className = 'goal-status';
+  }
 }
 
 /* 首页横幅：有未完成会话时显示 */
@@ -142,7 +175,7 @@ function setImportMsg(text, kind) {
  * 答题会话（学习 / 复习 共用）
  * ============================================================
  * 三段式流程（学习与复习逻辑一致）：
- *   1. 识别阶段：汉译英/英译汉 随机，逐词出题
+ *   1. 识别阶段：英译汉（看单词选释义），逐词出题
  *      答错/不会 → 不卡住，刷新下一个词，该词进入「错词池」
  *      （记几次错，延迟到本阶段收尾才重新出现，须再答对多次）
  *   2. 全部识别完后，询问是否进入拼写阶段（可拒绝）
@@ -230,8 +263,21 @@ function resumeSession() {
 }
 
 function startStudy() {
+  const g = goalInfo();
+  if (g.allDone) {
+    const el = document.getElementById('studyQuiz');
+    el.innerHTML = allLearnedHtml();
+    go('screen-study');
+    return;
+  }
+  if (g.done) {
+    const el = document.getElementById('studyQuiz');
+    el.innerHTML = goalDoneHtml();
+    go('screen-study');
+    return;
+  }
   const unseen = unseenWords();
-  const n = Math.min(state.settings.dailyNew, unseen.length);
+  const n = Math.min(g.remaining, unseen.length);
   const picked = pickRandom(unseen, n);
   const records = new Map();
   picked.forEach(w => records.set(w, makeRecord()));
@@ -248,6 +294,34 @@ function startStudy() {
   clearSessionSnapshot();
   go('screen-study');
   renderStudyRecognize();
+}
+
+function goalDoneHtml() {
+  const g = goalInfo();
+  return `
+    <div class="quiz-card session-done">
+      <div class="icon">🎯</div>
+      <h2>今日新学目标已完成！</h2>
+      <p>今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>坚持就是胜利，明天再来吧 🌙</p>
+      <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
+        <button class="next-btn" onclick="goHome()">回到首页</button>
+        <button class="btn-ghost" onclick="go('screen-settings')">调整每日目标，继续学习</button>
+      </div>
+    </div>
+  `;
+}
+
+function allLearnedHtml() {
+  return `
+    <div class="quiz-card session-done">
+      <div class="icon">🏆</div>
+      <h2>全部单词已学完！</h2>
+      <p>4543 个四级单词你已经全部学过了，太棒了！<br>去「掌握情况」看看你的成果吧。</p>
+      <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
+        <button class="next-btn" onclick="goHome()">回到首页</button>
+      </div>
+    </div>
+  `;
 }
 
 function startReview() {
@@ -292,20 +366,31 @@ function renderStudyRecognize() {
   }
 
   let word;
-  // 达到穿插间隔且还有错词 → 优先重现错词
-  if (retries.length && (session.sinceRetry || 0) >= RETRY_INTERVAL) {
-    word = retries[0];
-    session.sinceRetry = 0;
-  } else if (pending.length) {
-    word = pending[0];
-    session.sinceRetry = (session.sinceRetry || 0) + 1;
+  if (pending.length) {
+    // 有未学新词：学满 RETRY_INTERVAL 个后穿插重现一个错词
+    if (retries.length && (session.sinceRetry || 0) >= RETRY_INTERVAL) {
+      word = retries[0];
+      session.sinceRetry = 0;
+      rotateRetries();
+    } else {
+      word = pending[0];
+      session.sinceRetry = (session.sinceRetry || 0) + 1;
+    }
   } else {
-    // 新词学完，只剩错词 → 连续重现错词
+    // 新词学完只剩错词：轮转重现，避免同一个错词连续重复
     word = retries[0];
+    rotateRetries();
   }
   session.word = word;
   session.answered = false;
   renderRecognizeOne(word);
+}
+
+/* 轮转错词队列：把刚出题的错词移到队尾，让多个错词交替重现 */
+function rotateRetries() {
+  if (session.retries && session.retries.length > 1) {
+    session.retries.push(session.retries.shift());
+  }
 }
 
 function renderRecognizeOne(word) {
@@ -316,7 +401,7 @@ function renderRecognizeOne(word) {
   const rec = session.records.get(word) || makeRecord();
   const isRelearn = rec.errors > 0;
   const typeLabel = (isRelearn ? '重记' : session.mode === 'study' ? '学习' : '复习') + ' · ' + q.type;
-  const promptCls = q.type === '英译汉' ? 'quiz-prompt' : 'quiz-prompt small';
+  const promptCls = 'quiz-prompt';
   const optionsHtml = q.options.map((o, i) =>
     `<button class="opt" data-ans="${o.isAnswer}" onclick="recognizeAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
   ).join('');
@@ -354,8 +439,10 @@ function recognizeAnswer(idx, btnEl) {
     session.records.set(word, rec);
     const need = rec.errors > 0 ? RECOG_REQUIRED : 1;
     if (rec.corrects >= need) {
-      // 已达标 → 从待识别队列移除
+      // 已达标 → 从待识别队列移除，并在此刻正式提交学习/复习结果
       removeFromQueue(word);
+      if (session.mode === 'study') learnWord(word, true);
+      else reviewCorrect(word);
     }
     // 答对即刷新到下一个词，不停留
     saveSessionSnapshot();
@@ -372,6 +459,7 @@ function recognizeAnswer(idx, btnEl) {
   if (session.mode === 'study') noteWrong(word, false);
   else reviewWrong(word, false);
   addToRetries(word);
+  session.sinceRetry = 0;  // 答错后重新开始计数，避免错词紧跟重现
   saveSessionSnapshot();
   showWrongFeedback(word, session.q.options[idx].text);
 }
@@ -381,23 +469,15 @@ function showWrongFeedback(word, wrongText) {
   const fb = document.getElementById('feedbackZone');
   const inBook = state.words[word] && state.words[word].inBook;
   const def = WORD_MAP.get(word);
-  const type = session.q ? session.q.type : '';
 
-  // 选错选项的对应翻译提示
+  // 选错选项的对应翻译提示（英译汉：选项是中文释义 → 反查提示它的英文单词）
   let wrongHint = '';
   if (wrongText) {
-    if (type === '汉译英') {
-      // 选项是英文单词 → 提示它的中文意思
-      const wDef = WORD_MAP.get(wrongText);
-      if (wDef) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的意思是：${escapeHtml(wDef)}</div>`;
-    } else {
-      // 选项是中文释义 → 提示它的英文单词
-      let foundWord = null;
-      for (const [w, d] of WORD_MAP) {
-        if (d === wrongText) { foundWord = w; break; }
-      }
-      if (foundWord) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的英语是：${escapeHtml(foundWord)}</div>`;
+    let foundWord = null;
+    for (const [w, d] of WORD_MAP) {
+      if (d === wrongText) { foundWord = w; break; }
     }
+    if (foundWord) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的英语是：${escapeHtml(foundWord)}</div>`;
   }
 
   fb.innerHTML = `
@@ -447,6 +527,7 @@ function showAnswer() {
   if (session.mode === 'study') noteWrong(word, false);
   else reviewWrong(word, false);
   addToRetries(word);
+  session.sinceRetry = 0;  // 点「不会」同答错，重新开始穿插计数
   saveSessionSnapshot();
   showWrongFeedback(word);
 }
@@ -541,8 +622,7 @@ function checkSpell() {
     if (rec.spellCorrects >= SPELL_REQUIRED) {
       rec.done = true;
       session.records.set(word, rec);
-      if (session.mode === 'study') learnWord(word, true);
-      else reviewCorrect(word);
+      // 识别阶段已提交学习/复习结果，拼写是纯练习，不再重复提交
       saveSessionSnapshot();
       fbEl.innerHTML = `
         <div class="feedback good">
@@ -566,8 +646,7 @@ function checkSpell() {
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
-    if (session.mode === 'study') noteWrong(word, false);
-    else reviewWrong(word, false);
+    // 拼写是纯练习，不改学习状态（识别阶段已提交）
     saveSessionSnapshot();
     const inBook = state.words[word] && state.words[word].inBook;
     fbEl.innerHTML = `
@@ -612,6 +691,10 @@ function doneHtml() {
   const mode = session.mode === 'study' ? '学习' : '复习';
   const total = session.queue.length;
   const hardCount = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
+  const g = goalInfo();
+  const goalNote = session.mode === 'study' && g.done
+    ? `<p class="goal-done-note">🎯 今日新学目标 ${g.target} 个已达成！明天继续坚持，复习会在明天自动出现。</p>`
+    : '';
   const list = session.queue.map(w => {
     const rec = session.records.get(w) || {};
     const hard = rec.errors > 0;
@@ -627,6 +710,7 @@ function doneHtml() {
         <div class="icon">🎉</div>
         <h2>${mode}完成！</h2>
         <p>共 ${total} 词 · 答对 ${session.correct} · 答错 ${session.wrong} · ${hardCount} 个反复记忆</p>
+        ${goalNote}
       </div>
       <div style="margin-top:18px">
         <h3 style="font-family:var(--serif);font-size:16px;color:var(--ink-blue);margin-bottom:10px">本次${mode}单词（${total}）</h3>

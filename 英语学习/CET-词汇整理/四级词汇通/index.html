@@ -107,6 +107,22 @@
   .stat-card .num.amber { color: var(--amber); }
   .stat-card .num.red { color: var(--pen-red); }
 
+  /* ---------- 今日目标卡片 ---------- */
+  .goal-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 16px 14px; margin-bottom: 16px; }
+  .goal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .goal-title { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); letter-spacing: .5px; }
+  .goal-date { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+  .goal-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .goal-ico { width: 34px; height: 34px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; background: var(--blue-soft); }
+  .goal-ico.rev { background: var(--amber-soft); }
+  .goal-info { flex: 1; min-width: 0; }
+  .goal-label { font-size: 14px; color: var(--ink); }
+  .goal-num { font-family: var(--serif); font-weight: 700; color: var(--ink-blue); }
+  .goal-bar { height: 6px; border-radius: 999px; background: var(--paper); overflow: hidden; margin-top: 6px; }
+  .goal-bar-in { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--ink-blue), var(--amber)); transition: width .4s ease; }
+  .goal-status { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+  .goal-status.done { color: var(--green); font-weight: 600; }
+
   /* ---------- 首页 · 功能清单 ---------- */
   .action-list {
     background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
@@ -235,6 +251,7 @@
   .session-done .icon { font-size: 46px; margin-bottom: 12px; }
   .session-done h2 { font-family: var(--serif); font-size: 24px; margin-bottom: 8px; color: var(--ink); }
   .session-done p { color: var(--ink-soft); margin-bottom: 24px; }
+  .goal-done-note { color: var(--green); font-weight: 600; margin: -10px auto 16px; padding: 10px 14px; background: var(--green-soft); border-radius: 10px; display: inline-block; }
 
   /* ---------- 生词本 / 列表 ---------- */
   .list-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 10px; }
@@ -293,13 +310,34 @@
       </div>
       <div class="hero-eyebrow">CET-4 · 4543 WORDS</div>
       <h1>四级词汇通</h1>
-      <div class="hero-sub">艾宾浩斯记忆曲线 · 汉译英 / 英译汉 · 生词本</div>
+      <div class="hero-sub">艾宾浩斯记忆曲线 · 英译汉 · 生词本</div>
     </div>
     <div class="stats-grid">
       <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
       <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
       <div class="stat-card"><div class="num amber" id="statDue">0</div><div class="lbl">待复习</div></div>
       <div class="stat-card"><div class="num" id="statUnseen">0</div><div class="lbl">未学习</div></div>
+    </div>
+    <div class="goal-card">
+      <div class="goal-head">
+        <span class="goal-title">今日目标</span>
+        <span class="goal-date" id="goalDate"></span>
+      </div>
+      <div class="goal-row">
+        <span class="goal-ico">📖</span>
+        <div class="goal-info">
+          <div class="goal-label">新学 <span class="goal-num" id="goalNewNum">0/20</span></div>
+          <div class="goal-bar"><div class="goal-bar-in" id="goalNewBar"></div></div>
+        </div>
+        <span class="goal-status" id="goalNewStatus">还差 20 个</span>
+      </div>
+      <div class="goal-row">
+        <span class="goal-ico rev">🔁</span>
+        <div class="goal-info">
+          <div class="goal-label">复习 <span class="goal-num" id="goalReviewNum">0 词</span></div>
+        </div>
+        <span class="goal-status" id="goalReviewStatus">今日无待复习</span>
+      </div>
     </div>
     <div class="resume-banner" id="resumeBanner" style="display:none">
       <div>
