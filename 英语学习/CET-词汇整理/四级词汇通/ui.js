@@ -216,6 +216,12 @@ function exportProgressFile() {
 function handleImport(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
+  // 安全限制:进度文件最大 10MB,拒绝异常巨大的文件
+  if (file.size > 10 * 1024 * 1024) {
+    setImportMsg('❌ 文件超过 10MB，不是有效的进度文件', 'err');
+    event.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = () => {
     try {

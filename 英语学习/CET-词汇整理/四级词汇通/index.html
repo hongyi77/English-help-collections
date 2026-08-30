@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>英语词汇通</title>
+<!-- 安全加固:CSP 限制脚本只能来自本站(禁内联/外站脚本注入)、禁止插件/iframe 嵌入、http 自动升级 https -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <!-- PWA:添加到主屏幕后独立窗口运行,sw.js 提供离线缓存(需 https 或 localhost) -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F6F0E4">
@@ -11,18 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="英语词汇通">
-<script>
-/* Service Worker 注册:仅 https/localhost 下可用;file:// 打开的手机单文件版自动跳过 */
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-  const secure = location.protocol === 'https:' ||
-    location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!secure) return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-})();
-</script>
+<script src="pwa-register.js" defer></script>
 <style>
   :root {
     --paper: #F6F0E4;

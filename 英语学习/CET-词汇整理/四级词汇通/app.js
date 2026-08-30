@@ -174,6 +174,22 @@ function wordInAnyLib(w) {
   return Object.keys(LIB_WORD_SETS).some(k => LIB_WORD_SETS[k].has(w));
 }
 
+/* 导入文件的单词记录消毒:只接受预期字段和类型,防止恶意文件注入异常数据 */
+function sanitizeWordRecord(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const stage = Math.max(0, Math.min(STAGE_MASTERED, Math.floor(num(r.stage))));
+  return {
+    stage,
+    // 已掌握词 due 恒为 Infinity(JSON 序列化成 null),其余用数值
+    due: stage >= STAGE_MASTERED ? Infinity : num(r.due),
+    right: num(r.right),
+    wrong: num(r.wrong),
+    inBook: r.inBook === true,
+    created: num(r.created) || Date.now(),
+  };
+}
+
 // 合并导入的数据；返回本次实际导入的单词数
 // v2 存档按词库合并；v1 旧档（扁平 state.words）当作四级词库处理
 function importProgress(json) {
@@ -189,15 +205,17 @@ function importProgress(json) {
   for (const k of Object.keys(incLibs)) {
     if (!LIBS[k]) continue;   // 本地没有这个词库（版本过旧），跳过
     const incWords = incLibs[k].words || {};
+    if (typeof incWords !== 'object') continue;
     if (!state.libs[k]) state.libs[k] = { words: {} };
     if (!state.libs[k].words) state.libs[k].words = {};
     const localWords = state.libs[k].words;
     for (const w of Object.keys(incWords)) {
       if (!LIB_WORD_SETS[k].has(w)) continue;   // 过滤该词库不存在的词
-      if (!localWords[w]) {                     // 本地没有 → 直接导入
-        localWords[w] = incWords[w];
-        importedCount++;
-      }
+      if (localWords[w]) continue;              // 本地已有 → 不覆盖
+      const rec = sanitizeWordRecord(incWords[w]);
+      if (!rec) continue;                       // 记录形状不对 → 丢弃
+      localWords[w] = rec;
+      importedCount++;
     }
   }
   // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准
@@ -217,6 +235,8 @@ function importProgress(json) {
       for (const cat of ['learned', 'reviewed', 'wrongs']) {
         const list = incoming.history[day][cat] || [];
         for (const w of list) {
+          // 只接受真实单词字符串,拒绝超长垃圾项
+          if (typeof w !== 'string' || w.length > 64) continue;
           if (wordInAnyLib(w) && !state.history[day][cat].includes(w)) state.history[day][cat].push(w);
         }
       }
