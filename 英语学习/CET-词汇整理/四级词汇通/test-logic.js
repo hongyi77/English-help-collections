@@ -20,6 +20,7 @@ function dummyEl(id) {
   return {
     id, innerHTML: '', textContent: '', value: '', style: {}, dataset: {},
     classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+    closest: () => null,
     addEventListener() {}, removeEventListener() {}, focus() {}, click() {},
     appendChild() {}, removeChild() {}, setAttribute() {},
     querySelectorAll: () => [], querySelector: () => null,
@@ -58,6 +59,7 @@ const dir = __dirname;
 vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-data.js'), 'utf8'), sandbox);
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-libs.js'), 'utf8'), sandbox); } catch (e) { /* 扩展词库缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-extra.js'), 'utf8'), sandbox); } catch (e) { /* 巧记数据缺失不阻塞基础测试 */ }
+try { vm.runInContext(fs.readFileSync(path.join(dir, 'icons.js'), 'utf8'), sandbox); } catch (e) { /* 图标数据缺失不阻塞基础测试 */ }
 vm.runInContext(fs.readFileSync(path.join(dir, 'app.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(dir, 'ui.js'), 'utf8'), sandbox);
 
@@ -370,7 +372,7 @@ console.log('\n[15] 巧记：数据接入、答错反馈、列表查看');
   fbZone.innerHTML = '';
   g(`showWrongFeedback('negotiate', null)`);
   ok(!fbZone.innerHTML.includes('wp-sep'), '答错对照为叠层布局（无 / 分隔符）');
-  ok(fbZone.innerHTML.includes('wrong-memo') && fbZone.innerHTML.includes('💡'), '答错反馈显示巧记');
+  ok(fbZone.innerHTML.includes('wrong-memo') && fbZone.innerHTML.includes('<svg'), '答错反馈显示巧记(svg 图标)');
   // 简单词答错不显示巧记行
   fbZone.innerHTML = '';
   g(`showWrongFeedback('hello', null)`);

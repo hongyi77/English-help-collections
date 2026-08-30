@@ -8,7 +8,7 @@ const path = require('path');
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'index.html');
 const OUT = path.join(ROOT, '英语词汇通_手机版.html');
-const FILES = ['vocab-data.js', 'vocab-libs.js', 'vocab-extra.js', 'app.js', 'ui.js', 'pwa-register.js'];
+const FILES = ['vocab-data.js', 'vocab-libs.js', 'vocab-extra.js', 'icons.js', 'app.js', 'ui.js', 'pwa-register.js'];
 
 let html = fs.readFileSync(SRC, 'utf8');
 

@@ -368,15 +368,59 @@
   .dict-search-wrap { position: sticky; top: 54px; z-index: 5; margin: -2px -16px 0; padding: 4px 16px 8px; background: var(--paper); }
   .dict-hint { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; }
   .dict-lib { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--ink-blue); white-space: nowrap; flex: none; }
-  .list-speak { background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; opacity: .75; }
+  .list-speak { background: none; border: none; cursor: pointer; padding: 4px; opacity: .75; }
   .list-speak:active { opacity: 1; transform: scale(.9); }
   .list-del.in-book { color: var(--green); }
+
+  /* ---------- 答题卡紧凑化(手机一屏) ---------- */
+  .quiz-card { padding: 18px 16px 16px; }
+  .quiz-prompt { font-size: 26px; margin: 12px 0 6px; }
+  .quiz-prompt.small { font-size: 21px; }
+  .options { gap: 8px; margin-top: 12px; }
+  .opt { padding: 12px; font-size: 14.5px; }
+  .show-ans-wrap { margin-top: 10px; }
+  .feedback { margin-top: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
+  .wrong-pair { margin-top: 8px; }
+  .wrong-pair .wp-ans { font-size: 21px; display: inline; margin-right: 10px; }
+  .wrong-pair .wp-def { display: inline; font-size: 14px; }
+  .wrong-memo, .wrong-hint { font-size: 13px; padding: 6px 10px; margin-top: 8px; }
+  .fb-title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .feedback.good .fb-title { color: var(--green); }
+  .feedback.bad .fb-title { color: var(--pen-red); }
+  /* 答错出反馈后隐藏选项区(正确答案已在反馈里),避免页面超高 */
+  .quiz-card.with-ans .options, .quiz-card.with-ans .show-ans-wrap, .quiz-card.with-ans .spell-input-wrap { display: none; }
+  .spell-input { font-size: 17px; }
+  .spell-input-wrap { margin-top: 12px; }
+  .session-done { padding: 28px 0; }
+  .done-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .done-list .list-card { margin-bottom: 0; }
+  .done-list .list-item { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
+  .done-list .list-word { font-size: 14.5px; min-width: 70px; }
+  .done-list .list-def { font-size: 11px; }
+
+  /* ---------- Lucide 图标 ---------- */
+  svg.ic { width: 1.1em; height: 1.1em; vertical-align: -0.15em; flex: none; }
+  .tabbar .tab-ico svg { width: 22px; height: 22px; }
+  .ba-ico svg { width: 24px; height: 24px; }
+  .goal-ico svg { width: 19px; height: 19px; }
+  .topbar .back svg { width: 26px; height: 26px; }
+  .speak-btn svg, .list-speak svg { width: 17px; height: 17px; }
+  .list-memo-btn svg { width: 15px; height: 15px; }
+  .list-del svg { width: 16px; height: 16px; }
+  .rb-title svg { width: 15px; height: 15px; }
+  .seg-tabs svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
+  .session-done .icon svg { width: 44px; height: 44px; color: var(--ink-blue); }
+  .fb-title svg { width: 18px; height: 18px; }
+  .next-btn svg { width: 16px; height: 16px; }
+  .show-ans-btn svg { width: 15px; height: 15px; }
+  .book-toggle svg { width: 15px; height: 15px; }
+  .master-tab svg { width: 14px; height: 14px; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <button class="back" id="topBack" onclick="goHome()" style="display:none">‹</button>
+  <button class="back" id="topBack" onclick="goHome()" style="display:none" title="返回"><span data-icon="chevron-left"></span></button>
   <span id="topTitle">英语词汇通</span>
   <span class="sub" id="topSub"></span>
 </div>
@@ -386,7 +430,7 @@
   <div class="wrap">
     <div class="resume-banner" id="resumeBanner" style="display:none">
       <div>
-        <div class="rb-title">⏳ 有未完成的学习</div>
+        <div class="rb-title"><span data-icon="hourglass"></span> 有未完成的学习</div>
         <div class="rb-sub" id="resumeInfo"></div>
       </div>
       <button class="rb-btn" onclick="resumeSession()">继续</button>
@@ -404,7 +448,7 @@
         <span class="goal-date" id="goalDate"></span>
       </div>
       <div class="goal-row">
-        <span class="goal-ico">📖</span>
+        <span class="goal-ico" data-icon="book-open"></span>
         <div class="goal-info">
           <div class="goal-label">新学 <span class="goal-num" id="goalNewNum">0/20</span></div>
           <div class="goal-bar"><div class="goal-bar-in" id="goalNewBar"></div></div>
@@ -412,7 +456,7 @@
         <span class="goal-status" id="goalNewStatus">还差 20 个</span>
       </div>
       <div class="goal-row">
-        <span class="goal-ico rev">🔁</span>
+        <span class="goal-ico rev" data-icon="repeat"></span>
         <div class="goal-info">
           <div class="goal-label">复习 <span class="goal-num" id="goalReviewNum">0 词</span></div>
           <div class="goal-bar"><div class="goal-bar-in" id="goalReviewBar"></div></div>
@@ -422,12 +466,12 @@
     </div>
     <div class="study-actions">
       <button class="big-action primary" onclick="startStudy()">
-        <span class="ba-ico">📖</span>
+        <span class="ba-ico" data-icon="book-open"></span>
         <span class="ba-txt"><b>学习新词</b><i>未学单词随机抽选</i></span>
         <span class="badge new" id="badgeNew">0</span>
       </button>
       <button class="big-action rev" onclick="startReview()">
-        <span class="ba-ico">🔁</span>
+        <span class="ba-ico" data-icon="repeat"></span>
         <span class="ba-txt"><b>复习单词</b><i>到期单词按记忆曲线重现</i></span>
         <span class="badge rev" id="badgeReview">0</span>
       </button>
@@ -453,9 +497,9 @@
 <div class="screen tabbed" id="screen-vocab">
   <div class="wrap">
     <div class="seg-tabs" id="vocabSegs">
-      <button class="active" data-seg="book" onclick="setVocabSeg('book')">📌 生词本</button>
-      <button data-seg="master" onclick="setVocabSeg('master')">📊 掌握情况</button>
-      <button data-seg="history" onclick="setVocabSeg('history')">📅 学习记录</button>
+      <button class="active" data-seg="book" onclick="setVocabSeg('book')"><span data-icon="bookmark"></span>生词本</button>
+      <button data-seg="master" onclick="setVocabSeg('master')"><span data-icon="chart-column"></span>掌握情况</button>
+      <button data-seg="history" onclick="setVocabSeg('history')"><span data-icon="calendar-days"></span>学习记录</button>
     </div>
   </div>
   <div class="wrap" id="seg-book" style="padding-top:0">
@@ -498,7 +542,7 @@
     <div class="dict-search-wrap">
       <input id="dictInput" class="master-search" placeholder="查单词或释义…" oninput="onDictInput(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
-    <p class="dict-hint" id="dictHint">跨全部词库查询 · 点 🔊 听发音</p>
+    <p class="dict-hint" id="dictHint">跨全部词库查询 · 点小喇叭听发音</p>
     <div id="dictList"></div>
   </div>
 </div>
@@ -543,8 +587,8 @@
         在电脑上「导出进度」→ 把文件发到手机 → 手机上「导入进度」，学习记录、生词本、掌握情况就同步过来了。
       </p>
       <div style="display:flex;gap:10px">
-        <button class="data-btn" onclick="exportProgressFile()">⬇ 导出进度</button>
-        <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆ 导入进度</button>
+        <button class="data-btn" onclick="exportProgressFile()"><span data-icon="arrow-right" style="display:inline-block;transform:rotate(90deg)"></span> 导出进度</button>
+        <button class="data-btn" onclick="document.getElementById('importFile').click()"><span data-icon="arrow-right" style="display:inline-block;transform:rotate(-90deg)"></span> 导入进度</button>
         <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="handleImport(event)">
       </div>
       <p id="importMsg" style="font-size:13px;margin-top:10px;min-height:18px"></p>
@@ -564,10 +608,10 @@
 
 <!-- ==================== 底部导航 ==================== -->
 <nav class="tabbar" id="tabbar">
-  <button class="active" data-tab="screen-home" onclick="go('screen-home')"><span class="tab-ico">📖</span>学习<span class="tab-badge" id="tabBadgeStudy" style="display:none"></span></button>
-  <button data-tab="screen-vocab" onclick="go('screen-vocab')"><span class="tab-ico">📚</span>词汇<span class="tab-badge" id="tabBadgeBook" style="display:none"></span></button>
-  <button data-tab="screen-dict" onclick="go('screen-dict')"><span class="tab-ico">🔍</span>词典</button>
-  <button data-tab="screen-settings" onclick="go('screen-settings')"><span class="tab-ico">⚙️</span>设置</button>
+  <button class="active" data-tab="screen-home" onclick="go('screen-home')"><span class="tab-ico" data-icon="book-open"></span>学习<span class="tab-badge" id="tabBadgeStudy" style="display:none"></span></button>
+  <button data-tab="screen-vocab" onclick="go('screen-vocab')"><span class="tab-ico" data-icon="bookmark"></span>词汇<span class="tab-badge" id="tabBadgeBook" style="display:none"></span></button>
+  <button data-tab="screen-dict" onclick="go('screen-dict')"><span class="tab-ico" data-icon="search"></span>词典</button>
+  <button data-tab="screen-settings" onclick="go('screen-settings')"><span class="tab-ico" data-icon="settings"></span>设置</button>
 </nav>
 
 <!-- 词库切换确认 -->
@@ -609,6 +653,7 @@
 <script src="vocab-data.js"></script>
 <script src="vocab-libs.js"></script>
 <script src="vocab-extra.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 <script src="ui.js"></script>
 </body>

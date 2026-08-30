@@ -69,7 +69,7 @@ function renderGoalCard() {
   const pct = Math.min(100, (g.learned / g.target) * 100);
   newBar.style.width = pct + '%';
   if (g.allDone) {
-    newStatus.textContent = '全部学完 🏆';
+    newStatus.textContent = '全部学完';
     newStatus.className = 'goal-status done';
   } else if (g.done) {
     newStatus.textContent = '已完成 ✓';
@@ -184,7 +184,7 @@ function renderDictResults() {
   if (input && input.value !== dictQ) input.value = dictQ;
   if (!q) {
     el.innerHTML = '';
-    hint.textContent = '跨全部词库查询 · 点 🔊 听发音';
+    hint.textContent = '跨全部词库查询 · 点小喇叭听发音';
     return;
   }
   // 全词库顺序扫描(约1.6万词,毫秒级);同一单词只保留最先命中的词库
@@ -219,9 +219,9 @@ function renderDictResults() {
       <span class="list-word">${escapeHtml(r.w)}</span>
       <span class="dict-lib">${escapeHtml(libTag)}</span>
       <span class="list-def">${escapeHtml(r.def)}</span>
-      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">💡</button>` : ''}
-      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(r.w)}')">🔊</button>
-      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? '✓' : '📌'}</button>` : ''}
+      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(r.w)}')">${icon('volume-2')}</button>
+      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? icon('bookmark-check') : icon('bookmark-plus')}</button>` : ''}
     </div></div>`;
   }).join('');
 }
@@ -474,7 +474,7 @@ function goalDoneHtml() {
   const g = goalInfo();
   return `
     <div class="quiz-card session-done">
-      <div class="icon">🎯</div>
+      <div class="icon">${icon("target")}</div>
       <h2>今日新学目标已完成！</h2>
       <p>今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>坚持就是胜利，明天再来吧 🌙</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
@@ -488,7 +488,7 @@ function goalDoneHtml() {
 function allLearnedHtml() {
   return `
     <div class="quiz-card session-done">
-      <div class="icon">🏆</div>
+      <div class="icon">${icon("trophy")}</div>
       <h2>全部单词已学完！</h2>
       <p>当前词库 ${WORD_LIST.length} 个单词你已经全部学过了，太棒了！<br>去「掌握情况」看看你的成果吧。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
@@ -530,7 +530,7 @@ function noReviewHtml() {
   const g = goalInfo();
   return `
     <div class="quiz-card session-done">
-      <div class="icon">☕</div>
+      <div class="icon">${icon("coffee")}</div>
       <h2>暂无到期复习</h2>
       <p>今天没有待复习的单词。<br>新学的词会从明天起按记忆曲线陆续到期（今日已复习 ${g.reviewedToday} 词）。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
@@ -598,7 +598,7 @@ function renderRecognizeOne(word) {
   const isRelearn = rec.errors > 0;
   const typeLabel = (isRelearn ? '重记' : session.mode === 'study' ? '学习' : '复习') + ' · ' + q.type;
   const promptCls = 'quiz-prompt';
-  const speakBtn = ttsSupported() ? '<button class="speak-btn" title="发音" onclick="speakCurrent()">🔊</button>' : '';
+  const speakBtn = ttsSupported() ? `<button class="speak-btn" title="发音" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
   const optionsHtml = q.options.map((o, i) =>
     `<button class="opt" data-ans="${o.isAnswer}" onclick="recognizeAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
   ).join('');
@@ -611,7 +611,7 @@ function renderRecognizeOne(word) {
       <div class="options">${optionsHtml}</div>
       ${retryNote}
       <div class="show-ans-wrap">
-        <button class="show-ans-btn" onclick="showAnswer()">🙋 不会，看答案</button>
+        <button class="show-ans-btn" onclick="showAnswer()">${icon('eye')} 不会，看答案</button>
       </div>
       <div id="feedbackZone"></div>
     </div>
@@ -733,19 +733,21 @@ function showWrongFeedback(word, wrongText) {
     if (foundWord) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的英语是：${escapeHtml(foundWord)}</div>`;
   }
 
+  const card = fb.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
   fb.innerHTML = `
     <div class="feedback bad">
-      <div>❌ 答错了，稍后会再考你</div>
+      <div class="fb-title">${icon('circle-x')} 答错了，稍后会再考你</div>
       <div class="wrong-pair">
         <span class="wp-ans">${escapeHtml(word)}</span>
         <span class="wp-def">${escapeHtml(def)}</span>
       </div>
       ${wrongHint}
-      ${memoOf(word) ? `<div class="wrong-memo">💡 ${escapeHtml(memoOf(word))}</div>` : ''}
+      ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
     </div>
     <div class="wrong-actions">
       <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-        ${inBook ? '✓ 已在生词本' : '📌 加入生词本'}
+        ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
       </button>
       <button class="next-btn" onclick="advanceAfterWrong()">下一个 →</button>
     </div>
@@ -758,7 +760,7 @@ function toggleWrongBook(word) {
   const inBook = curWords()[word] && curWords()[word].inBook;
   const b = document.getElementById('wrongBookBtn');
   if (b) {
-    b.textContent = inBook ? '✓ 已在生词本' : '📌 加入生词本';
+    b.innerHTML = inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本';
     b.classList.toggle('in-book', inBook);
   }
 }
@@ -805,12 +807,12 @@ function spellAskHtml() {
   const btn = session.mode === 'study' ? '开始拼写' : '开始拼写';
   return `
     <div class="quiz-card session-done">
-      <div class="icon">✍️</div>
+      <div class="icon">${icon("keyboard")}</div>
       <h2>识别完成！</h2>
       <p>共 ${total} 词 · 答错 ${session.wrong} · ${hard} 个需重记</p>
       <p style="margin-top:6px;font-size:14px;color:var(--ink-soft)">要不要基于刚才的单词练习拼写？可跳过。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
-        <button class="next-btn" onclick="startSpellStage()">✍️ ${btn}</button>
+        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} ${btn}</button>
         <button class="btn-ghost" onclick="finishSession()">跳过，直接完成</button>
       </div>
     </div>
@@ -860,7 +862,7 @@ function renderSpellStage() {
       <div class="quiz-prompt small">${escapeHtml(hint)}</div>
       <div class="spell-input-wrap">
         <input type="text" id="spellInput" class="spell-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入英文单词">
-        <button class="spell-check" onclick="checkSpell()">✓ 提交</button>
+        <button class="spell-check" onclick="checkSpell()">${icon('check')} 提交</button>
       </div>
       <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}</div>
       <div id="spellFeedback"></div>
@@ -906,18 +908,22 @@ function checkSpell() {
       // 识别阶段已提交学习/复习结果，拼写是纯练习，不再重复提交
       saveSessionSnapshot();
       if (state.settings.autoSpeak) speakWord(word);
+      const card = fbEl.closest('.quiz-card');
+      if (card) card.classList.add('with-ans');
       fbEl.innerHTML = `
         <div class="feedback good">
-          <div>✅ 拼写正确！</div>
+          <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
           <div class="ans-word">${escapeHtml(word)}</div>
         </div>
         <button class="next-btn" onclick="nextSpell()">下一个 →</button>
       `;
     } else {
+      const card = fbEl.closest('.quiz-card');
+      if (card) card.classList.add('with-ans');
       saveSessionSnapshot();
       fbEl.innerHTML = `
         <div class="feedback good">
-          <div>✅ 拼写正确！再写一次加深记忆</div>
+          <div class="fb-title">${icon('circle-check')} 拼写正确！再写一次加深记忆</div>
           <div class="ans-word">${escapeHtml(word)}</div>
         </div>
         <button class="next-btn" onclick="nextSpell()">下一个 →</button>
@@ -935,9 +941,11 @@ function checkSpell() {
     session.sinceSpellRetry = 0;  // 答错后重新计数，避免错词紧跟重现
     saveSessionSnapshot();
     const inBook = curWords()[word] && curWords()[word].inBook;
+    const card = fbEl.closest('.quiz-card');
+    if (card) card.classList.add('with-ans');
     fbEl.innerHTML = `
       <div class="feedback bad">
-        <div>❌ 拼错了，稍后会再考你</div>
+        <div class="fb-title">${icon('circle-x')} 拼错了，稍后会再考你</div>
         <div class="wrong-pair">
           <span class="wp-ans">${escapeHtml(word)}</span>
           <span class="wp-def">${escapeHtml(WORD_MAP.get(word))}</span>
@@ -994,7 +1002,7 @@ function doneHtml() {
   const hardCount = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const g = goalInfo();
   const goalNote = session.mode === 'study' && g.done
-    ? `<p class="goal-done-note">🎯 今日新学目标 ${g.target} 个已达成！明天继续坚持，复习会在明天自动出现。</p>`
+    ? `<p class="goal-done-note">${icon('target')} 今日新学目标 ${g.target} 个已达成！明天继续坚持，复习会在明天自动出现。</p>`
     : '';
   const list = session.queue.map(w => {
     const rec = session.records.get(w) || {};
@@ -1008,7 +1016,7 @@ function doneHtml() {
   return `
     <div class="quiz-card session-done" style="text-align:left">
       <div style="text-align:center">
-        <div class="icon">🎉</div>
+        <div class="icon">${icon("party-popper")}</div>
         <h2>${mode}完成！</h2>
         <p>共 ${total} 词 · 答对 ${session.correct} · 答错 ${session.wrong} · ${hardCount} 个反复记忆</p>
         ${goalNote}
@@ -1047,8 +1055,8 @@ function renderBook() {
     `<div class="list-card"><div class="list-item">
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">💡</button>` : ''}
-      <button class="list-del" onclick="removeFromBook('${escapeAttr(w)}')">📌</button>
+      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-del" title="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
     </div></div>`
   ).join('');
 }
@@ -1134,8 +1142,8 @@ function renderMasterList() {
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
       <span class="ms-badge ${badgeCls}">${st.label}</span>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">💡</button>` : ''}
-      <button class="list-del" title="重置此单词" onclick="confirmResetWord('${escapeAttr(w)}')">⟳</button>
+      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-del" title="重置此单词" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
     </div></div>`;
   }).join('');
 
@@ -1238,6 +1246,19 @@ function renderHistoryDetail(rec) {
         ? `<div class="empty-tip">${dayLabel}没有学习活动</div>` : '');
 }
 
+/* ---------------- 图标 ----------------
+ * icons.js 的 ICONS(Lucide SVG,stroke=currentColor 随 CSS 变色)
+ * icon(name) 返回加 class="ic" 的 svg 字符串;静态 HTML 用 data-icon + renderIcons() 填充
+ */
+function icon(name) {
+  const svg = (typeof ICONS !== 'undefined' && ICONS[name]) || '';
+  return svg ? svg.replace('<svg ', '<svg class="ic" ') : '';
+}
+
+function renderIcons() {
+  document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
+}
+
 /* ---------------- 工具 ---------------- */
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1275,5 +1296,6 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------------- 初始化 ---------------- */
+renderIcons();
 refreshHome();
 refreshSettings();

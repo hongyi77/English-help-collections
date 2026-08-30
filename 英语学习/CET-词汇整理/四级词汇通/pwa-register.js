@@ -8,6 +8,7 @@
     location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   if (!secure) return;
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
+    navigator.serviceWorker.register('sw.js?v=6').catch(() => {});
   });
 })();
