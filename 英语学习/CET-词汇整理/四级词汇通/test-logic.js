@@ -671,6 +671,65 @@ console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
   ok(!g(`speakableDef('${nounW}')`).startsWith('adj.'), 'adj. 前缀同样被剥离');
   const bareW = g(`WORD_LIST.find(w => !posOf(WORD_MAP.get(w)))`);
   ok(g(`speakableDef('${bareW}')`) === g(`WORD_MAP.get('${bareW}')`).trim(), '无词性前缀的释义原样朗读');
+  // 多词性释义:每个词性标记都被剥离(underneath 类)
+  const multiPosW = g(`WORD_LIST.find(w => (WORD_MAP.get(w).match(/(adj\.|adv\.|n\.|v\.|prep\.|int\.)\s/g) || []).length >= 2)`);
+  if (multiPosW) {
+    const sp = g(`speakableDef('${multiPosW}')`);
+    ok(!/(adj\.|adv\.|n\.|v\.|vt\.|vi\.|prep\.|conj\.|pron\.|int\.|num\.|art\.|abbr\.)/.test(sp), `多词性释义全部剥离词性（「${multiPosW}」→「${sp.slice(0, 20)}…」）`);
+  }
+  /* ================= 23. 数量自定义 + 快照跨天失效 ================= */
+  console.log('\n[23] 数量自定义(1~词库上限)与快照跨天重置');
+  (() => {
+    g('state = defaultState(); saveState();');
+    g(`setPracticeCount('spell', 25)`);
+    ok(g('state.settings.spellCount') === 25, '数量可设任意值 25');
+    g(`setPracticeCount('spell', 0)`);
+    ok(g('state.settings.spellCount') === 1, '数量下限 1(0 归一)');
+    g(`setPracticeCount('spell', -7)`);
+    ok(g('state.settings.spellCount') === 1, '负数归一');
+    g(`setPracticeCount('spell', 999999)`);
+    ok(g('state.settings.spellCount') === g('WORD_LIST.length'), `数量上限为词库总词数（${g('WORD_LIST.length')}）`);
+    g(`setPracticeCount('dict', 3.9)`);
+    ok(g('state.settings.dictCount') === 3, '小数取整');
+    // 快照跨天失效:带旧日期的快照读不到且被清除
+    g('state = defaultState(); saveState(); startStudy(); saveSessionSnapshot();');
+    ok(g('loadSessionSnapshot()') !== null, '当天快照可恢复');
+    const rawSnap = JSON.parse(storage.get('cet4_session_snapshot_v1'));
+    rawSnap.day = '2000-01-01';
+    storage.set('cet4_session_snapshot_v1', JSON.stringify(rawSnap));
+    ok(g('loadSessionSnapshot()') === null, '跨天快照读不到(第二天重置)');
+    ok(storage.get('cet4_session_snapshot_v1') === undefined || storage.get('cet4_session_snapshot_v1') === null, '跨天快照已被清除');
+    // 新保存的快照带日期字段
+    g('startStudy(); saveSessionSnapshot();');
+    const snap2 = JSON.parse(storage.get('cet4_session_snapshot_v1'));
+    ok(snap2.day === g('dateKey()'), '快照带归属日期');
+    // 首页横幅已移除:无 resumeSession/updateResumeBanner 引用
+    ok(g('typeof resumeSession') === 'undefined' && g('typeof updateResumeBanner') === 'undefined', '断点续学横幅相关函数已移除');
+    /* ================= 24. 选词器:长按拖动连续选择 + 全选 ================= */
+    console.log('\n[24] 选词器:连续选择手势逻辑与全选');
+    (() => {
+      g('state = defaultState(); saveState();');
+      g(`pickerKind = 'spell'; pickerFilter = 'all'; pickerSearch = '';`);
+      // 连续选择:以"反向状态"应用同一目标(未选 → 全部设为选)
+      const rowStub = w => ({ dataset: { w }, classList: { toggle() {} }, querySelector: () => null });
+      sandbox.__rowStub = rowStub;   // 供沙箱内取桩
+      g(`pickerApplyRow(__rowStub('hello'), true)`);
+      ok(g(`state.settings.spellWords.includes('hello')`) === true, '连续选择把行设为目标状态(选中)');
+      g(`pickerApplyRow(__rowStub('hello'), true)`);
+      ok(g(`state.settings.spellWords.filter(w => w === 'hello').length`) === 1, '已是目标状态则不重复写');
+      g(`pickerApplyRow(__rowStub('hello'), false)`);
+      ok(g(`state.settings.spellWords.includes('hello')`) === false, '目标为取消时取消选中');
+      // 手势状态与辅助函数存在
+      ok(g('typeof attachPickerGestures') === 'function' && g('typeof pickerApplyRow') === 'function', '手势挂载与应用函数已接入');
+      // 全选当前筛选结果
+      g(`setPickerFilter('all')`);
+      g(`pickerSelectAll()`);
+      ok(g('state.settings.spellWords.length') === g('WORD_LIST.length'), `全选写入全部词表（${g('state.settings.spellWords.length')}）`);
+      ok(g('practicePicked("spell").length') === g('WORD_LIST.length'), '全选后按当前词库全部生效');
+      g('pickerClear()');
+      ok(g('state.settings.spellWords.length') === 0, '清空仍有效');
+    })();
+  })();
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);

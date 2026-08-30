@@ -62,12 +62,18 @@ function defInLib(lib, word) {
   return m ? (m.get(word) || '') : '';
 }
 
-/* 听写播报用的汉译:剥离词性前缀(int./n./adj. 等),只朗读中文释义本身 */
+/* 听写播报用的汉译:剥离全部词性标记(多词性释义如 "adv. 在下面 prep. 在..下面 n. 底部"
+ * 只读中文部分,避免 TTS 读出 "adv"/"prep"/"n" */
 function speakableDef(word) {
-  const def = WORD_MAP.get(word) || '';
-  const pos = posOf(def);
-  const rest = (pos ? def.slice(pos.length) : def).trim();
-  return rest || def.trim();
+  const raw = WORD_MAP.get(word) || '';
+  const def = raw
+    .replace(/(adj\.|adv\.|n\.|v\.|vt\.|vi\.|prep\.|conj\.|pron\.|int\.|num\.|art\.|abbr\.)/g, '，')
+    .replace(/[;；/]/g, '，')
+    .replace(/\s*，\s*/g, '，')
+    .replace(/，+/g, '，')
+    .replace(/^，|，$/g, '')
+    .trim();
+  return def || raw.trim();
 }
 
 let WORD_MAP = new Map();

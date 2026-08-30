@@ -355,6 +355,8 @@
   .big-action.primary { border-color: var(--ink-blue); }
   .ba-ico { width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: var(--blue-soft); }
   .big-action.rev .ba-ico { background: var(--amber-soft); }
+  .big-action.grn .ba-ico { background: var(--green-soft); }
+  .big-action .arrow { font-size: 22px; color: var(--ink-soft); }
   .ba-txt { flex: 1; display: flex; flex-direction: column; }
   .ba-txt b { font-size: 17px; color: var(--ink); }
   .ba-txt i { font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
@@ -405,6 +407,15 @@
   .cfg-chips .master-tab { margin: 0; }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
+  /* 练习数量输入(自由拼写/听写) */
+  .count-input {
+    width: 84px; padding: 9px 6px; border: 1px solid var(--hairline); border-radius: 9px;
+    background: var(--card); font-family: var(--serif); font-size: 17px; font-weight: 700;
+    color: var(--ink); text-align: center; outline: none;
+  }
+  .count-input:focus { border-color: var(--ink-blue); box-shadow: 0 0 0 3px rgba(31, 78, 121, .12); }
+  .count-input::-webkit-outer-spin-button, .count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .count-input { -moz-appearance: textfield; appearance: textfield; }
   .dict-status { text-align: center; font-family: var(--mono); font-size: 14px; color: var(--ink-blue); margin: 14px 0 2px; min-height: 20px; }
   .dict-def-line { text-align: center; font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 2px 0 6px; }
   /* 选词器(自选具体单词) */
@@ -414,21 +425,21 @@
   }
   .cfg-pick-btn:active { background: var(--blue-soft); }
   .cfg-pick-btn svg { width: 15px; height: 15px; vertical-align: -2px; }
-  .picker-row { cursor: pointer; }
+  .picker-row { cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .picker-row:active { background: var(--paper); }
   .picker-row .pick-check { flex: none; display: flex; align-items: center; }
   .picker-row .pick-check svg { width: 20px; height: 20px; color: var(--hairline); }
   .picker-row.picked .pick-check svg { color: var(--green); }
   .picker-row.picked .list-word { color: var(--ink-blue); }
   .picker-foot {
-    position: sticky; bottom: 0; z-index: 5; display: flex; gap: 10px; align-items: stretch;
+    position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; align-items: stretch;
     max-width: 600px; margin: 0 -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
     background: var(--paper); border-top: 1px solid var(--hairline);
   }
-  .picker-foot .btn-ghost { flex: 1; padding: 12px; border-radius: 12px; font-size: 15px; cursor: pointer; }
-  .picker-foot .next-btn { flex: 2; margin-top: 0; }
-  .picker-count { flex: none; align-self: center; font-size: 14px; color: var(--ink-soft); white-space: nowrap; }
-  .picker-count b { font-family: var(--serif); color: var(--ink-blue); font-size: 17px; }
+  .picker-foot .btn-ghost { flex: 1; padding: 12px 0; border-radius: 12px; font-size: 14px; cursor: pointer; }
+  .picker-foot .next-btn { flex: 1.4; margin-top: 0; }
+  .picker-count { flex: none; align-self: center; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .picker-count b { font-family: var(--serif); color: var(--ink-blue); font-size: 16px; }
   /* 错误选项点看标签（答错反馈内） */
   .def-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .def-chip {
@@ -474,14 +485,6 @@
 <!-- ==================== Tab1 · 学习 ==================== -->
 <div class="screen active tabbed" id="screen-home">
   <div class="wrap">
-    <div class="resume-banner" id="resumeBanner" style="display:none">
-      <div>
-        <div class="rb-title"><span data-icon="hourglass"></span> 有未完成的学习</div>
-        <div class="rb-sub" id="resumeInfo"></div>
-      </div>
-      <button class="rb-btn" onclick="resumeSession()">继续</button>
-      <button class="rb-discard" onclick="discardResume()">放弃</button>
-    </div>
     <div class="stats-grid">
       <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
       <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
@@ -521,16 +524,14 @@
         <span class="ba-txt"><b>复习单词</b><i>到期单词按记忆曲线重现</i></span>
         <span class="badge rev" id="badgeReview">0</span>
       </button>
-    </div>
-    <div class="action-list">
-      <button class="action-btn" onclick="go('screen-spell')">
-        <span class="action-ico ico-green" data-icon="pencil-line"></span>
-        <span class="action-txt"><b>自由拼写</b><i>自选范围和数量，看释义拼单词</i></span>
+      <button class="big-action grn" onclick="go('screen-spell')">
+        <span class="ba-ico" data-icon="pencil-line"></span>
+        <span class="ba-txt"><b>自由拼写</b><i>自选范围和数量，看释义拼单词</i></span>
         <span class="arrow">›</span>
       </button>
-      <button class="action-btn" id="dictationEntry" onclick="go('screen-dictate')">
-        <span class="action-ico ico-blue" data-icon="ear"></span>
-        <span class="action-txt"><b>听写</b><i>听音拼词，支持判分/自查、循环与语速</i></span>
+      <button class="big-action" id="dictationEntry" onclick="go('screen-dictate')">
+        <span class="ba-ico" data-icon="ear"></span>
+        <span class="ba-txt"><b>听写</b><i>听音拼词，支持判分/自查、循环与语速</i></span>
         <span class="arrow">›</span>
       </button>
     </div>

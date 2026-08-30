@@ -57,7 +57,6 @@ function refreshHome() {
   if (dictEntry) dictEntry.style.display = ttsSupported() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
-  updateResumeBanner();
 }
 
 function setTabBadge(id, n) {
@@ -110,23 +109,7 @@ function renderGoalCard() {
   }
 }
 
-/* 首页横幅：有未完成会话时显示 */
-function updateResumeBanner() {
-  const banner = document.getElementById('resumeBanner');
-  if (!banner) return;
-  const snap = loadSessionSnapshot();
-  if (!snap) { banner.style.display = 'none'; return; }
-  const mode = snap.mode === 'study' ? '学习' : '复习';
-  const done = snap.queue.length - snap.pending.length - snap.retries.length;
-  const info = document.getElementById('resumeInfo');
-  info.textContent = `${mode}进行中 · 已完成 ${done}/${snap.queue.length} 词 · 答对 ${snap.correct}`;
-  banner.style.display = 'flex';
-}
-
-function discardResume() {
-  clearSessionSnapshot();
-  updateResumeBanner();
-}
+/* 未完成会话不再弹首页横幅提示:快照静默保留当天,跨天自动失效(loadSessionSnapshot 里重置) */
 
 /* ---------------- 设置 ---------------- */
 function refreshSettings() {
@@ -385,6 +368,7 @@ function saveSessionSnapshot() {
   try {
     const snap = {
       mode: session.mode,
+      day: dateKey(),          // 快照归属日:跨天自动失效(次日重置)
       queue: session.queue,
       pending: session.pending || [],
       retries: session.retries || [],
@@ -414,6 +398,11 @@ function loadSessionSnapshot() {
     if (!raw) return null;
     const snap = JSON.parse(raw);
     if (!snap || !Array.isArray(snap.queue) || !snap.queue.length) return null;
+    // 跨天快照失效:未完成的会话只保留当天,第二天自动清除重置
+    if (snap.day && snap.day !== dateKey()) {
+      clearSessionSnapshot();
+      return null;
+    }
     // 恢复 records
     const records = new Map();
     (snap.records || []).forEach(([w, r]) => {
@@ -429,20 +418,6 @@ function loadSessionSnapshot() {
 
 function hasSnapshot() {
   return !!loadSessionSnapshot();
-}
-
-/* 从快照恢复并继续 */
-function resumeSession() {
-  const snap = loadSessionSnapshot();
-  if (!snap) return;
-  session = snap;
-  go(snap.mode === 'study' ? 'screen-study' : 'screen-review');
-  if (snap.phase === 'spell') renderSpellStage();
-  else if (snap.phase === 'spellAsk') {
-    const el = document.getElementById(snap.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
-    el.innerHTML = spellAskHtml();
-  }
-  else renderStudyRecognize();
 }
 
 function startStudy() {
@@ -1081,8 +1056,7 @@ function spellCfgHtml(kind) {
   const scopeKey = kind + 'Scope';
   const countKey = kind + 'Count';
   const scope = normScope(state.settings[scopeKey]);
-  const count = state.settings[countKey];
-  const counts = kind === 'spell' ? [10, 20, 30, 50] : [5, 10, 20, 30];
+  const count = state.settings[countKey] || 1;
   const pickedN = practicePicked(kind).length;
   return `
     <div class="cfg-title">选择范围</div>
@@ -1093,11 +1067,41 @@ function spellCfgHtml(kind) {
       <button class="master-tab ${scope === 'custom' ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','custom')">自选 <span class="mt-cnt">${pickedN}</span></button>
     </div>
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
-    <div class="cfg-title">数量</div>
-    <div class="cfg-chips">${counts.map(n =>
-      `<button class="master-tab ${n === count ? 'active' : ''}" onclick="setPracticeCfg('${countKey}',${n})">${n}</button>`
-    ).join('')}</div>
+    <div class="cfg-title">数量 <span class="mt-cnt">（1 ~ ${WORD_LIST.length}，实际取词不足时按剩余数）</span></div>
+    <div class="set-ctrl" style="justify-content:flex-start">
+      <button onclick="adjPracticeCount('${kind}',-1)">−</button>
+      <input type="number" id="${kind}CountInput" class="count-input" inputmode="numeric" min="1" max="${WORD_LIST.length}"
+        value="${count}" oninput="setPracticeCount('${kind}', this.value)" onchange="this.value = state.settings.${countKey}">
+      <button onclick="adjPracticeCount('${kind}',1)">+</button>
+    </div>
   `;
+}
+
+/* 数量自定义:任意整数,限制在 1 ~ 当前词库总词数 */
+function setPracticeCount(kind, v) {
+  let n = parseInt(v, 10);
+  if (!isFinite(n) || n < 1) n = 1;
+  if (n > WORD_LIST.length) n = WORD_LIST.length;
+  state.settings[kind + 'Count'] = n;
+  saveState();
+  updatePracticeStartLabel(kind);
+}
+
+function adjPracticeCount(kind, delta) {
+  setPracticeCount(kind, (state.settings[kind + 'Count'] || 1) + delta);
+  const inp = document.getElementById(kind + 'CountInput');
+  if (inp) inp.value = state.settings[kind + 'Count'];
+}
+
+/* 数量变化时就地更新开始按钮文案(不重渲染配置页,避免输入框失焦) */
+function updatePracticeStartLabel(kind) {
+  const btn = document.getElementById(kind === 'spell' ? 'spellStartBtn' : 'dictStartBtn');
+  if (!btn) return;
+  const pool = practicePool(kind);
+  const custom = normScope(state.settings[kind + 'Scope']) === 'custom';
+  const n = custom ? pool.length : Math.min(state.settings[kind + 'Count'] || 1, pool.length);
+  btn.textContent = (kind === 'spell' ? '开始拼写（' : '开始听写（') + n + ' 词）';
+  btn.disabled = !pool.length;
 }
 
 /* 自选词单（按当前词库过滤，切词库后他库词自动忽略） */
@@ -1136,7 +1140,7 @@ function renderSpellConfig() {
       <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
       ${spellCfgHtml('spell')}
       ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
-      <button class="next-btn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
+      <button class="next-btn" id="spellStartBtn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
     </div>
   `;
 }
@@ -1342,7 +1346,7 @@ function renderWordPicker() {
   const shown = words.slice(0, pickerLimit);
   const rows = shown.map(w => {
     const sel = pickedSet.has(w);
-    return `<div class="list-card picker-row ${sel ? 'picked' : ''}" onclick="pickerToggleWord('${escapeAttr(w)}', this)">
+    return `<div class="list-card picker-row ${sel ? 'picked' : ''}" data-w="${escapeHtml(w)}" onclick="pickerToggleWord('${escapeAttr(w)}', this)">
       <div class="list-item">
         <span class="list-word">${escapeHtml(w)}</span>
         <span class="list-def">${escapeHtml(WORD_MAP.get(w) || '')}</span>
@@ -1356,7 +1360,7 @@ function renderWordPicker() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left">
       <span class="quiz-type">${icon('list-plus')} 选定单词</span>
-      <p class="cfg-note">点单词行勾选/取消；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
+      <p class="cfg-note">点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
       <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
       <div class="cfg-chips">${SCOPES.map(s =>
         `<button class="master-tab ${pickerFilter === s.key ? 'active' : ''}" onclick="setPickerFilter('${s.key}')">${s.label}</button>`
@@ -1365,10 +1369,74 @@ function renderWordPicker() {
     </div>
     <div class="picker-foot">
       <span class="picker-count">已选 <b id="pickerCount">${picked.length}</b> 个</span>
+      <button class="btn-ghost" onclick="pickerSelectAll()">全选</button>
       <button class="btn-ghost" onclick="pickerClear()">清空</button>
       <button class="next-btn" onclick="pickerDone()">完成</button>
     </div>
   `;
+  attachPickerGestures(document.getElementById('pickerList'));
+}
+
+/* ---------------- 长按拖动连续选择 ----------------
+ * 长按一行(350ms)进入连续模式:以该行的反向状态为基准,手指滑过哪些行就统一设成该状态;
+ * 松手结束。点按仍是单个切换(长按触发的那次 click 会被吞掉)。
+ */
+let pickerDrag = null;
+let pickerDragTimer = null;
+let pickerSuppressClick = false;
+
+function attachPickerGestures(list) {
+  if (!list) return;
+  list.addEventListener('pointerdown', e => {
+    const row = e.target.closest('.picker-row');
+    if (!row || !row.dataset.w) return;
+    pickerDrag = { row, apply: !pickerRowPicked(row), y: e.clientY, active: false };
+    pickerDragTimer = setTimeout(() => {
+      if (!pickerDrag) return;
+      pickerDrag.active = true;
+      pickerSuppressClick = true;   // 长按松手后的 click 不再当点按处理
+      pickerApplyRow(row, pickerDrag.apply);
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) { /* 忽略 */ } }
+    }, 350);
+  });
+  list.addEventListener('pointermove', e => {
+    if (!pickerDrag) return;
+    if (!pickerDrag.active) {
+      // 长按前就移动(滚动列表)→ 取消长按计时
+      if (Math.abs(e.clientY - pickerDrag.y) > 10) {
+        clearTimeout(pickerDragTimer);
+        pickerDrag = null;
+      }
+      return;
+    }
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const row = el && el.closest ? el.closest('.picker-row') : null;
+    if (row && row.dataset.w) pickerApplyRow(row, pickerDrag.apply);
+  });
+  const endDrag = () => { clearTimeout(pickerDragTimer); pickerDrag = null; };
+  list.addEventListener('pointerup', endDrag);
+  list.addEventListener('pointercancel', endDrag);
+  // 连续模式期间阻止页面滚动(手指当画笔用)
+  list.addEventListener('touchmove', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); }, { passive: false });
+  list.addEventListener('contextmenu', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); });
+  // 长按后松手的那次 click 不当点按处理
+  list.addEventListener('click', e => {
+    if (pickerSuppressClick) {
+      pickerSuppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+
+function pickerRowPicked(row) {
+  const list = state.settings[pickerKind + 'Words'];
+  return !!(Array.isArray(list) && list.includes(row.dataset.w));
+}
+
+/* 连续模式下把一行设成目标状态(与当前状态不同才切换,复用单个切换逻辑) */
+function pickerApplyRow(row, pick) {
+  if (pickerRowPicked(row) !== pick) pickerToggleWord(row.dataset.w, row);
 }
 
 function onPickerSearch(v) {
@@ -1404,6 +1472,17 @@ function pickerToggleWord(w, rowEl) {
 
 function pickerClear() {
   state.settings[pickerKind + 'Words'] = [];
+  saveState();
+  renderWordPicker();
+}
+
+/* 全选当前筛选/搜索结果(配合筛选可大批量选中) */
+function pickerSelectAll() {
+  const key = pickerKind + 'Words';
+  const list = Array.isArray(state.settings[key]) ? state.settings[key] : (state.settings[key] = []);
+  for (const w of pickerPool()) {
+    if (!list.includes(w)) list.push(w);
+  }
   saveState();
   renderWordPicker();
 }
@@ -1468,7 +1547,7 @@ function renderDictConfig() {
         <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
       </div>
       ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
-      <button class="next-btn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
+      <button class="next-btn" id="dictStartBtn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
     </div>
   `;
 }
