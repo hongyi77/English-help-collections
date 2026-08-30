@@ -460,5 +460,218 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   ok(g("libKey()") === 'cet4', '无效词库 key 回落到 cet4');
 })();
 
+/* ================= 18. 功能1:答错反馈错误选项可点看 ================= */
+console.log('\n[18] 答错反馈:错误选项点看释义(reverseDefToWord)');
+(() => {
+  g('state = defaultState(); saveState();');
+  g('startStudy()');
+  // 答错当前词 → 反馈区应渲染其余错误选项的可点看标签
+  const w = g('session.word');
+  const badIdx = g('session.q.options.findIndex(o => !o.isAnswer)');
+  g(`recognizeAnswer(${badIdx}, { classList: { add() {} } })`);
+  const fb = documentStub.getElementById('feedbackZone').innerHTML;
+  ok(fb.includes('def-chips'), '答错反馈渲染错误选项点看标签');
+  ok(fb.includes('toggleDefChip'), '标签绑定点看事件');
+  ok((fb.match(/def-chip\"/g) || []).length === 2, `点「选项」时其余 2 个干扰项可点（实际 ${((fb.match(/def-chip\"/g) || []).length)}）`);
+  // 点「不会」(无选错项) → 全部 3 个干扰项可点
+  g('state = defaultState(); saveState();');
+  g('startStudy()');
+  g('showAnswer()');
+  const fb2 = documentStub.getElementById('feedbackZone').innerHTML;
+  ok((fb2.match(/def-chip\"/g) || []).length === 3, '点「不会」时 3 个干扰项全部可点');
+  // 释义反查:能查到对应单词且优先跳过当前词
+  const def = g(`WORD_MAP.get('${w}')`);
+  ok(g(`reverseDefToWord(${JSON.stringify(def)}, null)`) !== null, 'reverseDefToWord 能反查单词');
+  // 汉译英题型不出点看标签(选项是单词不是释义)
+  g('state = defaultState(); saveState();');
+  g(`session = { mode: 'study', phase: 'recognize', word: '${w}', q: makeQuestion('${w}', true), records: new Map() }`);
+  g(`showWrongFeedback('${w}', null)`);
+  ok(!documentStub.getElementById('feedbackZone').innerHTML.includes('def-chips'), '汉译英反馈无点看标签');
+})();
+
+/* ================= 19. 功能2:自由拼写 ================= */
+console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改进度');
+(() => {
+  g('state = defaultState(); state.settings.spellScope = "unseen"; state.settings.spellCount = 5; saveState();');
+  g('startCustomSpell()');
+  ok(g('session && session.mode') === 'spell', '创建自由拼写会话');
+  ok(g('session.queue.length') === 5, '按数量取 5 词');
+  ok(g('session.phase') === 'cspell', '独立 phase(不触发复习拼写快捷键)');
+  ok(g('Object.keys(curWords()).length') === 0, '开始前不写学习状态');
+  // 第一个词拼错 → 不卡住、进错词池、不改进度
+  const wrongWord = g('session.word');
+  documentStub.getElementById('spellInput').value = '完全不對';
+  g('customSpellCheck()');
+  ok(g('session.wrong') === 1, '拼错计入会话错误');
+  ok(g(`session.spellRetries.includes('${wrongWord}')`) === true, '错词进重现池');
+  ok(g(`curWords()['${wrongWord}']`) === undefined, '拼错不写学习记录(纯练习)');
+  // 循环答对直到全部完成(重现词答对 1 次即完成)
+  let guard = 0;
+  while (g('session && session.records && [...session.records.values()].some(r => !r.done)') && guard++ < 200) {
+    if (g('session.answered')) { g('customSpellNext()'); continue; }
+    documentStub.getElementById('spellInput').value = g('session.word');
+    g('customSpellCheck()');
+  }
+  ok(guard < 200, `全部词完成(循环 ${guard} 次,宽松规则下不死循环)`);
+  ok(g('[...session.records.values()].every(r => r.done)') === true, '所有词标记完成');
+  g('customSpellNext()');   // 最后一词答对后推进一次,渲染完成页
+  ok(g('Object.keys(curWords()).length') === 0, '整个会话结束仍不写学习状态');
+  ok(documentStub.getElementById('spellQuiz').innerHTML.includes('拼写练习完成'), '显示练习完成页');
+  // 范围取词:book 范围只取生词本里的词
+  g('state = defaultState(); saveState();');
+  g(`curWords()['hello'] = { stage: 1, right: 1, wrong: 0, inBook: true, created: Date.now(), due: Date.now() + 86400000 }; saveState();`);
+  g(`const bl = wordsInScope('book')`);
+  ok(g('bl.length') === 1 && g('bl[0]') === 'hello', 'book 范围只含生词本单词');
+  ok(g('normScope("不存在的范围")') === 'all', '无效范围回落到全部');
+})();
+
+/* ================= 20. 功能3:听写 ================= */
+console.log('\n[20] 听写:配置默认值/判分流程/自查模式/循环');
+(() => {
+  // 旧存档合并出听写缺省配置
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 15 }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.dictPause') === 1, '缺省轮间停顿 1 秒');
+  ok(g('state.settings.dictRate') === 0.9, '缺省语速 0.9');
+  ok(g('state.settings.dictMode') === 'judge', '缺省作答方式为输入判分');
+  ok(g('state.settings.dictLoop') === false, '缺省不循环');
+  // 判分模式流程
+  g('state = defaultState(); state.settings.dictScope = "all"; state.settings.dictCount = 5; saveState();');
+  g('startDictation()');
+  ok(g('session && session.mode') === 'dict', '创建听写会话');
+  ok(g('session.queue.length') === 5, '按数量取 5 词');
+  ok(g('session.judge') === true, '判分模式');
+  const wrongWord = g('session.word');
+  documentStub.getElementById('spellInput').value = 'nope';
+  g('dictCheck()');
+  ok(g(`session.spellRetries.includes('${wrongWord}')`) === true, '听写拼错进重现池');
+  ok(g(`curWords()['${wrongWord}']`) === undefined, '听写不写学习状态');
+  // 顺序播放
+  g('state.settings.dictOrder = "seq"; saveState();');
+  g('startDictation()');
+  ok(g('JSON.stringify(session.queue)') === g('JSON.stringify(wordsInScope("all").slice(0, 5))'), '顺序模式按词表前 N 词');
+  // 循环模式:全部答对后重置再来一轮
+  g('state.settings.dictLoop = true; saveState();');
+  g('startDictation()');
+  let guard = 0;
+  while (guard++ < 100 && g('session.loopN') === 1) {
+    if (g('session.answered')) { g('dictNext()'); continue; }
+    documentStub.getElementById('spellInput').value = g('session.word');
+    g('dictCheck()');
+  }
+  ok(g('session.loopN') === 2, `循环播放自动进入第 2 轮（loopN=${g('session.loopN')}）`);
+  g('finishDictation()');
+  ok(documentStub.getElementById('dictQuiz').innerHTML.includes('听写完成'), '结束按钮出完成页');
+  // 只听自查模式:单词全程直接显示,手动下一个
+  g('state = defaultState(); state.settings.dictMode = "listen"; saveState();');
+  g('startDictation()');
+  ok(g('session.judge') === false && g('session.auto') === false, '只听自查模式');
+  const w3 = g('session.word');
+  const listenHtml = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(listenHtml.includes(w3), '只听自查卡片直接显示单词');
+  ok(listenHtml.includes('dict-def-line'), '只听自查卡片显示释义行');
+  ok(listenHtml.includes('dictListenNext'), '只听自查有手动下一个按钮');
+  g('dictListenNext()');
+  ok(g('session.word') !== w3 || g('session.queue.length') === 1, '手动下一个可切词');
+  // 无 dictReveal 残留(自查改为常显单词后该函数已删)
+  ok(g('typeof dictReveal') === 'undefined', 'dictReveal 已删除');
+  // 不支持 TTS:配置页显示不支持提示
+  g('delete window.speechSynthesis');
+  g('renderDictConfig()');
+  ok(documentStub.getElementById('dictQuiz').innerHTML.includes('不支持语音'), '无 TTS 时提示不支持');
+  g('window.speechSynthesis = { speak() {}, cancel() {} }');
+})();
+
+/* ================= 21. 功能4:学习记录按词库归属 ================= */
+console.log('\n[21] 学习记录:条目带词库/旧字符串兼容/按词库查释义');
+(() => {
+  g('state = defaultState(); saveState();');
+  g("learnWord('hello')");
+  const today = g('dateKey()');
+  let entry = g(`state.history['${today}'].learned[state.history['${today}'].learned.length - 1]`);
+  ok(Array.isArray(entry) && entry[0] === 'cet4' && entry[1] === 'hello', `新记录为 [词库, 单词] 条目（${JSON.stringify(entry)}）`);
+  // 切到六级学一个词 → 记录归属六级
+  g(`setLibrary('cet6')`);
+  const w6 = g(`LIBS['cet6'].words[0][0]`);
+  g(`learnWord('${w6}')`);
+  entry = g(`state.history['${today}'].learned[state.history['${today}'].learned.length - 1]`);
+  ok(Array.isArray(entry) && entry[0] === 'cet6' && entry[1] === w6, '六级词记录归属六级');
+  // 渲染:各词显示归属词库标签 + 按归属词库查释义(切回四级也不丢六级词的释义)
+  g(`setLibrary('cet4')`);
+  g('historyDay = null; renderHistory();');
+  const detail = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detail.includes('dict-lib'), '记录行显示词库标签');
+  ok(detail.includes(w6), '六级词出现在记录里');
+  ok(detail.includes('六级'), '标签显示「六级」');
+  const def6 = g(`defInLib('cet6', '${w6}')`);
+  ok(def6 && detail.includes(def6), '六级词释义按六级词库查得(旧版会显示空)');
+  // 旧版纯字符串条目兼容归属(hello 四六级都有 → 归当前词库;六级独有词归六级)
+  ok(g(`JSON.stringify(normHistEntry("hello"))`) === '["cet4","hello"]', '旧字符串按词库包含关系归属');
+  const w6only = g(`LIBS['cet6'].words.map(w => w[0]).find(w => Object.keys(LIB_WORD_SETS).filter(k => LIB_WORD_SETS[k].has(w)).length === 1)`);
+  ok(g(`JSON.stringify(normHistEntry("${w6only}"))`) === JSON.stringify(['cet6', w6only]), '仅存在于六级的旧字符串归属六级');
+  ok(g('normHistEntry("zz词库不存在的词")') === null, '词库外的词返回 null');
+  // 答错/复习记录同样带词库
+  g(`reviewWrong('hello', false)`);
+  const wEntry = g(`state.history['${today}'].wrongs[state.history['${today}'].wrongs.length - 1]`);
+  ok(Array.isArray(wEntry) && wEntry[0] === 'cet4' && wEntry[1] === 'hello', '答错记录同样带词库归属');
+})();
+
+/* ================= 22. 自选词单 + 听写自动轮播 ================= */
+console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
+(() => {
+  g('state = defaultState(); saveState();');
+  ok(g('normScope("custom")') === 'custom', '范围支持 custom(自选)');
+  // 词单按当前词库过滤
+  g(`state.settings.spellWords = ['hello', '不存在的词zz']; saveState();`);
+  ok(g('JSON.stringify(practicePicked("spell"))') === '["hello"]', 'practicePicked 过滤词库外单词');
+  // 自选范围取词池 = 词单
+  g(`state.settings.spellScope = 'custom'; saveState();`);
+  ok(g('JSON.stringify(practicePool("spell"))') === '["hello"]', '自选范围取词池为词单');
+  // 用词单开自由拼写:全部采用
+  g('startCustomSpell()');
+  ok(g('session.queue.length') === 1 && g('session.queue[0]') === 'hello', '自选词单全部采用(不受数量限制)');
+  // 词单清空后取词池为空
+  g(`state.settings.spellWords = []; saveState();`);
+  ok(g('practicePool("spell").length') === 0, '空词单取词池为空');
+  // 选词器勾选/取消(就地写词单)
+  g(`pickerKind = 'spell'; pickerFilter = 'all';`);
+  g(`pickerToggleWord('hello', null)`);
+  ok(g('state.settings.spellWords.includes("hello")') === true, 'pickerToggleWord 勾选写入词单并持久化');
+  g(`pickerToggleWord('hello', null)`);
+  ok(g('state.settings.spellWords.includes("hello")') === false, '再次调用取消勾选');
+  // 听写:自动轮播模式 + 自选词单
+  g(`state.settings.dictMode = 'auto'; state.settings.dictScope = 'custom'; state.settings.dictWords = ['hello']; saveState();`);
+  g('startDictation()');
+  ok(g('session.auto') === true && g('session.judge') === false, '自动轮播:auto=true / judge=false');
+  ok(g('session.queue.length') === 1 && g('session.queue[0]') === 'hello', '听写自选词单生效');
+  // 自动模式答题卡:无输入框、单词常显、有自动提示
+  g('renderDictWord()');
+  const dictHtml = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(dictHtml.includes('自动轮播中'), '自动模式卡显示自动轮播提示');
+  ok(!dictHtml.includes('spellInput'), '自动模式无输入框');
+  ok(dictHtml.includes(g('session.word')), '自动模式卡片直接显示单词');
+  ok(dictHtml.includes('结束'), '自动模式保留结束按钮');
+  // dictMode 迁移:旧存档 dictJudge:false → listen;缺省 → judge
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dictJudge: false }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.dictMode') === 'listen', '旧存档 dictJudge:false 迁移为 listen');
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: {}, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.dictMode') === 'judge', '无 dictMode 缺省 judge');
+  ok(JSON.stringify(g('state.settings.dictWords')) === '[]', '词单字段缺省为空数组');
+  // 播报汉译剥离词性前缀(hello 释义 "int. 喂" → 只读 "喂")
+  ok(g(`speakableDef('hello')`) === '喂', `播报汉译剥离词性(speakableDef('hello')='${g(`speakableDef('hello')`)}')`);
+  const nounW = g(`WORD_LIST.find(w => WORD_MAP.get(w).startsWith('adj. '))`);
+  ok(!g(`speakableDef('${nounW}')`).startsWith('adj.'), 'adj. 前缀同样被剥离');
+  const bareW = g(`WORD_LIST.find(w => !posOf(WORD_MAP.get(w)))`);
+  ok(g(`speakableDef('${bareW}')`) === g(`WORD_MAP.get('${bareW}')`).trim(), '无词性前缀的释义原样朗读');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 process.exit(fail ? 1 : 0);

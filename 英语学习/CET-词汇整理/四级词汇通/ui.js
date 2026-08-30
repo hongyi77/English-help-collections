@@ -8,6 +8,8 @@ const SCREEN_TITLES = {
   'screen-home': '学习',
   'screen-study': '学习新词',
   'screen-review': '复习单词',
+  'screen-spell': '自由拼写',
+  'screen-dictate': '听写',
   'screen-vocab': '词汇',
   'screen-dict': '词典',
   'screen-settings': '设置',
@@ -27,9 +29,13 @@ function go(id) {
   document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
   // 学习页顶栏右侧显示当前词库名
   document.getElementById('topSub').textContent = (id === 'screen-home') ? LIBS[libKey()].name : '';
+  // 离开听写页时停止播报
+  if (id !== 'screen-dictate') stopDictPlayback();
   if (id === 'screen-home') refreshHome();
   if (id === 'screen-vocab') renderVocab();
   if (id === 'screen-settings') refreshSettings();
+  if (id === 'screen-spell') renderSpellConfig();
+  if (id === 'screen-dictate') renderDictConfig();
 }
 
 function goHome() { go('screen-home'); }
@@ -46,6 +52,9 @@ function refreshHome() {
   // tab 徽章:待复习数 / 生词本数
   setTabBadge('tabBadgeStudy', s.due);
   setTabBadge('tabBadgeBook', s.inBook);
+  // 听写依赖系统 TTS,不支持的浏览器(微信/QQ 内置等)隐藏入口
+  const dictEntry = document.getElementById('dictationEntry');
+  if (dictEntry) dictEntry.style.display = ttsSupported() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
   updateResumeBanner();
@@ -720,18 +729,19 @@ function showWrongFeedback(word, wrongText) {
   // 选错选项的翻译提示（英译汉：选项是中文释义 → 反查提示它的英文单词）
   let wrongHint = '';
   if (wrongText) {
-    // 优先跳过当前词，避免同释义重复时提示自己
-    let foundWord = null;
-    for (const [w, d] of WORD_MAP) {
-      if (d === wrongText && w !== word) { foundWord = w; break; }
-    }
-    if (!foundWord) {
-      for (const [w, d] of WORD_MAP) {
-        if (d === wrongText) { foundWord = w; break; }
-      }
-    }
+    const foundWord = reverseDefToWord(wrongText, word);
     if (foundWord) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的英语是：${escapeHtml(foundWord)}</div>`;
   }
+
+  // 其余错误选项可点看对应单词（点「不会」没有选错项，全部干扰项都可点）
+  const chips = session.q && session.q.type === '英译汉'
+    ? session.q.options.map((o, i) => ({ text: o.text, isAnswer: o.isAnswer, i }))
+        .filter(o => !o.isAnswer && o.text !== wrongText)
+    : [];
+  const chipsHtml = chips.length ? `
+    <div class="def-chips">${chips.map(o =>
+      `<button class="def-chip" onclick="toggleDefChip(this, ${o.i})">${icon('eye')} ${escapeHtml(o.text)}</button>`
+    ).join('')}</div>` : '';
 
   const card = fb.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
@@ -743,6 +753,7 @@ function showWrongFeedback(word, wrongText) {
         <span class="wp-def">${escapeHtml(def)}</span>
       </div>
       ${wrongHint}
+      ${chipsHtml}
       ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
     </div>
     <div class="wrong-actions">
@@ -753,6 +764,25 @@ function showWrongFeedback(word, wrongText) {
     </div>
   `;
   el.querySelectorAll('.opt').forEach(b => b.disabled = true);
+}
+
+/* 点错误选项标签 → 展开该选项释义对应的英文单词（再点收起） */
+function toggleDefChip(btn, optIdx) {
+  if (!session || !session.q || !session.q.options[optIdx]) return;
+  const def = session.q.options[optIdx].text;
+  const wrap = btn.closest('.def-chips');
+  const card = btn.closest('.feedback');
+  if (!wrap || !card) return;
+  card.querySelectorAll('.def-chip-ans').forEach(x => x.remove());
+  const opened = btn.dataset.open === '1';
+  wrap.querySelectorAll('.def-chip').forEach(b => b.dataset.open = '');
+  if (opened) return;   // 再点同一个 = 收起
+  btn.dataset.open = '1';
+  const w = reverseDefToWord(def, session.word);
+  const div = document.createElement('div');
+  div.className = 'def-chip-ans';
+  div.textContent = '「' + def + '」的英语是：' + (w || '（词库中未找到）');
+  wrap.parentNode.insertBefore(div, wrap.nextSibling);
 }
 
 function toggleWrongBook(word) {
@@ -1042,6 +1072,676 @@ function toggleMemoRow(word, btn) {
 }
 
 /* ============================================================
+ * 自由拼写（自定义拼写练习，纯练习不改动学习进度）
+ * 看释义输单词；答错不卡住直接跳过，错词每过 3 个词穿插重现，
+ * 重现时答对 1 次即完成（比复习拼写的连对 2 次宽松）
+ * ============================================================ */
+function spellCfgHtml(kind) {
+  // kind: 'spell' | 'dict'，配置项存 settings.spellXxx / dictXxx
+  const scopeKey = kind + 'Scope';
+  const countKey = kind + 'Count';
+  const scope = normScope(state.settings[scopeKey]);
+  const count = state.settings[countKey];
+  const counts = kind === 'spell' ? [10, 20, 30, 50] : [5, 10, 20, 30];
+  const pickedN = practicePicked(kind).length;
+  return `
+    <div class="cfg-title">选择范围</div>
+    <div class="cfg-chips">${SCOPES.map(s => {
+      const n = wordsInScope(s.key).length;
+      return `<button class="master-tab ${s.key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${s.key}')">${s.label} <span class="mt-cnt">${n}</span></button>`;
+    }).join('')}
+      <button class="master-tab ${scope === 'custom' ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','custom')">自选 <span class="mt-cnt">${pickedN}</span></button>
+    </div>
+    <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
+    <div class="cfg-title">数量</div>
+    <div class="cfg-chips">${counts.map(n =>
+      `<button class="master-tab ${n === count ? 'active' : ''}" onclick="setPracticeCfg('${countKey}',${n})">${n}</button>`
+    ).join('')}</div>
+  `;
+}
+
+/* 自选词单（按当前词库过滤，切词库后他库词自动忽略） */
+function practicePicked(kind) {
+  const list = state.settings[kind + 'Words'];
+  const set = LIB_WORD_SETS[libKey()];
+  return (Array.isArray(list) ? list : []).filter(w => set.has(w));
+}
+
+/* 某模式的实际取词池：自选范围用词单，其余按范围取 */
+function practicePool(kind) {
+  const scope = normScope(state.settings[kind + 'Scope']);
+  if (scope === 'custom') {
+    const picked = practicePicked(kind);
+    return picked.length ? picked : [];
+  }
+  return wordsInScope(scope);
+}
+
+function setPracticeCfg(key, val) {
+  state.settings[key] = val;
+  saveState();
+  if (key.indexOf('spell') === 0) renderSpellConfig();
+  else renderDictConfig();
+}
+
+function renderSpellConfig() {
+  const el = document.getElementById('spellQuiz');
+  if (!el) return;
+  const pool = practicePool('spell');
+  const custom = normScope(state.settings.spellScope) === 'custom';
+  const count = custom ? pool.length : Math.min(state.settings.spellCount || 20, pool.length);
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left">
+      <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
+      <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
+      ${spellCfgHtml('spell')}
+      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      <button class="next-btn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
+    </div>
+  `;
+}
+
+function startCustomSpell() {
+  const pool = practicePool('spell');
+  if (!pool.length) return;
+  const custom = normScope(state.settings.spellScope) === 'custom';
+  // 自选词单：全部采用（顺序随机）；其他范围：按数量抽选
+  const picked = custom ? shuffle(pool) : pickRandom(pool, Math.min(state.settings.spellCount || 20, pool.length));
+  session = {
+    mode: 'spell',
+    phase: 'cspell',          // 避开全局快捷键对复习拼写阶段的接管
+    queue: picked,
+    spellRetries: [],
+    sinceSpellRetry: 0,
+    idx: 0,
+    correct: 0, wrong: 0,
+    records: new Map(picked.map(w => [w, makeRecord()])),
+  };
+  renderCustomSpell();
+}
+
+function renderCustomSpell() {
+  const el = document.getElementById('spellQuiz');
+  const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
+  if (!remaining.length) {
+    el.innerHTML = practiceDoneHtml('拼写练习', '自由拼写');
+    return;
+  }
+  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
+  const spellRetries = session.spellRetries;
+  let word;
+  if (spellRetries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
+    word = spellRetries[0];
+    session.sinceSpellRetry = 0;
+    rotateSpellRetries();
+  } else {
+    const fresh = remaining.filter(w => !spellRetries.includes(w));
+    const pool2 = fresh.length ? fresh : remaining;
+    word = pool2[session.idx % pool2.length];
+    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
+  }
+  session.word = word;
+  session.answered = false;
+  const rec = session.records.get(word) || makeRecord();
+  const retryNote = rec.errors > 0 ? `<div class="retry-note">重记词 · 答对 1 次即完成</div>` : '';
+  el.innerHTML = `
+    <div class="quiz-card">
+      <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
+      <div class="quiz-prompt small">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      <div class="spell-input-wrap">
+        <input type="text" id="spellInput" class="spell-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入英文单词">
+        <button class="spell-check" onclick="customSpellCheck()">${icon('check')} 提交</button>
+      </div>
+      <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}</div>
+      ${retryNote}
+      <div id="spellFeedback"></div>
+    </div>
+  `;
+  setTimeout(() => {
+    const inp = document.getElementById('spellInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.stopPropagation();
+        if (session.answered) customSpellNext(); else customSpellCheck();
+      });
+    }
+  }, 120);
+}
+
+function customSpellCheck() {
+  if (session.answered) return;
+  session.answered = true;
+  const word = session.word;
+  const val = ((document.getElementById('spellInput') && document.getElementById('spellInput').value) || '').trim().toLowerCase();
+  const isCorrect = val === word.toLowerCase();
+  const rec = session.records.get(word) || makeRecord();
+  const fbEl = document.getElementById('spellFeedback');
+  const card = fbEl.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  const inBook = curWords()[word] && curWords()[word].inBook;
+  if (isCorrect) {
+    rec.done = true;   // 宽松规则:重现后答对 1 次即完成
+    session.records.set(word, rec);
+    session.correct++;
+    session.spellRetries = (session.spellRetries || []).filter(w => w !== word);
+    if (state.settings.autoSpeak) speakWord(word);
+    fbEl.innerHTML = `
+      <div class="feedback good">
+        <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
+        <div class="ans-word">${escapeHtml(word)}</div>
+        <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      </div>
+      <button class="next-btn" onclick="customSpellNext()">下一个 →</button>
+    `;
+  } else {
+    rec.errors++;
+    session.wrong++;
+    session.records.set(word, rec);
+    if (!session.spellRetries) session.spellRetries = [];
+    if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
+    session.sinceSpellRetry = 0;
+    fbEl.innerHTML = `
+      <div class="feedback bad">
+        <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
+        <div class="wrong-pair">
+          <span class="wp-ans">${escapeHtml(word)}</span>
+          <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
+        </div>
+        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
+      </div>
+      <div class="wrong-actions">
+        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
+          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
+        </button>
+        <button class="next-btn" onclick="customSpellNext()">下一个 →</button>
+      </div>
+    `;
+  }
+}
+
+function customSpellNext() {
+  session.answered = false;
+  session.idx++;
+  renderCustomSpell();
+}
+
+/* 练习完成页（自由拼写 / 听写共用；纯练习不写学习状态） */
+function practiceDoneHtml(title, typeName) {
+  practiceMode = session.mode === 'dict' ? 'dict' : 'spell';
+  const total = session.queue.length;
+  const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
+  const list = session.queue.map(w => {
+    const err = (session.records.get(w) || {}).errors > 0;
+    return `<div class="list-card"><div class="list-item">
+      <span class="list-word">${escapeHtml(w)}</span>
+      <span class="list-def">${escapeHtml(WORD_MAP.get(w) || '')}</span>
+      ${err ? '<span class="ms-badge ms-due">曾出错</span>' : ''}
+    </div></div>`;
+  }).join('');
+  return `
+    <div class="quiz-card session-done" style="text-align:left">
+      <div style="text-align:center">
+        <div class="icon">${icon('trophy')}</div>
+        <h2>${title}完成！</h2>
+        <p>共 ${total} 词 · 答对 ${session.correct} · 答错 ${session.wrong} · ${hard} 个曾出错</p>
+      </div>
+      <div style="margin-top:18px">
+        <h3 style="font-family:var(--serif);font-size:16px;color:var(--ink-blue);margin-bottom:10px">本次${typeName}单词（${total}）</h3>
+        ${list}
+      </div>
+      <div class="modal-btns" style="max-width:320px;margin:18px auto 0;flex-direction:column;gap:10px">
+        <button class="next-btn" onclick="practiceAgain()">再来一组</button>
+        <button class="btn-ghost" onclick="goHome()">回到首页</button>
+      </div>
+    </div>
+  `;
+}
+
+/* 练习完成页「再来一组」：回到本次练习模式（spell/dict）的配置页 */
+let practiceMode = 'spell';
+function practiceAgain() {
+  go(practiceMode === 'dict' ? 'screen-dictate' : 'screen-spell');
+}
+
+/* ---------------- 自选词单选词器(自由拼写/听写共用) ----------------
+ * 搜索 + 按范围筛选 + 点行勾选;词单存 settings.spellWords/dictWords,按当前词库过滤生效
+ */
+let pickerKind = null;      // 'spell' | 'dict'
+let pickerSearch = '';
+let pickerFilter = 'all';   // SCOPES key | 'picked'
+let pickerLimit = 100;
+
+function openWordPicker(kind) {
+  pickerKind = kind;
+  pickerSearch = '';
+  pickerFilter = 'all';
+  pickerLimit = 100;
+  renderWordPicker();
+}
+
+function pickerPool() {
+  let words;
+  if (pickerFilter === 'picked') words = practicePicked(pickerKind);
+  else if (pickerFilter !== 'all') words = wordsInScope(pickerFilter);
+  else words = WORD_LIST.slice();
+  const q = pickerSearch.toLowerCase();
+  if (q) {
+    words = words.filter(w => w.toLowerCase().includes(q) || (WORD_MAP.get(w) || '').toLowerCase().includes(q));
+  }
+  return words;
+}
+
+function renderWordPicker() {
+  const el = document.getElementById(pickerKind === 'dict' ? 'dictQuiz' : 'spellQuiz');
+  if (!el || !pickerKind) return;
+  const picked = practicePicked(pickerKind);
+  const pickedSet = new Set(picked);
+  const words = pickerPool();
+  const shown = words.slice(0, pickerLimit);
+  const rows = shown.map(w => {
+    const sel = pickedSet.has(w);
+    return `<div class="list-card picker-row ${sel ? 'picked' : ''}" onclick="pickerToggleWord('${escapeAttr(w)}', this)">
+      <div class="list-item">
+        <span class="list-word">${escapeHtml(w)}</span>
+        <span class="list-def">${escapeHtml(WORD_MAP.get(w) || '')}</span>
+        <span class="pick-check">${icon(sel ? 'circle-check' : 'circle')}</span>
+      </div>
+    </div>`;
+  }).join('');
+  const moreBtn = words.length > shown.length
+    ? `<div style="text-align:center;margin:10px 0"><button class="toolbar-btn" onclick="pickerLimit += 200; renderWordPicker()">显示更多（还有 ${words.length - shown.length} 个）</button></div>`
+    : '';
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left">
+      <span class="quiz-type">${icon('list-plus')} 选定单词</span>
+      <p class="cfg-note">点单词行勾选/取消；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
+      <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
+      <div class="cfg-chips">${SCOPES.map(s =>
+        `<button class="master-tab ${pickerFilter === s.key ? 'active' : ''}" onclick="setPickerFilter('${s.key}')">${s.label}</button>`
+      ).join('')}<button class="master-tab ${pickerFilter === 'picked' ? 'active' : ''}" onclick="setPickerFilter('picked')">已选 ${picked.length}</button></div>
+      <div id="pickerList">${rows || '<div class="empty-tip" style="padding:24px 0">没有匹配的单词</div>'}${moreBtn}</div>
+    </div>
+    <div class="picker-foot">
+      <span class="picker-count">已选 <b id="pickerCount">${picked.length}</b> 个</span>
+      <button class="btn-ghost" onclick="pickerClear()">清空</button>
+      <button class="next-btn" onclick="pickerDone()">完成</button>
+    </div>
+  `;
+}
+
+function onPickerSearch(v) {
+  pickerSearch = v.trim();
+  pickerLimit = 100;
+  renderWordPicker();
+  // 重渲染会重建输入框，恢复焦点和光标位置
+  const inp = document.getElementById('pickerSearchInput');
+  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+}
+
+function setPickerFilter(f) { pickerFilter = f; pickerLimit = 100; renderWordPicker(); }
+
+function pickerToggleWord(w, rowEl) {
+  const key = pickerKind + 'Words';
+  if (!Array.isArray(state.settings[key])) state.settings[key] = [];
+  const list = state.settings[key];
+  const i = list.indexOf(w);
+  const nowPicked = i < 0;
+  if (nowPicked) list.push(w); else list.splice(i, 1);
+  saveState();
+  // 就地更新行样式与计数，不整页重渲染（保住滚动位置）
+  if (rowEl) {
+    rowEl.classList.toggle('picked', nowPicked);
+    const chk = rowEl.querySelector('.pick-check');
+    if (chk) chk.innerHTML = icon(nowPicked ? 'circle-check' : 'circle');
+  }
+  const cnt = document.getElementById('pickerCount');
+  if (cnt) cnt.textContent = practicePicked(pickerKind).length;
+  // 「已选」筛选下取消勾选 → 直接移除该行
+  if (pickerFilter === 'picked' && !nowPicked && rowEl) rowEl.remove();
+}
+
+function pickerClear() {
+  state.settings[pickerKind + 'Words'] = [];
+  saveState();
+  renderWordPicker();
+}
+
+function pickerDone() {
+  if (pickerKind === 'dict') renderDictConfig();
+  else renderSpellConfig();
+}
+
+/* ============================================================
+ * 听写（纯练习不改动学习进度，依赖系统 TTS）
+ * 每词播两轮：每轮 = 英文单词读 2 次 + 汉语释义 1 次，
+ * 两轮之间停顿可设（默认 1 秒）；支持判分/自查、循环、随机顺序、语速
+ * ============================================================ */
+/* 听写作答方式归一(judge判分/listen自查/auto自动轮播;旧 bool 存档已在 loadState 迁移) */
+function normDictMode(v) {
+  return ['judge', 'listen', 'auto'].includes(v) ? v : 'judge';
+}
+
+function renderDictConfig() {
+  const el = document.getElementById('dictQuiz');
+  if (!el) return;
+  if (!ttsSupported()) {
+    el.innerHTML = `<div class="quiz-card session-done"><div class="icon">${icon('ear')}</div>
+      <h2>当前浏览器不支持语音</h2><p>听写功能需要系统的语音合成（speechSynthesis）支持。<br>微信/QQ 等内置浏览器不支持，请用系统浏览器打开。</p></div>`;
+    return;
+  }
+  const mode = normDictMode(state.settings.dictMode);
+  const pool = practicePool('dict');
+  const custom = normScope(state.settings.dictScope) === 'custom';
+  const count = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
+  const s = state.settings;
+  const rate = s.dictRate || 0.9;
+  const pause = s.dictPause == null ? 1 : s.dictPause;
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left">
+      <span class="quiz-type">${icon('ear')} 听写</span>
+      <p class="cfg-note">每个词播两轮（单词读 2 遍 + 汉译 1 遍），听完输入或自查。纯练习，不影响学习进度。<br>自动轮播：播完自动公布答案并切下一个词，戴耳机走路时免手持。</p>
+      <div class="cfg-title">作答方式</div>
+      <div class="cfg-chips">
+        <button class="master-tab ${mode === 'judge' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','judge')">输入判分</button>
+        <button class="master-tab ${mode === 'listen' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','listen')">只听自查</button>
+        <button class="master-tab ${mode === 'auto' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','auto')">自动轮播</button>
+      </div>
+      ${spellCfgHtml('dict')}
+      <div class="cfg-title">两轮之间停顿</div>
+      <div class="cfg-chips">${[0.5, 1, 2, 3].map(v =>
+        `<button class="master-tab ${Math.abs(pause - v) < 0.01 ? 'active' : ''}" onclick="setPracticeCfg('dictPause',${v})">${v} 秒</button>`
+      ).join('')}</div>
+      <div class="cfg-title">播放顺序</div>
+      <div class="cfg-chips">
+        <button class="master-tab ${s.dictOrder === 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','seq')">${icon('list-ordered')} 顺序</button>
+        <button class="master-tab ${s.dictOrder !== 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','random')">${icon('shuffle')} 随机</button>
+      </div>
+      <div class="cfg-title">循环播放</div>
+      <div class="cfg-chips">
+        <button class="master-tab ${s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',true)">开</button>
+        <button class="master-tab ${!s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',false)">关</button>
+      </div>
+      <div class="cfg-title">语速 <span class="mt-cnt" id="rateLabel">${rate.toFixed(1)}x</span></div>
+      <div class="rate-row">
+        <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
+      </div>
+      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      <button class="next-btn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
+    </div>
+  `;
+}
+
+function onDictRate(v) {
+  const r = Math.max(0.5, Math.min(1.5, parseFloat(v) || 0.9));
+  state.settings.dictRate = r;
+  saveState();
+  const label = document.getElementById('rateLabel');
+  if (label) label.textContent = r.toFixed(1) + 'x';
+}
+
+function startDictation() {
+  const pool = practicePool('dict');
+  if (!pool.length) return;
+  const custom = normScope(state.settings.dictScope) === 'custom';
+  const n = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
+  const picked = state.settings.dictOrder === 'seq' ? pool.slice(0, n) : shuffle(pool).slice(0, n);
+  const mode = normDictMode(state.settings.dictMode);
+  session = {
+    mode: 'dict',
+    phase: 'dictate',
+    queue: picked,
+    judge: mode === 'judge',
+    auto: mode === 'auto',
+    spellRetries: [],
+    sinceSpellRetry: 0,
+    idx: 0,
+    correct: 0, wrong: 0,
+    loopN: 1,
+    gen: 0,          // 播报代际号：切词/重听/离开页面时 +1，旧播报链自动作废
+    records: new Map(picked.map(w => [w, makeRecord()])),
+  };
+  renderDictWord();
+}
+
+/* 停止当前播报（作废播报链 + 取消系统队列） */
+function stopDictPlayback() {
+  if (session && session.mode === 'dict') session.gen++;
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try { window.speechSynthesis.cancel(); } catch (e) { /* 忽略 */ }
+  }
+}
+
+function dictStatus(t) {
+  const st = document.getElementById('dictStatus');
+  if (st) st.textContent = t;
+}
+
+/* 等待 utterance 播完；部分环境 onend 不触发，用时长兜底 */
+function speakAwait(text, lang, rate, sess, gen) {
+  return new Promise(res => {
+    try {
+      const synth = window.speechSynthesis;
+      if (synth.speaking || synth.pending) synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang;
+      u.rate = rate;
+      let done = false;
+      const fin = () => { if (!done) { done = true; res(); } };
+      u.onend = fin;
+      u.onerror = fin;
+      synth.speak(u);
+      setTimeout(fin, Math.max(3000, text.length * 600));
+    } catch (e) { res(); }
+  });
+}
+
+function dictSleep(ms, sess, gen) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
+/* 播一个词的两轮：每轮 = 单词 ×2 + 汉译 ×1，轮间停顿可设 */
+async function playDictCycle(sess, gen) {
+  const word = sess.word;
+  const rate = state.settings.dictRate || 0.9;
+  const pause = Math.max(0.5, (state.settings.dictPause == null ? 1 : state.settings.dictPause)) * 1000;
+  dictStatus('🔊 正在播放…');
+  for (let round = 1; round <= 2; round++) {
+    await speakAwait(word, 'en-US', rate, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await dictSleep(600, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await speakAwait(word, 'en-US', rate, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await dictSleep(500, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await speakAwait(speakableDef(word) || word, 'zh-CN', Math.min(1, rate + 0.1), sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    if (round === 1) {
+      await dictSleep(pause, sess, gen);
+      if (session !== sess || sess.gen !== gen) return;
+    }
+  }
+  if (session !== sess || sess.gen !== gen) return;
+  if (sess.judge) {
+    dictStatus('🔊 播放完毕，输入后提交');
+  } else if (sess.auto) {
+    // 自动轮播:再强化读一遍单词+汉译,然后自动切下一个词(单词全程显示在卡片上)
+    dictStatus('🔊 公布答案…');
+    await speakAwait(word, 'en-US', rate, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await dictSleep(400, sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    await speakAwait(speakableDef(word) || word, 'zh-CN', Math.min(1, rate + 0.1), sess, gen);
+    if (session !== sess || sess.gen !== gen) return;
+    const rec = sess.records.get(word) || makeRecord();
+    rec.done = true;
+    sess.records.set(word, rec);
+    sess.correct++;
+    dictStatus('🔊 即将下一个…');
+    await dictSleep(Math.max(2000, pause * 2), sess, gen);
+    if (session === sess && sess.gen === gen) dictNext();
+  } else {
+    dictStatus('🔊 播放完毕');
+  }
+}
+
+function renderDictWord() {
+  const el = document.getElementById('dictQuiz');
+  const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
+  if (!remaining.length) {
+    // 循环播放：整轮播完重置记录再来一轮；否则出完成页
+    if (state.settings.dictLoop) {
+      session.loopN++;
+      session.records = new Map(session.queue.map(w => [w, makeRecord()]));
+      session.idx = 0;
+      session.spellRetries = [];
+      session.sinceSpellRetry = 0;
+      renderDictWord();
+      return;
+    }
+    el.innerHTML = practiceDoneHtml('听写', '听写');
+    return;
+  }
+  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
+  let word;
+  if (session.judge && session.spellRetries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
+    word = session.spellRetries[0];
+    session.sinceSpellRetry = 0;
+    rotateSpellRetries();
+  } else {
+    const fresh = remaining.filter(w => !session.spellRetries.includes(w));
+    const pool2 = fresh.length ? fresh : remaining;
+    word = pool2[session.idx % pool2.length];
+    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
+  }
+  session.word = word;
+  session.answered = false;
+  const loopNote = session.loopN > 1 ? `<div class="retry-note">循环第 ${session.loopN} 轮</div>` : '';
+  const modeLabel = session.judge ? '判分' : (session.auto ? '自动轮播' : '只听自查');
+  // 只听自查/自动轮播:单词和释义全程显示(边听边看)
+  const showWord = session.judge ? '' : `
+      <div class="quiz-prompt">${escapeHtml(word)}</div>
+      <div class="dict-def-line">${escapeHtml(WORD_MAP.get(word) || '')}</div>`;
+  const inputHtml = session.judge ? `
+      <div class="spell-input-wrap">
+        <input type="text" id="spellInput" class="spell-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="听音拼词">
+        <button class="spell-check" onclick="dictCheck()">${icon('check')} 提交</button>
+      </div>` : (session.auto ? `
+      <div class="retry-note">自动轮播中 · 播完自动切下一个词</div>` : `
+      <button class="next-btn" style="max-width:320px;margin:14px auto 0" onclick="dictListenNext()">下一个 →</button>`);
+  el.innerHTML = `
+    <div class="quiz-card">
+      <span class="quiz-type">${icon('ear')} 听写 · ${modeLabel}</span>
+      ${showWord}
+      <div class="dict-status" id="dictStatus">🔊 准备播放…</div>
+      <div class="show-ans-wrap"><button class="show-ans-btn" onclick="dictReplay()">${icon('volume-2')} 重听本词</button></div>
+      ${inputHtml}
+      <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}
+      　<button class="toolbar-btn" onclick="finishDictation()">结束</button></div>
+      ${loopNote}
+      <div id="spellFeedback"></div>
+    </div>
+  `;
+  const sess = session;
+  const gen = ++session.gen;
+  playDictCycle(sess, gen);
+  if (session.judge) {
+    setTimeout(() => {
+      const inp = document.getElementById('spellInput');
+      if (inp) {
+        inp.focus();
+        inp.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          e.stopPropagation();
+          if (session.answered) dictNext(); else dictCheck();
+        });
+      }
+    }, 120);
+  }
+}
+
+function dictReplay() {
+  if (!session || session.mode !== 'dict' || session.answered) return;
+  const sess = session;
+  playDictCycle(sess, ++sess.gen);
+}
+
+/* 听写判分提交（听写纯练习：不改 stage/due，错词只在本会话内重现） */
+function dictCheck() {
+  if (!session || session.mode !== 'dict' || session.answered) return;
+  session.answered = true;
+  stopDictPlayback();
+  const word = session.word;
+  const val = ((document.getElementById('spellInput') && document.getElementById('spellInput').value) || '').trim().toLowerCase();
+  const isCorrect = val === word.toLowerCase();
+  const rec = session.records.get(word) || makeRecord();
+  const fbEl = document.getElementById('spellFeedback');
+  const card = fbEl.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  const inBook = curWords()[word] && curWords()[word].inBook;
+  if (isCorrect) {
+    rec.done = true;
+    session.records.set(word, rec);
+    session.correct++;
+    session.spellRetries = (session.spellRetries || []).filter(w => w !== word);
+    if (state.settings.autoSpeak) speakWord(word);
+    fbEl.innerHTML = `
+      <div class="feedback good">
+        <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
+        <div class="ans-word">${escapeHtml(word)}</div>
+        <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      </div>
+      <button class="next-btn" onclick="dictNext()">下一个 →</button>
+    `;
+  } else {
+    rec.errors++;
+    session.wrong++;
+    session.records.set(word, rec);
+    if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
+    session.sinceSpellRetry = 0;
+    fbEl.innerHTML = `
+      <div class="feedback bad">
+        <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
+        <div class="wrong-pair">
+          <span class="wp-ans">${escapeHtml(word)}</span>
+          <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
+        </div>
+        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
+      </div>
+      <div class="wrong-actions">
+        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
+          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
+        </button>
+        <button class="next-btn" onclick="dictNext()">下一个 →</button>
+      </div>
+    `;
+  }
+}
+
+/* 只听自查:手动切下一个词(单词全程显示,无判分) */
+function dictListenNext() {
+  if (!session || session.mode !== 'dict') return;
+  stopDictPlayback();
+  session.idx++;
+  renderDictWord();
+}
+
+function dictNext() {
+  session.answered = false;
+  session.idx++;
+  renderDictWord();
+}
+
+/* 中途结束听写：出完成页（循环模式下退出用） */
+function finishDictation() {
+  stopDictPlayback();
+  const el = document.getElementById('dictQuiz');
+  el.innerHTML = practiceDoneHtml('听写', '听写');
+}
+
+/* ============================================================
  * 生词本
  * ============================================================ */
 function renderBook() {
@@ -1230,13 +1930,20 @@ function renderHistoryDetail(rec) {
   const dayLabel = historyDay === dateKey() ? '今天' : historyDay;
   const section = (title, list, cls) => {
     if (!list.length) return '';
-    const rows = list.map(w =>
-      `<div class="list-card"><div class="list-item">
+    const rows = list.map(e => {
+      // 条目兼容:[词库key, 单词] 新格式 / 旧版纯字符串(按词库包含关系归属)
+      const norm = normHistEntry(e);
+      const w = norm ? norm[1] : String(e);
+      const lib = norm ? norm[0] : null;
+      const libTag = lib ? `<span class="dict-lib">${escapeHtml(LIBS[lib].name.replace('词汇', ''))}</span>` : '';
+      const def = lib ? defInLib(lib, w) : (WORD_MAP.get(w) || '');
+      return `<div class="list-card"><div class="list-item">
         <span class="list-word">${escapeHtml(w)}</span>
-        <span class="list-def">${escapeHtml(WORD_MAP.get(w) || '')}</span>
+        ${libTag}
+        <span class="list-def">${escapeHtml(def)}</span>
         <span class="ms-badge ${cls}">${title}</span>
-      </div></div>`
-    ).join('');
+      </div></div>`;
+    }).join('');
     return `<h3 style="font-family:var(--serif);font-size:15px;color:var(--ink-blue);margin:16px 0 8px">${title}（${list.length}）</h3>${rows}`;
   };
   el.innerHTML = section('新学', rec.learned, 'ms-learning')

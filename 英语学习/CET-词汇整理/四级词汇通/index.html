@@ -398,6 +398,52 @@
   .done-list .list-word { font-size: 14.5px; min-width: 70px; }
   .done-list .list-def { font-size: 11px; }
 
+  /* ---------- 自由拼写/听写：配置与播放状态 ---------- */
+  .cfg-title { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin: 16px 0 8px; }
+  .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
+  .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cfg-chips .master-tab { margin: 0; }
+  .rate-row { display: flex; align-items: center; gap: 10px; }
+  .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
+  .dict-status { text-align: center; font-family: var(--mono); font-size: 14px; color: var(--ink-blue); margin: 14px 0 2px; min-height: 20px; }
+  .dict-def-line { text-align: center; font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 2px 0 6px; }
+  /* 选词器(自选具体单词) */
+  .cfg-pick-btn {
+    width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px dashed var(--ink-blue);
+    background: var(--card); color: var(--ink-blue); font-size: 14px; cursor: pointer; text-align: center;
+  }
+  .cfg-pick-btn:active { background: var(--blue-soft); }
+  .cfg-pick-btn svg { width: 15px; height: 15px; vertical-align: -2px; }
+  .picker-row { cursor: pointer; }
+  .picker-row:active { background: var(--paper); }
+  .picker-row .pick-check { flex: none; display: flex; align-items: center; }
+  .picker-row .pick-check svg { width: 20px; height: 20px; color: var(--hairline); }
+  .picker-row.picked .pick-check svg { color: var(--green); }
+  .picker-row.picked .list-word { color: var(--ink-blue); }
+  .picker-foot {
+    position: sticky; bottom: 0; z-index: 5; display: flex; gap: 10px; align-items: stretch;
+    max-width: 600px; margin: 0 -16px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper); border-top: 1px solid var(--hairline);
+  }
+  .picker-foot .btn-ghost { flex: 1; padding: 12px; border-radius: 12px; font-size: 15px; cursor: pointer; }
+  .picker-foot .next-btn { flex: 2; margin-top: 0; }
+  .picker-count { flex: none; align-self: center; font-size: 14px; color: var(--ink-soft); white-space: nowrap; }
+  .picker-count b { font-family: var(--serif); color: var(--ink-blue); font-size: 17px; }
+  /* 错误选项点看标签（答错反馈内） */
+  .def-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .def-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px;
+    border-radius: 8px; border: 1px dashed var(--ink-soft); background: transparent;
+    color: var(--ink-soft); font-size: 13px; cursor: pointer; text-align: left;
+  }
+  .def-chip:active { background: var(--paper); }
+  .def-chip[data-open="1"] { border-style: solid; color: var(--ink-blue); border-color: var(--ink-blue); }
+  .def-chip svg { width: 13px; height: 13px; }
+  .def-chip-ans {
+    margin-top: 8px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
+    border: 1px solid var(--hairline); font-size: 13.5px; color: var(--ink); line-height: 1.6;
+  }
+
   /* ---------- Lucide 图标 ---------- */
   svg.ic { width: 1.1em; height: 1.1em; vertical-align: -0.15em; flex: none; }
   .tabbar .tab-ico svg { width: 22px; height: 22px; }
@@ -476,6 +522,18 @@
         <span class="badge rev" id="badgeReview">0</span>
       </button>
     </div>
+    <div class="action-list">
+      <button class="action-btn" onclick="go('screen-spell')">
+        <span class="action-ico ico-green" data-icon="pencil-line"></span>
+        <span class="action-txt"><b>自由拼写</b><i>自选范围和数量，看释义拼单词</i></span>
+        <span class="arrow">›</span>
+      </button>
+      <button class="action-btn" id="dictationEntry" onclick="go('screen-dictate')">
+        <span class="action-ico ico-blue" data-icon="ear"></span>
+        <span class="action-txt"><b>听写</b><i>听音拼词，支持判分/自查、循环与语速</i></span>
+        <span class="arrow">›</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -490,6 +548,20 @@
 <div class="screen" id="screen-review">
   <div class="wrap">
     <div id="reviewQuiz"></div>
+  </div>
+</div>
+
+<!-- ==================== 自由拼写（自定义拼写练习） ==================== -->
+<div class="screen" id="screen-spell">
+  <div class="wrap">
+    <div id="spellQuiz"></div>
+  </div>
+</div>
+
+<!-- ==================== 听写 ==================== -->
+<div class="screen" id="screen-dictate">
+  <div class="wrap">
+    <div id="dictQuiz"></div>
   </div>
 </div>
 

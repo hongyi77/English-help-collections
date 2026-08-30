@@ -19,6 +19,9 @@ const NAMES = [
   // 页面装饰
   'keyboard', 'trophy', 'party-popper', 'coffee', 'hourglass', 'target',
   'notebook-pen', 'sliders-horizontal', 'sparkles',
+  // 自由拼写 / 听写
+  'pencil-line', 'ear', 'check', 'volume-2', 'play', 'pause', 'square', 'shuffle', 'list-ordered',
+  'circle', 'list-plus',
 ];
 
 const icons = {};

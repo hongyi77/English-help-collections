@@ -15,6 +15,24 @@ const STAGE_MASTERED = INTERVALS.length; // 5 = 已掌握
 const STATE_KEY = 'cet4_study_state_v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/* 设置缺省值(旧存档缺字段时合并;自由拼写/听写配置也存这里) */
+const DEFAULT_SETTINGS = {
+  dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
+  spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
+  dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
+  dictWords: [],                                          // 听写自选词单
+  dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
+};
+
+/* 自定义拼写/听写的取词范围 */
+const SCOPES = [
+  { key: 'all', label: '全部' },
+  { key: 'unseen', label: '未学习' },
+  { key: 'learning', label: '学习中' },
+  { key: 'mastered', label: '已掌握' },
+  { key: 'book', label: '生词本' },
+];
+
 /* ---------------- 词库注册 ----------------
  * 内置四级词库：VOCAB 定义在 vocab-data.js：[单词, 释义]
  * 扩展词库：VOCAB_LIBS 定义在 vocab-libs.js（build-libs.js 从 lib-sources/*.json 生成）
@@ -30,6 +48,26 @@ const LIBS = Object.assign(
 const LIB_WORD_SETS = {};
 for (const k of Object.keys(LIBS)) {
   LIB_WORD_SETS[k] = new Set(LIBS[k].words.map(([w]) => w));
+}
+
+/* 每个词库的释义表（学习记录按归属词库查释义，避免跨库显示空释义） */
+const LIB_DEF_MAPS = {};
+for (const k of Object.keys(LIBS)) {
+  LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
+}
+
+/* 在指定词库里查单词释义 */
+function defInLib(lib, word) {
+  const m = LIB_DEF_MAPS[lib];
+  return m ? (m.get(word) || '') : '';
+}
+
+/* 听写播报用的汉译:剥离词性前缀(int./n./adj. 等),只朗读中文释义本身 */
+function speakableDef(word) {
+  const def = WORD_MAP.get(word) || '';
+  const pos = posOf(def);
+  const rest = (pos ? def.slice(pos.length) : def).trim();
+  return rest || def.trim();
 }
 
 let WORD_MAP = new Map();
@@ -62,12 +100,12 @@ function memoOf(word) {
  * 每日目标/学习记录(history)是全局的，不随词库切换分开
  */
 const defaultState = () => ({
-  settings: { dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4' },
+  settings: Object.assign({}, DEFAULT_SETTINGS),
   libs: {},      // libs[libKey].words = { 单词: 学习记录 }
   today: todayStr(),
   learnedToday: [],
   reviewedToday: [],
-  history: {},   // history['YYYY-MM-DD'] = { learned:[], reviewed:[], wrongs:[] }
+  history: {},   // history['YYYY-MM-DD'] = { learned:[], reviewed:[], wrongs:[] }，条目为 [词库key, 单词]
 });
 
 let state = loadState();
@@ -114,19 +152,41 @@ function todayRecord() {
   return state.history[k];
 }
 
+/* ---------------- 学习记录（history） ----------------
+ * 条目格式 [词库key, 单词]：各词库的词在记录里可区分、释义按归属词库查。
+ * 旧版条目是纯字符串，渲染时用 normHistEntry 兼容归属。
+ */
+function histHas(list, word, lib) {
+  return list.some(e => Array.isArray(e) ? (e[1] === word && e[0] === lib) : e === word);
+}
+function histAdd(list, word) {
+  const lib = libKey();
+  if (!histHas(list, word, lib)) list.push([lib, word]);
+}
+
+/* 学习记录条目规范化 → [lib, word]；无法归属返回 null */
+function normHistEntry(e) {
+  if (Array.isArray(e) && LIBS[e[0]] && typeof e[1] === 'string' && e[1]) return e;
+  if (typeof e === 'string' && e) {
+    const cur = libKey();
+    if (LIB_WORD_SETS[cur] && LIB_WORD_SETS[cur].has(e)) return [cur, e];
+    for (const k of Object.keys(LIB_WORD_SETS)) {
+      if (LIB_WORD_SETS[k].has(e)) return [k, e];
+    }
+  }
+  return null;
+}
+
 function recordLearned(word) {
-  const rec = todayRecord();
-  if (!rec.learned.includes(word)) rec.learned.push(word);
+  histAdd(todayRecord().learned, word);
   saveState();
 }
 function recordReviewed(word) {
-  const rec = todayRecord();
-  if (!rec.reviewed.includes(word)) rec.reviewed.push(word);
+  histAdd(todayRecord().reviewed, word);
   saveState();
 }
 function recordWrong(word) {
-  const rec = todayRecord();
-  if (!rec.wrongs.includes(word)) rec.wrongs.push(word);
+  histAdd(todayRecord().wrongs, word);
   saveState();
 }
 
@@ -141,9 +201,17 @@ function loadState() {
         s.learnedToday = [];
         s.reviewedToday = [];
       }
-      // 设置项缺省合并（旧存档没有 autoSpeak/lib 等新字段）
-      s.settings = Object.assign({ dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4' }, s.settings);
+      // 设置项缺省合并（旧存档没有 autoSpeak/lib 及自由拼写/听写配置等新字段）
+      const hadDictMode = s.settings && s.settings.dictMode != null;
+      const legacyJudge = s.settings ? s.settings.dictJudge : undefined;
+      s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
       if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
+      // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
+      if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
+        s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
+      }
+      if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
+      if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
       if (s.words && !s.libs) {
         s.libs = { cet4: { words: s.words } };
@@ -234,10 +302,17 @@ function importProgress(json) {
       if (!state.history[day]) state.history[day] = { learned: [], reviewed: [], wrongs: [] };
       for (const cat of ['learned', 'reviewed', 'wrongs']) {
         const list = incoming.history[day][cat] || [];
-        for (const w of list) {
-          // 只接受真实单词字符串,拒绝超长垃圾项
+        for (const e of list) {
+          // 条目兼容两种格式:[词库key, 单词] / 旧版纯字符串;拒绝超长垃圾项
+          const isPair = Array.isArray(e);
+          const w = isPair ? e[1] : e;
+          const lib = isPair ? e[0] : null;
           if (typeof w !== 'string' || w.length > 64) continue;
-          if (wordInAnyLib(w) && !state.history[day][cat].includes(w)) state.history[day][cat].push(w);
+          if (isPair && (!LIBS[lib] || !LIB_WORD_SETS[lib].has(w))) continue;
+          if (!wordInAnyLib(w)) continue;
+          if (!state.history[day][cat].some(x => Array.isArray(x) ? x[1] === w : x === w)) {
+            state.history[day][cat].push(isPair ? e : w);
+          }
         }
       }
     }
@@ -308,6 +383,18 @@ function wordsByClass(cls) {
   if (cls === 'mastered') return masteredWords();
   if (cls === 'due') return dueWords();
   return learningWords();
+}
+
+/* 自由拼写/听写的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
+function normScope(v) {
+  return (v === 'custom' || SCOPES.some(s => s.key === v)) ? v : 'all';
+}
+function wordsInScope(scope) {
+  if (scope === 'unseen') return unseenWords();
+  if (scope === 'learning') return learningWords();
+  if (scope === 'mastered') return masteredWords();
+  if (scope === 'book') return bookWords();
+  return WORD_LIST.slice();
 }
 
 function classCount(cls) {
@@ -443,6 +530,20 @@ function pickDistractors(word, n) {
     if (picked.length >= n) break;
   }
   return picked;
+}
+
+/* 释义反查单词（答错提示/错误选项点看用）：优先跳过 excludeWord，避免同释义提示自己 */
+function reverseDefToWord(def, excludeWord) {
+  let found = null;
+  for (const [w, d] of WORD_MAP) {
+    if (d === def && w !== excludeWord) { found = w; break; }
+  }
+  if (!found) {
+    for (const [w, d] of WORD_MAP) {
+      if (d === def) { found = w; break; }
+    }
+  }
+  return found;
 }
 
 function makeQuestion(word, reverse) {
