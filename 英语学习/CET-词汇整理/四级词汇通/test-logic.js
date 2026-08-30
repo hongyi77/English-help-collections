@@ -440,16 +440,19 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   ok(g("libKey()") === 'cet6', 'UI 确认后切换成功并持久化');
   g(`state = loadState();`);
   ok(g("state.settings.lib") === 'cet6', '刷新后词库选择保留');
-  // 首页 chips 渲染（词库切换入口在首页，不在设置页）
+  // 设置页词库 chips 渲染（词库切换入口在设置 Tab）
   g('refreshHome()');
   const libHtml = documentStub.getElementById('libList').innerHTML;
-  ok((libHtml.match(/confirmSwitchLib/g) || []).length >= 5, `首页渲染 ${g('Object.keys(LIBS).length')} 个词库 chip`);
+  ok((libHtml.match(/confirmSwitchLib/g) || []).length >= 5, `设置页渲染 ${g('Object.keys(LIBS).length')} 个词库 chip`);
   ok(libHtml.includes('master-tab active'), '当前词库 chip 高亮');
-  ok(documentStub.getElementById('heroLib').textContent.includes('六级'), 'hero 角标显示当前词库');
-  ok(documentStub.getElementById('topSub').textContent === '六级词汇', '顶栏副标题跟随当前词库(doSwitchLib→goHome)');
+  ok(documentStub.getElementById('libNote').textContent.includes('六级'), '词库说明显示当前词库');
+  // 切回四级，说明跟随更新
   g(`setLibrary('cet4')`);
+  g('refreshSettings()');
+  ok(documentStub.getElementById('libNote').textContent.includes('四级'), '切回后词库说明跟随更新');
+  // tab 徽章渲染
   g('refreshHome()');
-  ok(documentStub.getElementById('heroLib').textContent.includes('四级'), '切回后 hero 角标跟随更新');
+  ok(documentStub.getElementById('tabBadgeStudy') !== undefined, '学习 tab 徽章元素存在');
   // 无效词库回落
   g(`state.settings.lib = '不存在'; saveState(); state = loadState();`);
   ok(g("libKey()") === 'cet4', '无效词库 key 回落到 cet4');

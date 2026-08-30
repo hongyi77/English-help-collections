@@ -5,32 +5,36 @@
 
 /* ---------------- 导航与页面切换 ---------------- */
 const SCREEN_TITLES = {
-  'screen-home': '英语词汇通',
+  'screen-home': '学习',
   'screen-study': '学习新词',
   'screen-review': '复习单词',
-  'screen-book': '生词本',
-  'screen-master': '掌握情况',
-  'screen-history': '学习记录',
+  'screen-vocab': '词汇',
+  'screen-dict': '词典',
   'screen-settings': '设置',
 };
+/* 有底部导航的页面;答题会话页隐藏底栏,沉浸作答 */
+const TAB_SCREENS = ['screen-home', 'screen-vocab', 'screen-dict', 'screen-settings'];
 
 function go(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const t = SCREEN_TITLES[id] || '';
   document.getElementById('topTitle').textContent = t;
-  document.getElementById('topBack').style.display = (id === 'screen-home') ? 'none' : 'inline';
-  // 首页顶栏副标题显示当前词库名
+  const tabbed = TAB_SCREENS.includes(id);
+  const tabbar = document.getElementById('tabbar');
+  if (tabbar) tabbar.style.display = tabbed ? 'flex' : 'none';
+  document.getElementById('topBack').style.display = tabbed ? 'none' : 'inline';
+  document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  // 学习页顶栏右侧显示当前词库名
   document.getElementById('topSub').textContent = (id === 'screen-home') ? LIBS[libKey()].name : '';
   if (id === 'screen-home') refreshHome();
-  if (id === 'screen-book') renderBook();
-  if (id === 'screen-master') renderMaster();
-  if (id === 'screen-history') renderHistory();
+  if (id === 'screen-vocab') renderVocab();
+  if (id === 'screen-settings') refreshSettings();
 }
 
 function goHome() { go('screen-home'); }
 
-/* ---------------- 首页 ---------------- */
+/* ---------------- 首页（学习 Tab） ---------------- */
 function refreshHome() {
   const s = stats();
   document.getElementById('statTotal').textContent = s.total;
@@ -39,14 +43,19 @@ function refreshHome() {
   document.getElementById('statUnseen').textContent = s.unseen;
   document.getElementById('badgeNew').textContent = Math.min(s.unseen, state.settings.dailyNew);
   document.getElementById('badgeReview').textContent = s.due;
-  document.getElementById('badgeBook').textContent = s.inBook;
-  document.getElementById('badgeLearning').textContent = s.learning;
-  const today = state.history && state.history[dateKey()];
-  const cnt = today ? today.learned.length + today.reviewed.length : 0;
-  document.getElementById('badgeHistory').textContent = cnt > 0 ? cnt + ' 词' : '今天';
+  // tab 徽章:待复习数 / 生词本数
+  setTabBadge('tabBadgeStudy', s.due);
+  setTabBadge('tabBadgeBook', s.inBook);
   renderLibPicker();
   renderGoalCard();
   updateResumeBanner();
+}
+
+function setTabBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n > 0 ? (n > 99 ? '99+' : n) : '';
+  el.style.display = n > 0 ? 'block' : 'none';
 }
 
 function renderGoalCard() {
@@ -116,9 +125,10 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !ttsSupported() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  renderLibPicker();
 }
 
-/* 首页词库切换：chip 列表，当前词库高亮；点击弹确认后切换 */
+/* 词库选择器（设置页）：chip 列表，当前词库高亮；点击弹确认后切换 */
 function renderLibPicker() {
   const el = document.getElementById('libList');
   if (!el) return;
@@ -131,11 +141,94 @@ function renderLibPicker() {
       ${escapeHtml(lib.name)} <span class="mt-cnt">${n}</span>
     </button>`;
   }).join('');
-  const hero = document.getElementById('heroLib');
-  if (hero) hero.textContent = `${LIBS[cur].name} · ${WORD_LIST.length} WORDS`;
+  const note = document.getElementById('libNote');
+  if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库学习进度独立保存，可随时切换。`;
   // 题卡右上角角标跟随当前词库（CSS content 用 --lib-badge 变量）
   const root = document.documentElement;
   if (root && root.style) root.style.setProperty('--lib-badge', JSON.stringify(LIBS[cur].name));
+}
+
+/* ---------------- 词汇 Tab（生词本/掌握情况/学习记录 分段） ---------------- */
+let vocabSeg = 'book';
+
+function setVocabSeg(seg) {
+  vocabSeg = seg;
+  renderVocab();
+}
+
+function renderVocab() {
+  document.querySelectorAll('#vocabSegs button').forEach(b => b.classList.toggle('active', b.dataset.seg === vocabSeg));
+  ['book', 'master', 'history'].forEach(s => {
+    const el = document.getElementById('seg-' + s);
+    if (el) el.style.display = s === vocabSeg ? 'block' : 'none';
+  });
+  if (vocabSeg === 'book') renderBook();
+  else if (vocabSeg === 'master') renderMaster();
+  else renderHistory();
+}
+
+/* ---------------- 词典 Tab ---------------- */
+let dictQ = '';   // 保留搜索词，答题等操作返回后可恢复结果
+
+function onDictInput(v) {
+  dictQ = v;
+  renderDictResults();
+}
+
+function renderDictResults() {
+  const el = document.getElementById('dictList');
+  const hint = document.getElementById('dictHint');
+  if (!el) return;
+  const q = dictQ.trim().toLowerCase();
+  const input = document.getElementById('dictInput');
+  if (input && input.value !== dictQ) input.value = dictQ;
+  if (!q) {
+    el.innerHTML = '';
+    hint.textContent = '跨全部词库查询 · 点 🔊 听发音';
+    return;
+  }
+  // 全词库顺序扫描(约1.6万词,毫秒级);同一单词只保留最先命中的词库
+  const rows = [];
+  const seen = new Set();
+  for (const k of Object.keys(LIBS)) {
+    for (const [w, def] of LIBS[k].words) {
+      if (seen.has(w)) continue;
+      const wl = w.toLowerCase();
+      let score = -1;
+      if (wl === q) score = 0;
+      else if (wl.startsWith(q)) score = 1;
+      else if (wl.includes(q)) score = 2;
+      else if (def.toLowerCase().includes(q)) score = 3;
+      if (score < 0) continue;
+      seen.add(w);
+      rows.push({ w, def, lib: k, score });
+    }
+  }
+  rows.sort((a, b) => a.score - b.score || a.w.localeCompare(b.w));
+  const shown = rows.slice(0, 50);
+  hint.textContent = rows.length
+    ? `匹配 ${rows.length} 个单词${rows.length > 50 ? '，显示前 50 个' : ''}`
+    : '没有匹配的单词';
+  if (!shown.length) { el.innerHTML = ''; return; }
+  const cur = libKey();
+  el.innerHTML = shown.map(r => {
+    const inCur = LIB_WORD_SETS[cur].has(r.w);
+    const inBookNow = !!(curWords()[r.w] && curWords()[r.w].inBook);
+    const libTag = LIBS[r.lib].name.replace('词汇', '');
+    return `<div class="list-card"><div class="list-item">
+      <span class="list-word">${escapeHtml(r.w)}</span>
+      <span class="dict-lib">${escapeHtml(libTag)}</span>
+      <span class="list-def">${escapeHtml(r.def)}</span>
+      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">💡</button>` : ''}
+      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(r.w)}')">🔊</button>
+      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? '✓' : '📌'}</button>` : ''}
+    </div></div>`;
+  }).join('');
+}
+
+function toggleDictBook(word) {
+  toggleBook(word);
+  renderDictResults();
 }
 
 let pendingLib = null;
@@ -159,7 +252,8 @@ function doSwitchLib() {
     session = null;
     clearSessionSnapshot();
     setLibrary(pendingLib);
-    goHome();   // 切换发生在首页：完整刷新统计、词库 chips、顶栏副标题
+    refreshSettings();   // 设置页 chips 高亮与说明刷新
+    refreshHome();       // 首页统计与 tab 徽章同步
   }
   closeSwitchLib();
 }

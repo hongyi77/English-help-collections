@@ -334,6 +334,59 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
+
+  /* ---------- 底部 Tab 导航(手机主导航) ---------- */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; max-width: 600px; margin: 0 auto;
+    background: var(--card); border-top: 1px solid var(--hairline);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar button {
+    position: relative; flex: 1; padding: 7px 0 5px;
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--ink-soft); font-size: 11px;
+  }
+  .tabbar .tab-ico { font-size: 20px; line-height: 1.2; }
+  .tabbar button.active { color: var(--ink-blue); font-weight: 600; }
+  .tabbar .tab-badge {
+    position: absolute; top: 2px; left: calc(50% + 6px);
+    min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+    background: var(--pen-red); color: #fff; font-family: var(--mono);
+    font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  }
+  .tabbar button.active .tab-badge { background: var(--amber); }
+  /* 带 tabbar 的页面留出底部空间 */
+  .screen.tabbed { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+
+  /* ---------- 首页 · 学习操作大按钮 ---------- */
+  .study-actions { display: flex; flex-direction: column; gap: 12px; }
+  .big-action {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 17px 16px; border-radius: 14px; border: 1px solid var(--hairline);
+    background: var(--card); box-shadow: var(--shadow); cursor: pointer; text-align: left;
+  }
+  .big-action:active { background: var(--paper); }
+  .big-action.primary { border-color: var(--ink-blue); }
+  .ba-ico { width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: var(--blue-soft); }
+  .big-action.rev .ba-ico { background: var(--amber-soft); }
+  .ba-txt { flex: 1; display: flex; flex-direction: column; }
+  .ba-txt b { font-size: 17px; color: var(--ink); }
+  .ba-txt i { font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ---------- 词汇页 · 分段控制 ---------- */
+  .seg-tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; padding: 4px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .seg-tabs button { flex: 1; padding: 9px 0; border: none; border-radius: 9px; background: none; font-size: 14px; color: var(--ink-soft); cursor: pointer; white-space: nowrap; }
+  .seg-tabs button.active { background: var(--ink-blue); color: #fff; font-weight: 600; }
+
+  /* ---------- 词典 ---------- */
+  .dict-search-wrap { position: sticky; top: 54px; z-index: 5; margin: -2px -16px 0; padding: 4px 16px 8px; background: var(--paper); }
+  .dict-hint { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; }
+  .dict-lib { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--ink-blue); white-space: nowrap; flex: none; }
+  .list-speak { background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; opacity: .75; }
+  .list-speak:active { opacity: 1; transform: scale(.9); }
+  .list-del.in-book { color: var(--green); }
 </style>
 </head>
 <body>
@@ -344,19 +397,17 @@
   <span class="sub" id="topSub"></span>
 </div>
 
-<!-- ==================== 首页 ==================== -->
-<div class="screen active" id="screen-home">
+<!-- ==================== Tab1 · 学习 ==================== -->
+<div class="screen active tabbed" id="screen-home">
   <div class="wrap">
-    <div class="hero-card">
-      <div class="hero-deck">
-        <div class="mini-card back"></div>
-        <div class="mini-card front"><b>word</b><span>释义</span></div>
+    <div class="resume-banner" id="resumeBanner" style="display:none">
+      <div>
+        <div class="rb-title">⏳ 有未完成的学习</div>
+        <div class="rb-sub" id="resumeInfo"></div>
       </div>
-      <div class="hero-eyebrow" id="heroLib">CET-4 · 4543 WORDS</div>
-      <h1>英语词汇通</h1>
-      <div class="hero-sub">艾宾浩斯记忆曲线 · 英译汉 · 生词本</div>
+      <button class="rb-btn" onclick="resumeSession()">继续</button>
+      <button class="rb-discard" onclick="discardResume()">放弃</button>
     </div>
-    <div class="master-tabs" id="libList" style="margin-bottom:14px"></div>
     <div class="stats-grid">
       <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
       <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
@@ -385,81 +436,48 @@
         <span class="goal-status" id="goalReviewStatus">今日无待复习</span>
       </div>
     </div>
-    <div class="resume-banner" id="resumeBanner" style="display:none">
-      <div>
-        <div class="rb-title">⏳ 有未完成的学习</div>
-        <div class="rb-sub" id="resumeInfo"></div>
-      </div>
-      <button class="rb-btn" onclick="resumeSession()">继续</button>
-      <button class="rb-discard" onclick="discardResume()">放弃</button>
-    </div>
-    <div class="action-list">
-      <button class="action-btn" onclick="startStudy()">
-        <span class="action-ico ico-blue">📖</span>
-        <span class="action-txt"><span class="action-title">学习新词</span><span class="action-sub">未学单词随机抽选</span></span>
+    <div class="study-actions">
+      <button class="big-action primary" onclick="startStudy()">
+        <span class="ba-ico">📖</span>
+        <span class="ba-txt"><b>学习新词</b><i>未学单词随机抽选</i></span>
         <span class="badge new" id="badgeNew">0</span>
-        <span class="arrow">›</span>
       </button>
-      <button class="action-btn" onclick="startReview()">
-        <span class="action-ico ico-amber">🔁</span>
-        <span class="action-txt"><span class="action-title">复习单词</span><span class="action-sub">到期单词按曲线复习</span></span>
+      <button class="big-action rev" onclick="startReview()">
+        <span class="ba-ico">🔁</span>
+        <span class="ba-txt"><b>复习单词</b><i>到期单词按记忆曲线重现</i></span>
         <span class="badge rev" id="badgeReview">0</span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="action-btn" onclick="go('screen-book')">
-        <span class="action-ico ico-red">📌</span>
-        <span class="action-txt"><span class="action-title">生词本</span><span class="action-sub">记错的词都在这里</span></span>
-        <span class="badge book" id="badgeBook">0</span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="action-btn" onclick="go('screen-master')">
-        <span class="action-ico ico-green">📊</span>
-        <span class="action-txt"><span class="action-title">掌握情况</span><span class="action-sub">分类查看 · 可重置</span></span>
-        <span class="badge new" id="badgeLearning">0</span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="action-btn" onclick="go('screen-history')">
-        <span class="action-ico ico-amber">📅</span>
-        <span class="action-txt"><span class="action-title">学习记录</span><span class="action-sub">每天学了复习了什么</span></span>
-        <span class="badge rev" id="badgeHistory">今天</span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="action-btn" onclick="go('screen-settings')">
-        <span class="action-ico ico-slate">⚙️</span>
-        <span class="action-txt"><span class="action-title">设置</span><span class="action-sub">每日计划 · 数据管理</span></span>
-        <span class="arrow">›</span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- ==================== 学习 ==================== -->
+<!-- ==================== 学习会话（无底栏，沉浸答题） ==================== -->
 <div class="screen" id="screen-study">
   <div class="wrap">
     <div id="studyQuiz"></div>
   </div>
 </div>
 
-<!-- ==================== 复习 ==================== -->
+<!-- ==================== 复习会话 ==================== -->
 <div class="screen" id="screen-review">
   <div class="wrap">
     <div id="reviewQuiz"></div>
   </div>
 </div>
 
-<!-- ==================== 生词本 ==================== -->
-<div class="screen" id="screen-book">
+<!-- ==================== Tab2 · 词汇（生词本/掌握情况/学习记录） ==================== -->
+<div class="screen tabbed" id="screen-vocab">
   <div class="wrap">
-    <div class="settings-card" style="text-align:center">
-      <p style="color:var(--muted);font-size:14px;line-height:1.8">点击 📌 可从生词本移除。<br>答错或没记住的单词会自动加入生词本。</p>
+    <div class="seg-tabs" id="vocabSegs">
+      <button class="active" data-seg="book" onclick="setVocabSeg('book')">📌 生词本</button>
+      <button data-seg="master" onclick="setVocabSeg('master')">📊 掌握情况</button>
+      <button data-seg="history" onclick="setVocabSeg('history')">📅 学习记录</button>
     </div>
+  </div>
+  <div class="wrap" id="seg-book" style="padding-top:0">
     <div id="bookList"></div>
   </div>
-</div>
-
-<!-- ==================== 掌握情况 ==================== -->
-<div class="screen" id="screen-master">
-  <div class="wrap">
+  <div class="wrap" id="seg-master" style="display:none;padding-top:0">
     <div class="stats-grid">
       <div class="stat-card"><div class="num" id="mUnlearned">0</div><div class="lbl">未学习</div></div>
       <div class="stat-card"><div class="num" id="mLearning">0</div><div class="lbl">学习中</div></div>
@@ -476,11 +494,7 @@
     </div>
     <div id="masterList"></div>
   </div>
-</div>
-
-<!-- ==================== 学习记录 ==================== -->
-<div class="screen" id="screen-history">
-  <div class="wrap">
+  <div class="wrap" id="seg-history" style="display:none;padding-top:0">
     <div class="settings-card">
       <h3>选择日期</h3>
       <div id="historyDates"></div>
@@ -494,9 +508,25 @@
   </div>
 </div>
 
-<!-- ==================== 设置 ==================== -->
-<div class="screen" id="screen-settings">
+<!-- ==================== Tab3 · 词典 ==================== -->
+<div class="screen tabbed" id="screen-dict">
   <div class="wrap">
+    <div class="dict-search-wrap">
+      <input id="dictInput" class="master-search" placeholder="查单词或释义…" oninput="onDictInput(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <p class="dict-hint" id="dictHint">跨全部词库查询 · 点 🔊 听发音</p>
+    <div id="dictList"></div>
+  </div>
+</div>
+
+<!-- ==================== Tab4 · 设置 ==================== -->
+<div class="screen tabbed" id="screen-settings">
+  <div class="wrap">
+    <div class="settings-card">
+      <h3>词库</h3>
+      <div id="libList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:2px"></div>
+      <p id="libNote" style="font-size:13px;color:var(--muted);margin-top:10px;line-height:1.7"></p>
+    </div>
     <div class="settings-card">
       <h3>每日计划</h3>
       <div class="set-row">
@@ -547,6 +577,14 @@
     <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
   </div>
 </div>
+
+<!-- ==================== 底部导航 ==================== -->
+<nav class="tabbar" id="tabbar">
+  <button class="active" data-tab="screen-home" onclick="go('screen-home')"><span class="tab-ico">📖</span>学习<span class="tab-badge" id="tabBadgeStudy" style="display:none"></span></button>
+  <button data-tab="screen-vocab" onclick="go('screen-vocab')"><span class="tab-ico">📚</span>词汇<span class="tab-badge" id="tabBadgeBook" style="display:none"></span></button>
+  <button data-tab="screen-dict" onclick="go('screen-dict')"><span class="tab-ico">🔍</span>词典</button>
+  <button data-tab="screen-settings" onclick="go('screen-settings')"><span class="tab-ico">⚙️</span>设置</button>
+</nav>
 
 <!-- 词库切换确认 -->
 <div class="modal-mask" id="switchLibModal">
@@ -19428,32 +19466,36 @@ rebuildWordData();
 
 /* ---------------- 导航与页面切换 ---------------- */
 const SCREEN_TITLES = {
-  'screen-home': '英语词汇通',
+  'screen-home': '学习',
   'screen-study': '学习新词',
   'screen-review': '复习单词',
-  'screen-book': '生词本',
-  'screen-master': '掌握情况',
-  'screen-history': '学习记录',
+  'screen-vocab': '词汇',
+  'screen-dict': '词典',
   'screen-settings': '设置',
 };
+/* 有底部导航的页面;答题会话页隐藏底栏,沉浸作答 */
+const TAB_SCREENS = ['screen-home', 'screen-vocab', 'screen-dict', 'screen-settings'];
 
 function go(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const t = SCREEN_TITLES[id] || '';
   document.getElementById('topTitle').textContent = t;
-  document.getElementById('topBack').style.display = (id === 'screen-home') ? 'none' : 'inline';
-  // 首页顶栏副标题显示当前词库名
+  const tabbed = TAB_SCREENS.includes(id);
+  const tabbar = document.getElementById('tabbar');
+  if (tabbar) tabbar.style.display = tabbed ? 'flex' : 'none';
+  document.getElementById('topBack').style.display = tabbed ? 'none' : 'inline';
+  document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  // 学习页顶栏右侧显示当前词库名
   document.getElementById('topSub').textContent = (id === 'screen-home') ? LIBS[libKey()].name : '';
   if (id === 'screen-home') refreshHome();
-  if (id === 'screen-book') renderBook();
-  if (id === 'screen-master') renderMaster();
-  if (id === 'screen-history') renderHistory();
+  if (id === 'screen-vocab') renderVocab();
+  if (id === 'screen-settings') refreshSettings();
 }
 
 function goHome() { go('screen-home'); }
 
-/* ---------------- 首页 ---------------- */
+/* ---------------- 首页（学习 Tab） ---------------- */
 function refreshHome() {
   const s = stats();
   document.getElementById('statTotal').textContent = s.total;
@@ -19462,14 +19504,19 @@ function refreshHome() {
   document.getElementById('statUnseen').textContent = s.unseen;
   document.getElementById('badgeNew').textContent = Math.min(s.unseen, state.settings.dailyNew);
   document.getElementById('badgeReview').textContent = s.due;
-  document.getElementById('badgeBook').textContent = s.inBook;
-  document.getElementById('badgeLearning').textContent = s.learning;
-  const today = state.history && state.history[dateKey()];
-  const cnt = today ? today.learned.length + today.reviewed.length : 0;
-  document.getElementById('badgeHistory').textContent = cnt > 0 ? cnt + ' 词' : '今天';
+  // tab 徽章:待复习数 / 生词本数
+  setTabBadge('tabBadgeStudy', s.due);
+  setTabBadge('tabBadgeBook', s.inBook);
   renderLibPicker();
   renderGoalCard();
   updateResumeBanner();
+}
+
+function setTabBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n > 0 ? (n > 99 ? '99+' : n) : '';
+  el.style.display = n > 0 ? 'block' : 'none';
 }
 
 function renderGoalCard() {
@@ -19539,9 +19586,10 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !ttsSupported() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  renderLibPicker();
 }
 
-/* 首页词库切换：chip 列表，当前词库高亮；点击弹确认后切换 */
+/* 词库选择器（设置页）：chip 列表，当前词库高亮；点击弹确认后切换 */
 function renderLibPicker() {
   const el = document.getElementById('libList');
   if (!el) return;
@@ -19554,11 +19602,94 @@ function renderLibPicker() {
       ${escapeHtml(lib.name)} <span class="mt-cnt">${n}</span>
     </button>`;
   }).join('');
-  const hero = document.getElementById('heroLib');
-  if (hero) hero.textContent = `${LIBS[cur].name} · ${WORD_LIST.length} WORDS`;
+  const note = document.getElementById('libNote');
+  if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库学习进度独立保存，可随时切换。`;
   // 题卡右上角角标跟随当前词库（CSS content 用 --lib-badge 变量）
   const root = document.documentElement;
   if (root && root.style) root.style.setProperty('--lib-badge', JSON.stringify(LIBS[cur].name));
+}
+
+/* ---------------- 词汇 Tab（生词本/掌握情况/学习记录 分段） ---------------- */
+let vocabSeg = 'book';
+
+function setVocabSeg(seg) {
+  vocabSeg = seg;
+  renderVocab();
+}
+
+function renderVocab() {
+  document.querySelectorAll('#vocabSegs button').forEach(b => b.classList.toggle('active', b.dataset.seg === vocabSeg));
+  ['book', 'master', 'history'].forEach(s => {
+    const el = document.getElementById('seg-' + s);
+    if (el) el.style.display = s === vocabSeg ? 'block' : 'none';
+  });
+  if (vocabSeg === 'book') renderBook();
+  else if (vocabSeg === 'master') renderMaster();
+  else renderHistory();
+}
+
+/* ---------------- 词典 Tab ---------------- */
+let dictQ = '';   // 保留搜索词，答题等操作返回后可恢复结果
+
+function onDictInput(v) {
+  dictQ = v;
+  renderDictResults();
+}
+
+function renderDictResults() {
+  const el = document.getElementById('dictList');
+  const hint = document.getElementById('dictHint');
+  if (!el) return;
+  const q = dictQ.trim().toLowerCase();
+  const input = document.getElementById('dictInput');
+  if (input && input.value !== dictQ) input.value = dictQ;
+  if (!q) {
+    el.innerHTML = '';
+    hint.textContent = '跨全部词库查询 · 点 🔊 听发音';
+    return;
+  }
+  // 全词库顺序扫描(约1.6万词,毫秒级);同一单词只保留最先命中的词库
+  const rows = [];
+  const seen = new Set();
+  for (const k of Object.keys(LIBS)) {
+    for (const [w, def] of LIBS[k].words) {
+      if (seen.has(w)) continue;
+      const wl = w.toLowerCase();
+      let score = -1;
+      if (wl === q) score = 0;
+      else if (wl.startsWith(q)) score = 1;
+      else if (wl.includes(q)) score = 2;
+      else if (def.toLowerCase().includes(q)) score = 3;
+      if (score < 0) continue;
+      seen.add(w);
+      rows.push({ w, def, lib: k, score });
+    }
+  }
+  rows.sort((a, b) => a.score - b.score || a.w.localeCompare(b.w));
+  const shown = rows.slice(0, 50);
+  hint.textContent = rows.length
+    ? `匹配 ${rows.length} 个单词${rows.length > 50 ? '，显示前 50 个' : ''}`
+    : '没有匹配的单词';
+  if (!shown.length) { el.innerHTML = ''; return; }
+  const cur = libKey();
+  el.innerHTML = shown.map(r => {
+    const inCur = LIB_WORD_SETS[cur].has(r.w);
+    const inBookNow = !!(curWords()[r.w] && curWords()[r.w].inBook);
+    const libTag = LIBS[r.lib].name.replace('词汇', '');
+    return `<div class="list-card"><div class="list-item">
+      <span class="list-word">${escapeHtml(r.w)}</span>
+      <span class="dict-lib">${escapeHtml(libTag)}</span>
+      <span class="list-def">${escapeHtml(r.def)}</span>
+      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">💡</button>` : ''}
+      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(r.w)}')">🔊</button>
+      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? '✓' : '📌'}</button>` : ''}
+    </div></div>`;
+  }).join('');
+}
+
+function toggleDictBook(word) {
+  toggleBook(word);
+  renderDictResults();
 }
 
 let pendingLib = null;
@@ -19582,7 +19713,8 @@ function doSwitchLib() {
     session = null;
     clearSessionSnapshot();
     setLibrary(pendingLib);
-    goHome();   // 切换发生在首页：完整刷新统计、词库 chips、顶栏副标题
+    refreshSettings();   // 设置页 chips 高亮与说明刷新
+    refreshHome();       // 首页统计与 tab 徽章同步
   }
   closeSwitchLib();
 }
