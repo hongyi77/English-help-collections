@@ -132,8 +132,9 @@ function renderVoiceSettings() {
   }
   const accWrap = document.getElementById('voiceAccChips');
   if (accWrap) {
+    const cur = state.settings.audioAcc == null ? 1 : state.settings.audioAcc;
     accWrap.querySelectorAll('button').forEach(b =>
-      b.classList.toggle('active', Number(b.dataset.acc) === (state.settings.audioAcc || 1)));
+      b.classList.toggle('active', Number(b.dataset.acc) === cur));
   }
   fillTTSVoiceSelect('setTtsEngVoice', 'en-US', state.settings.ttsEngVoiceName);
   fillTTSVoiceSelect('setTtsZhVoice', 'zh-CN', state.settings.ttsZhVoiceName);
@@ -165,7 +166,11 @@ function fillTTSVoiceSelect(id, lang, sel) {
   const autoTag = bm ? (bm.g === 'f' ? ' · 女' : bm.g === 'm' ? ' · 男' : '') : '';
   const autoLabel = '自动优选' + (best ? `（${escapeHtml(bm.zh || best.name)}${autoTag}）` : '');
   const group = (title, opts) => opts.length ? `<optgroup label="${title}">${opts.join('')}</optgroup>` : '';
-  el.innerHTML = `<option value="">${autoLabel}</option>` +
+  let empty = '';
+  if (!pool.length) {
+    empty = `<option value="" disabled>${ttsSupported() ? '未检测到本机声音（设备可能未装语音包，或浏览器不提供）' : '本浏览器不支持设备语音'}</option>`;
+  }
+  el.innerHTML = `<option value="">${autoLabel}</option>` + empty +
     group('女声', groups.f) + group('男声', groups.m) + group('其他', groups.o);
 }
 
@@ -779,12 +784,38 @@ document.addEventListener('touchstart', unlockPlayback, { once: true });
 
 /* 设备TTS声音列表（Chrome/安卓异步加载，监听 voiceschanged） */
 let ttsVoices = [];
+let voicePollTimer = null;
 function refreshTTSVoices() {
   if (!ttsSupported()) return;
   try {
     const v = window.speechSynthesis.getVoices();
-    if (v && v.length) ttsVoices = v;   // 拿不到(未就绪/不支持)时保留旧列表
-  } catch (e) { /* 保留旧列表 */ }
+    if (v && v.length) {
+      ttsVoices = v;   // 拿到声音了,停掉轮询
+      if (voicePollTimer && typeof clearInterval === 'function') { clearInterval(voicePollTimer); voicePollTimer = null; }
+      return;
+    }
+  } catch (e) { return; }
+  /* 部分安卓机声音加载完成也不触发 voiceschanged 事件:轮询兜底(约 5 秒) */
+  if (typeof setInterval === 'function' && !voicePollTimer) {
+    let tries = 0;
+    voicePollTimer = setInterval(() => {
+      try {
+        const v = window.speechSynthesis.getVoices();
+        if (v && v.length) {
+          ttsVoices = v;
+          clearInterval(voicePollTimer);
+          voicePollTimer = null;
+          if (typeof renderVoiceSettings === 'function') renderVoiceSettings();   // 停在设置页则重渲染下拉
+        } else if (++tries >= 12) {
+          clearInterval(voicePollTimer);
+          voicePollTimer = null;
+        }
+      } catch (e) {
+        clearInterval(voicePollTimer);
+        voicePollTimer = null;
+      }
+    }, 400);
+  }
 }
 if (typeof window !== 'undefined' && ttsSupported()) {
   refreshTTSVoices();

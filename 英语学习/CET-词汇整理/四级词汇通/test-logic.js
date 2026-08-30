@@ -824,6 +824,19 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   ok(enSel.includes('丹尼尔（男）') && enSel.includes('谷歌英语·美式（女）'), '英语下拉同样中文标注');
   ok(!enSel.includes('Xiaoxiao'), '英语下拉不含中文声音');
 
+  // 回归:口音=0(英音)不能被 || 1 吞成美音(2026-08-30 手机端高亮卡在美音的根因)
+  g('setAudioAcc(0)');
+  ok(g('state.settings.audioAcc') === 0, '英音设置值持久化为 0');
+  ok(g('(state.settings.audioAcc == null ? 1 : state.settings.audioAcc)') === 0, '高亮计算保留英音 0(不用 || 1)');
+  storage.set('cet4_study_state_v1', g('JSON.stringify(state)'));
+  g('state = loadState();');
+  ok(g('state.settings.audioAcc') === 0, '刷新后英音 0 不被缺省合并覆盖');
+  g('setAudioAcc(1)');
+  // 回归:声音列表为空时给出提示项(安卓 voices 异步加载/设备无语音包场景)
+  g('ttsVoices = []');
+  g('refreshSettings()');
+  ok(documentStub.getElementById('setTtsEngVoice').innerHTML.includes('未检测到本机声音'), '声音列表空时显示提示项');
+
   console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('测试异常:', e); process.exit(1); });
