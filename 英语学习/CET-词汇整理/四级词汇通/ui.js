@@ -52,9 +52,9 @@ function refreshHome() {
   // tab 徽章:待复习数 / 生词本数
   setTabBadge('tabBadgeStudy', s.due);
   setTabBadge('tabBadgeBook', s.inBook);
-  // 听写依赖发音能力:在线音源(音频元素)或系统 TTS 二有其一;微信/QQ 内置等无 TTS 仍可用在线音源
+  // 听写依赖发音能力:Edge朗读/在线音源(音频元素)/系统 TTS 任一即可;微信/QQ 内置等无 TTS 仍可用在线音源
   const dictEntry = document.getElementById('dictationEntry');
-  if (dictEntry) dictEntry.style.display = (ttsSupported() || canUseOnlineVoice()) ? 'flex' : 'none';
+  if (dictEntry) dictEntry.style.display = canSpeakHere() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
 }
@@ -116,20 +116,41 @@ function refreshSettings() {
   document.getElementById('setNew').textContent = state.settings.dailyNew;
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
-  if (speakBtn) speakBtn.textContent = !ttsSupported() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
   renderVoiceSettings();
   renderLibPicker();
 }
 
-/* ---------------- 发音设置（音源/口音/试听/设备TTS声音选择器） ---------------- */
+/* ---------------- 发音设置（音源/口音/试听/Edge音色/设备TTS声音选择器） ---------------- */
 function renderVoiceSettings() {
-  const srcOn = canUseOnlineVoice();
-  const srcBtn = document.getElementById('setOnlineVoice');
-  if (srcBtn) {
-    srcBtn.textContent = srcOn ? '在线真人' : '设备TTS';
-    srcBtn.classList.toggle('active', srcOn);
-    srcBtn.disabled = typeof Audio === 'undefined';   // 连音频元素都没有的环境没有可选项
+  const src = ['youdao', 'edge', 'tts'].indexOf(state.settings.voiceSrc) >= 0 ? state.settings.voiceSrc : 'youdao';
+  const edgeOk = edgeTtsAvailable();
+  const chips = document.getElementById('voiceSrcChips');
+  if (chips) {
+    chips.querySelectorAll('button[data-src]').forEach(b => {
+      const v = b.dataset.src;
+      b.style.display = (v === 'edge' && !edgeOk) ? 'none' : '';
+      // 存档里选过 Edge 但当前浏览器不可用:高亮「在线真人」并说明
+      b.classList.toggle('active', v === src || (v === 'youdao' && src === 'edge' && !edgeOk));
+    });
   }
+  const note = document.getElementById('voiceSrcNote');
+  if (note) {
+    note.textContent = src === 'tts'
+      ? '仅使用设备语音，由下方两个声音下拉决定（设备没装语音包时可能无声）。'
+      : src === 'edge' && edgeOk
+        ? '微软 Edge 朗读引擎，英语/普通话音色可自选男女声（下方音色下拉）；需联网合成，合成过的词本次会话内秒播；失败自动切回在线真人。'
+        : src === 'edge'
+          ? '当前浏览器不是 Edge（或版本过旧），Edge 朗读不可用，已自动使用在线真人音源。'
+          : '在线真人音源更纯正（单词=有道词典，汉译=标准普通话合成），熄屏/切后台可继续播；首次播放需联网，之后离线可用；失败自动切换设备语音。';
+  }
+  // 口音行:仅在线真人显示(Edge 的口音由所选音色决定,设备TTS 没有口音概念)
+  const accRow = document.getElementById('rowVoiceAcc');
+  if (accRow) accRow.style.display = src === 'youdao' ? '' : 'none';
+  // Edge 音色行:仅 Edge 音源显示
+  document.querySelectorAll('.edge-voice-row').forEach(r => { r.style.display = src === 'edge' ? '' : 'none'; });
+  fillEdgeVoiceSelect('setEdgeVoiceEn', 'en', state.settings.edgeVoiceEn);
+  fillEdgeVoiceSelect('setEdgeVoiceZh', 'zh', state.settings.edgeVoiceZh);
   const accWrap = document.getElementById('voiceAccChips');
   if (accWrap) {
     const cur = state.settings.audioAcc == null ? 1 : state.settings.audioAcc;
@@ -138,6 +159,35 @@ function renderVoiceSettings() {
   }
   fillTTSVoiceSelect('setTtsEngVoice', 'en-US', state.settings.ttsEngVoiceName);
   fillTTSVoiceSelect('setTtsZhVoice', 'zh-CN', state.settings.ttsZhVoiceName);
+}
+
+/* Edge 朗读音色下拉:按女声/男声分组,显示中文名+性别+口音 */
+function fillEdgeVoiceSelect(id, lang, sel) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const wantZh = lang === 'zh';
+  const groups = { f: [], m: [] };
+  for (const v of EDGE_VOICES) {
+    if (wantZh !== /^zh/.test(v.id)) continue;
+    const label = escapeHtml(v.zh) + '（' + (v.g === 'f' ? '女' : '男') + (v.tag ? ' · ' + v.tag : '') + '）';
+    groups[v.g].push(`<option value="${v.id}"${sel === v.id ? ' selected' : ''}>${label}</option>`);
+  }
+  const group = (title, opts) => `<optgroup label="${title}">${opts.join('')}</optgroup>`;
+  el.innerHTML = group('女声', groups.f) + group('男声', groups.m);
+}
+
+function setVoiceSrc(v) {
+  if (!(v === 'youdao' || v === 'edge' || v === 'tts')) return;
+  if (v === 'edge' && !edgeTtsAvailable()) return;
+  state.settings.voiceSrc = v;
+  saveState();
+  refreshSettings();
+}
+
+function onEdgeVoiceChange(which, val) {
+  if (which === 'en') state.settings.edgeVoiceEn = val;
+  else state.settings.edgeVoiceZh = val;
+  saveState();
 }
 
 /* 设备TTS声音下拉：首项「自动优选」+ 按女声/男声/其他分组;
@@ -172,12 +222,6 @@ function fillTTSVoiceSelect(id, lang, sel) {
   }
   el.innerHTML = `<option value="">${autoLabel}</option>` + empty +
     group('女声', groups.f) + group('男声', groups.m) + group('其他', groups.o);
-}
-
-function setOnlineVoice(on) {
-  state.settings.onlineVoice = !!on;
-  saveState();
-  refreshSettings();
 }
 
 function setAudioAcc(v) {
@@ -337,7 +381,7 @@ function adjSetting(key, delta) {
 }
 
 function toggleAutoSpeak() {
-  if (!ttsSupported()) return;   // 浏览器不支持时按钮显示「不支持」，不可切换
+  if (!canSpeakHere()) return;   // 无任何发声途径时按钮显示「不支持」，不可切换
   state.settings.autoSpeak = !state.settings.autoSpeak;
   saveState();
   refreshSettings();
@@ -661,7 +705,7 @@ function renderRecognizeOne(word) {
   const isRelearn = rec.errors > 0;
   const typeLabel = (isRelearn ? '重记' : session.mode === 'study' ? '学习' : '复习') + ' · ' + q.type;
   const promptCls = 'quiz-prompt';
-  const speakBtn = ttsSupported() ? `<button class="speak-btn" title="发音" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
+  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
   const optionsHtml = q.options.map((o, i) =>
     `<button class="opt" data-ans="${o.isAnswer}" onclick="recognizeAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
   ).join('');
@@ -726,11 +770,12 @@ function recognizeAnswer(idx, btnEl) {
 }
 
 /* ---------------- 发音引擎 ----------------
- * 两层结构：在线真人音源优先（单词=有道词典 dictvoice，汉译=百度翻译 gettts 标准普通话），
- * 失败/关闭/离线未缓存时自动降级为设备 speechSynthesis。
+ * 三层结构：① Edge 朗读（设置里选了且当前浏览器是 Edge，男女音色自选，见 edgeSynthesize）
+ * ② 在线真人音源（单词=有道词典 dictvoice，汉译=百度翻译 gettts 标准普通话）
+ * ③ 设备 speechSynthesis 兜底。上层失败/关闭/离线未缓存时逐层降级。
  * 音源接口无 CORS 头，页面 fetch 不到数据，播放一律走 <audio> 元素（媒体元素不受
- * CORS 限制）；<audio> 是真音频流，熄屏/切后台浏览器会继续播（播客模式），离线复用
- * 由 Service Worker 缓存（sw.js 的 cet4-audio-v1）。
+ * CORS 限制）；<audio> 是真音频流，熄屏/切后台浏览器会继续播（播客模式），在线音源离线复用
+ * 由 Service Worker 缓存（sw.js 的 cet4-audio-v1），Edge 音源产物是 Blob 无法进 SW，仅会话内复用。
  * 设备TTS 的坑统一处理：
  * 1. iOS 要求首次 speak() 发生在用户手势里 → 首次触摸时用空 utterance 解锁
  * 2. 部分安卓浏览器把 cancel() 后立即 speak() 的语音静默丢弃 → 只在播报中才 cancel，
@@ -741,8 +786,28 @@ function ttsSupported() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 }
 
+/* 有道/百度在线音源是否可用（作 Edge/首层失败后的降级层，与 voiceSrc 无关） */
 function canUseOnlineVoice() {
-  return state.settings.onlineVoice !== false && typeof Audio !== 'undefined';
+  return state.settings.voiceSrc !== 'tts' && typeof Audio !== 'undefined';
+}
+
+/* Edge 朗读整体可用性：浏览器须为可用版本的 Edge（UA 校验，纯函数 isEdgeBrowser）
+ * 且支持 WebSocket + crypto.subtle（token 要做 SHA-256，file:// 下也成立） */
+function edgeTtsAvailable() {
+  return typeof WebSocket !== 'undefined'
+    && typeof crypto !== 'undefined' && !!crypto.subtle
+    && typeof TextEncoder !== 'undefined'
+    && isEdgeBrowser(typeof navigator !== 'undefined' ? navigator.userAgent : '');
+}
+
+/* 用户当前选择是否走 Edge 朗读 */
+function canUseEdgeVoice() {
+  return state.settings.voiceSrc === 'edge' && edgeTtsAvailable();
+}
+
+/* 当前环境是否还有任何发声途径（🔊 按钮/听写入口的显隐守卫） */
+function canSpeakHere() {
+  return ttsSupported() || canUseOnlineVoice() || canUseEdgeVoice();
 }
 
 /* 当前正在播的 <audio>（全局只有一个，新的播报顶掉旧的；stopDictPlayback 负责掐掉） */
@@ -781,6 +846,145 @@ function unlockAudio() {
 function unlockPlayback() { unlockTTS(); unlockAudio(); }
 document.addEventListener('pointerdown', unlockPlayback, { once: true });
 document.addEventListener('touchstart', unlockPlayback, { once: true });
+
+/* ---------------- Edge 朗读合成器 ----------------
+ * 一次合成 = 一条 WebSocket：发 speech.config + SSML，收二进制帧（2 字节大端头长 +
+ * 头部含 Path:audio 的 MP3 数据），Path:turn.end 结束。产物 MP3 Blob → objectURL →
+ * <audio> 播放（熄屏续播/锁屏媒体信息与在线音源一致）。
+ * 结果缓存内存 Map（听写一词播多次/重听复用，二次播放零延迟）；Blob 进不了 SW 缓存，
+ * 断网不可用 → 播放链自动降级在线真人音源。
+ * speakEpoch：停止播报（stopDictPlayback 等）时 +1，在途合成完成后发现代际变了就静默丢弃，
+ * 避免停止后旧文本又通过降级层冒出来。
+ */
+const edgeBlobCache = new Map();   // key: voice|rate|text → objectURL（LRU，上限 200）
+const EDGE_CACHE_MAX = 200;
+const edgeSockets = new Set();     // 在途合成连接（stopEdgeSynth 统一掐掉；允许预取+播报并存）
+let speakEpoch = 0;
+
+function stopEdgeSynth() {
+  for (const ws of edgeSockets) { try { ws.close(); } catch (e) { /* 忽略 */ } }
+  edgeSockets.clear();
+}
+
+function edgeCacheGet(key) {
+  const u = edgeBlobCache.get(key);
+  if (u) { edgeBlobCache.delete(key); edgeBlobCache.set(key, u); }   // 触碰即刷新 LRU 位次
+  return u;
+}
+function edgeCachePut(key, url) {
+  if (edgeBlobCache.has(key)) edgeBlobCache.delete(key);
+  edgeBlobCache.set(key, url);
+  while (edgeBlobCache.size > EDGE_CACHE_MAX) {
+    const oldest = edgeBlobCache.keys().next().value;
+    const u = edgeBlobCache.get(oldest);
+    try { if (u && u.indexOf('blob:') === 0) URL.revokeObjectURL(u); } catch (e) { /* 忽略 */ }
+    edgeBlobCache.delete(oldest);
+  }
+}
+
+/* Sec-MS-GEC token：SHA-256(时间刻度 + TrustedClientToken) 大写十六进制 */
+async function edgeTtsToken() {
+  const s = edgeGecTicks(Date.now()) + EDGE_TRUSTED_TOKEN;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  let hex = '';
+  for (const b of new Uint8Array(buf)) hex += (b < 16 ? '0' : '') + b.toString(16);
+  return hex.toUpperCase();
+}
+
+/* 合成一段文本 → blob objectURL；失败/取消/无音频返回 null */
+function edgeSynthesize(text, voice, rate) {
+  const key = voice + '|' + edgeRate(rate) + '|' + text;
+  const hit = edgeCacheGet(key);
+  if (hit) return Promise.resolve(hit);
+  return new Promise(resolve => {
+    let settled = false, timer = null, ws = null;
+    const chunks = [];
+    const fin = (val) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (ws) edgeSockets.delete(ws);
+      try { if (ws) ws.close(); } catch (e) { /* 忽略 */ }
+      resolve(val);
+    };
+    const makeUrl = () => {
+      const url = URL.createObjectURL(new Blob(chunks, { type: 'audio/mpeg' }));
+      edgeCachePut(key, url);
+      return url;
+    };
+    edgeTtsToken().then(token => {
+      if (settled) return;
+      ws = new WebSocket(edgeTtsUrl(token, edgeUaVersion(navigator.userAgent)));
+      edgeSockets.add(ws);
+      ws.binaryType = 'arraybuffer';
+      ws.onopen = () => {
+        if (settled) return;
+        const ts = new Date().toString().replace(/GMT.*$/, 'GMT+0000 (Coordinated Universal Time)');
+        ws.send('X-Timestamp:' + ts + '\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n'
+          + '{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false",'
+          + '"wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n');
+        const rb = new Uint8Array(16);
+        crypto.getRandomValues(rb);
+        const reqId = Array.prototype.map.call(rb, b => b.toString(16).padStart(2, '0')).join('');
+        ws.send('X-RequestId:' + reqId + '\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:' + ts
+          + 'Z\r\nPath:ssml\r\n\r\n' + edgeSsml(text, voice, rate));
+      };
+      ws.onmessage = (ev) => {
+        if (settled) return;
+        if (typeof ev.data === 'string') {
+          if (ev.data.indexOf('Path:turn.end') >= 0) fin(chunks.length ? makeUrl() : null);
+          return;
+        }
+        const buf = new Uint8Array(ev.data);
+        if (buf.length < 2) return;
+        const hLen = (buf[0] << 8) | buf[1];
+        if (hLen > buf.length) return;
+        const head = new TextDecoder().decode(buf.slice(2, 2 + hLen));
+        if (head.indexOf('Path:audio') >= 0 && buf.length > 2 + hLen) chunks.push(buf.slice(2 + hLen));
+      };
+      ws.onerror = () => fin(null);
+      ws.onclose = () => { if (!settled) fin(null); };
+      /* 超时兜底：连接/合成慢或服务端事件不触发；已有部分音频就用部分音频 */
+      timer = setTimeout(() => fin(chunks.length ? makeUrl() : null), Math.max(9000, text.length * 450));
+    }).catch(() => fin(null));
+  });
+}
+
+/* Edge 朗读播完一整段：true=播完 / false=失败需降级 / 'x'=期间被停止，不再降级 */
+async function edgePlayAwait(text, lang, rate) {
+  if (!canUseEdgeVoice()) return false;
+  const epoch = speakEpoch;
+  const url = await edgeSynthesize(text, edgeVoiceOf(lang), rate);
+  if (epoch !== speakEpoch) return 'x';
+  if (!url) return false;
+  return await blobPlayAwait(url, rate, Math.max(8000, text.length * 900));
+}
+
+/* Blob 音频等待播完（形状与 audioPlayAwait 一致） */
+function blobPlayAwait(url, rate, timeoutMs) {
+  return new Promise(resolve => {
+    try {
+      stopSpeakAudio();
+      const el = new Audio(url);
+      el.playbackRate = rate;
+      try { el.preservesPitch = true; } catch (e) { /* 老浏览器忽略 */ }
+      currentAudioEl = el;
+      let done = false;
+      const fin = (ok) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (currentAudioEl === el) currentAudioEl = null;
+        resolve(ok);
+      };
+      el.onended = () => fin(true);
+      el.onerror = () => fin(false);
+      const p = el.play();
+      if (p && p.catch) p.catch(() => fin(false));
+      const timer = setTimeout(() => { try { el.pause(); } catch (e) { /* 忽略 */ } fin(true); }, timeoutMs);
+    } catch (e) { resolve(false); }
+  });
+}
 
 /* 设备TTS声音列表（Chrome/安卓异步加载，监听 voiceschanged） */
 let ttsVoices = [];
@@ -838,10 +1042,23 @@ function resolveTTSVoice(name, lang) {
   return pickBestTTSVoice(ttsVoices, lang);
 }
 
+/* 单词播报（火后不理）：Edge 朗读（若启用）→ 在线真人 → 设备TTS */
 function speakWord(word, rate) {
   unlockPlayback();
-  if (canUseOnlineVoice() && speakWordOnline(word, rate || 0.9)) return;
-  speakWordTTS(word);
+  speakTextFireForget(word, 'en-US', rate || 0.9);
+}
+
+async function speakTextFireForget(text, lang, rate) {
+  const epoch = speakEpoch;
+  const edgeRes = await edgePlayAwait(text, lang, rate);
+  if (edgeRes === true || edgeRes === 'x') return;
+  if (epoch !== speakEpoch) return;   // 期间被停止，别再从降级层冒声
+  if (canUseOnlineVoice() && speakWordOnline(text, rate)) return;
+  if (/^zh/.test(lang)) {
+    await speakAwait(text, lang, rate);
+  } else {
+    speakWordTTS(text);
+  }
 }
 
 /* 在线音源播单词（有道词典发音）；返回 false 表示不可用，调用方降级 TTS */
@@ -1703,8 +1920,8 @@ function normDictMode(v) {
 function renderDictConfig() {
   const el = document.getElementById('dictQuiz');
   if (!el) return;
-  // 在线音源(音频元素)与设备TTS二有其一即可听写;微信/QQ 无 speechSynthesis 但仍可用在线音源
-  if (!ttsSupported() && !canUseOnlineVoice()) {
+  // Edge朗读/在线音源(音频元素)与设备TTS任一即可听写;微信/QQ 无 speechSynthesis 但仍可用在线音源
+  if (!canSpeakHere()) {
     el.innerHTML = `<div class="quiz-card session-done"><div class="icon">${icon('ear')}</div>
       <h2>当前浏览器不支持语音</h2><p>听写需要在线音源（需联网）或系统语音合成（speechSynthesis）支持。<br>当前环境两者皆无，请改用系统浏览器打开。</p></div>`;
     return;
@@ -1783,9 +2000,11 @@ function startDictation() {
   renderDictWord();
 }
 
-/* 停止当前播报（作废播报链 + 掐掉在线音频 + 取消系统语音队列） */
+/* 停止当前播报（作废播报链 + 掐掉在途 Edge 合成与在线音频 + 取消系统语音队列） */
 function stopDictPlayback() {
   if (session && session.mode === 'dict') session.gen++;
+  speakEpoch++;
+  stopEdgeSynth();
   stopSpeakAudio();
   clearDictMediaSession();
   if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -1850,9 +2069,11 @@ function speakAwait(text, lang, rate) {
   });
 }
 
-/* 听写播报统一入口：在线真人音源优先，失败/关闭时降级设备TTS并提示一次 */
+/* 听写播报统一入口：Edge 朗读（若启用）→ 在线真人音源 → 设备TTS，失败/关闭逐层降级并提示一次 */
 let onlineSourceWarned = false;
 async function speakDictText(text, lang, rate) {
+  const edgeRes = await edgePlayAwait(text, lang, rate);
+  if (edgeRes === true || edgeRes === 'x') return;
   if (await audioPlayAwait(text, lang, rate)) return;
   if (canUseOnlineVoice() && !onlineSourceWarned) {
     onlineSourceWarned = true;
@@ -1885,8 +2106,16 @@ function clearDictMediaSession() {
   try { navigator.mediaSession.metadata = null; } catch (e) { /* 忽略 */ }
 }
 
-/* 预取下一个词的音频（走 SW 顺手缓存，切词时零等待；no-cors 拿不到内容也无妨） */
+/* 预取下一个词的音频：在线音源走 SW 顺手缓存；Edge 音源预合成进内存缓存，切词零等待 */
 function prefetchDictAudio(word) {
+  if (canUseEdgeVoice()) {
+    try {
+      const rate = state.settings.dictRate || 0.9;
+      edgeSynthesize(word, edgeVoiceOf('en-US'), rate);
+      edgeSynthesize(speakableDef(word) || word, edgeVoiceOf('zh-CN'), Math.min(1.2, rate + 0.1));
+    } catch (e) { /* 忽略 */ }
+    return;
+  }
   if (typeof fetch === 'undefined' || !canUseOnlineVoice()) return;
   try {
     fetch(onlineVoiceUrl(word, false, state.settings.audioAcc), { mode: 'no-cors' }).catch(() => {});

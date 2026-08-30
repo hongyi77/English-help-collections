@@ -22,9 +22,10 @@ const DEFAULT_SETTINGS = {
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
   dictWords: [],                                          // 听写自选词单
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
-  onlineVoice: true,                                      // 在线真人音源(单词=有道/汉译=百度),失败自动降级设备TTS
-  audioAcc: 1,                                            // 在线音源口音:1 美音 / 0 英音
+  voiceSrc: 'youdao',                                     // 音源:'youdao'在线真人 / 'edge'Edge朗读 / 'tts'设备TTS
+  audioAcc: 1,                                            // 在线音源口音:1 美音 / 0 英音(Edge 音源的口音由音色决定)
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
+  edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
 };
 
 /* 自定义拼写/听写的取词范围 */
@@ -93,6 +94,98 @@ function onlineVoiceUrl(text, isZh, acc) {
     return 'https://fanyi.baidu.com/gettts?lan=zh&text=' + encodeURIComponent(text) + '&spd=4&source=web';
   }
   return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=' + (acc === 0 ? 0 : 1);
+}
+
+/* ---------------- Edge 朗读音源(微软,2026-08-30 方案C) ----------------
+ * wss 直连 speech.platform.bing.com,作为第三音源,男女音色可自选。
+ * 实测结论(2026-08-30,排查时别绕弯):
+ * - Sec-MS-GEC token 必须用 float64 运算生成:ticks≈1.3e17 超出 2^53,浮点舍入后的值
+ *   才是服务端期望值;用 BigInt 精确计算反而 403
+ * - 服务端校验浏览器真实 User-Agent:须含 Edg/(桌面) EdgA/(安卓) EdgiOS/(iOS) 且
+ *   主版本 ≥135(实测 130 被拒);UA 是浏览器自动带的、网页伪造不了,所以本音源
+ *   只在 Edge 浏览器里可用,其他浏览器 isEdgeBrowser() 直接判不可用,自动回落在线真人
+ * - Origin/Cookie/ConnectionId 都不校验,token 走查询参数(浏览器 WS 设不了自定义头)
+ */
+const EDGE_TRUSTED_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const EDGE_WSS_BASE = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
+
+/* 从 UA 提取 Edge 版本号(如 "143.0.7204.99");非 Edge 返回空串 */
+function edgeUaVersion(ua) {
+  const m = /Edg(?:A|iOS)?\/([\d.]+)/.exec(ua || '');
+  return m ? m[1] : '';
+}
+
+/* 是否为可用版本的 Edge 浏览器(服务端拒绝 <135 的旧版本) */
+function isEdgeBrowser(ua) {
+  const ver = edgeUaVersion(ua);
+  const major = parseInt(ver, 10);
+  return !!(ver && !isNaN(major) && major >= 135);
+}
+
+/* Sec-MS-GEC token 的时间刻度:Windows FILETIME 100ns 刻度,向下取整到 5 分钟。
+ * 必须保持 float64 运算语义(见上方说明),禁止换成 BigInt 精确计算 */
+function edgeGecTicks(nowMs) {
+  let t = nowMs / 1000 + 11644473600;
+  t -= t % 300;
+  t *= 1e7;
+  return BigInt(Math.round(t)).toString();
+}
+
+/* Edge TTS WebSocket 地址(token/版本走查询参数;版本号用 UA 里的真实版本,缺失时兜底) */
+function edgeTtsUrl(gec, ver) {
+  return EDGE_WSS_BASE
+    + '?TrustedClientToken=' + EDGE_TRUSTED_TOKEN
+    + '&Sec-MS-GEC=' + gec
+    + '&Sec-MS-GEC-Version=1-' + (ver || '143.0.3650.75');
+}
+
+/* 语速 0.5~1.5 → SSML rate 百分比(如 0.9 → '-10%') */
+function edgeRate(rate) {
+  const pct = Math.round(((rate || 1) - 1) * 100);
+  return (pct >= 0 ? '+' : '') + pct + '%';
+}
+
+/* SSML 报文(text 做 XML 转义) */
+function edgeSsml(text, voice, rate) {
+  const esc = String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>"
+    + "<voice name='" + voice + "'>"
+    + "<prosody pitch='+0Hz' rate='" + edgeRate(rate) + "' volume='+0%'>"
+    + esc
+    + '</prosody></voice></speak>';
+}
+
+/* 精选音色表(ShortName 已对照官方 voices/list 校验存在,2026-08-30):
+ * zh 中文名 + 性别(g) + 口音标签(tag,仅英语有);中文表顺序即下拉顺序 */
+const EDGE_VOICES = [
+  { id: 'zh-CN-XiaoxiaoNeural', zh: '晓晓', g: 'f' },
+  { id: 'zh-CN-XiaoyiNeural',   zh: '晓伊', g: 'f' },
+  { id: 'zh-CN-YunxiNeural',    zh: '云希', g: 'm' },
+  { id: 'zh-CN-YunjianNeural',  zh: '云健', g: 'm' },
+  { id: 'zh-CN-YunyangNeural',  zh: '云扬', g: 'm' },
+  { id: 'zh-CN-YunxiaNeural',   zh: '云夏', g: 'm' },
+  { id: 'en-US-AriaNeural',      zh: '艾莉雅',   g: 'f', tag: '美音' },
+  { id: 'en-US-JennyNeural',     zh: '珍妮',     g: 'f', tag: '美音' },
+  { id: 'en-US-MichelleNeural',  zh: '米歇尔',   g: 'f', tag: '美音' },
+  { id: 'en-GB-SoniaNeural',     zh: '索尼娅',   g: 'f', tag: '英音' },
+  { id: 'en-GB-LibbyNeural',     zh: '利比',     g: 'f', tag: '英音' },
+  { id: 'en-US-AndrewNeural',    zh: '安德鲁',   g: 'm', tag: '美音' },
+  { id: 'en-US-GuyNeural',       zh: '盖伊',     g: 'm', tag: '美音' },
+  { id: 'en-US-ChristopherNeural', zh: '克里斯托弗', g: 'm', tag: '美音' },
+  { id: 'en-GB-RyanNeural',      zh: '瑞安',     g: 'm', tag: '英音' },
+  { id: 'en-GB-ThomasNeural',    zh: '托马斯',   g: 'm', tag: '英音' },
+];
+
+function edgeVoiceById(id) {
+  return EDGE_VOICES.find(v => v.id === id) || null;
+}
+/* 音色缺省(设置值为空或非法时回落) */
+function edgeVoiceDefault(lang) {
+  return /^zh/.test(lang) ? 'zh-CN-XiaoxiaoNeural' : 'en-US-AriaNeural';
+}
+function edgeVoiceOf(lang) {
+  const saved = /^zh/.test(lang) ? state.settings.edgeVoiceZh : state.settings.edgeVoiceEn;
+  return edgeVoiceById(saved) ? saved : edgeVoiceDefault(lang);
 }
 
 /* 设备TTS声音优选(纯函数):同语言里挑高质量音色
@@ -309,12 +402,18 @@ function loadState() {
       // 设置项缺省合并（旧存档没有 autoSpeak/lib 及自由拼写/听写配置等新字段）
       const hadDictMode = s.settings && s.settings.dictMode != null;
       const legacyJudge = s.settings ? s.settings.dictJudge : undefined;
+      const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
+      const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
       s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
       if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
       // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
       if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
         s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
       }
+      // 旧存档 onlineVoice(bool) → voiceSrc 三态(youdao/edge/tts)
+      if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'youdao';
+      delete s.settings.onlineVoice;
+      if (!['youdao', 'edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'youdao';
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）

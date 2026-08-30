@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>英语词汇通</title>
 <!-- 安全加固:CSP 限制脚本只能来自本站(禁内联/外站脚本注入)、禁止插件/iframe 嵌入、http 自动升级 https -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' wss://speech.platform.bing.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <!-- PWA:添加到主屏幕后独立窗口运行,sw.js 提供离线缓存(需 https 或 localhost) -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#F6F0E4">
@@ -659,15 +659,15 @@
     <div class="settings-card">
       <h3>发音</h3>
       <div class="set-row">
-        <label>单词音源</label>
-        <div class="set-ctrl" style="gap:8px">
-          <button id="setOnlineVoice" class="master-tab active" onclick="setOnlineVoice(!state.settings.onlineVoice)">在线真人</button>
+        <label>音源</label>
+        <div class="set-ctrl" id="voiceSrcChips" style="gap:8px">
+          <button class="master-tab" data-src="youdao" onclick="setVoiceSrc('youdao')">在线真人</button>
+          <button class="master-tab" data-src="edge" onclick="setVoiceSrc('edge')">Edge朗读</button>
+          <button class="master-tab" data-src="tts" onclick="setVoiceSrc('tts')">设备TTS</button>
         </div>
       </div>
-      <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:-6px 0 14px">
-        在线真人音源更纯正（单词=有道词典，汉译=标准普通话合成），熄屏/切后台可继续播；首次播放需联网，之后离线可用；失败自动切换设备语音。
-      </p>
-      <div class="set-row">
+      <p id="voiceSrcNote" style="font-size:12px;color:var(--muted);line-height:1.7;margin:-6px 0 14px"></p>
+      <div class="set-row" id="rowVoiceAcc">
         <label>单词口音（在线音源）</label>
         <div class="set-ctrl" id="voiceAccChips" style="gap:8px">
           <button class="master-tab" data-acc="1" onclick="setAudioAcc(1)">美音</button>
@@ -680,6 +680,14 @@
           <button class="master-tab" onclick="previewVoice('en')">🔊 英语</button>
           <button class="master-tab" onclick="previewVoice('zh')">🔊 汉译</button>
         </div>
+      </div>
+      <div class="set-row edge-voice-row" style="display:none">
+        <label style="flex:1">Edge 英语音色<br><span style="font-size:12px;color:var(--muted)">微软朗读 · 男女声自选</span></label>
+        <select id="setEdgeVoiceEn" class="voice-select" onchange="onEdgeVoiceChange('en', this.value)"></select>
+      </div>
+      <div class="set-row edge-voice-row" style="display:none">
+        <label style="flex:1">Edge 普通话音色<br><span style="font-size:12px;color:var(--muted)">汉译朗读 · 男女声自选</span></label>
+        <select id="setEdgeVoiceZh" class="voice-select" onchange="onEdgeVoiceChange('zh', this.value)"></select>
       </div>
       <div class="set-row">
         <label style="flex:1">设备TTS英语声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>

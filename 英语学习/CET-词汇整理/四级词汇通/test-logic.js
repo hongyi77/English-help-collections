@@ -761,9 +761,23 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
     settings: { dailyNew: 15 }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
   }));
   g('state = loadState();');
-  ok(g('state.settings.onlineVoice') === true, '旧存档合并出 onlineVoice=true');
+  ok(g('state.settings.voiceSrc') === 'youdao', '旧存档合并出 voiceSrc=youdao(缺省在线真人)');
   ok(g('state.settings.audioAcc') === 1, '旧存档合并出 audioAcc=1(美音)');
   ok(g('state.settings.ttsEngVoiceName') === '' && g('state.settings.ttsZhVoiceName') === '', '旧存档合并出空声音指定');
+  ok(g('state.settings.edgeVoiceEn') === 'en-US-AriaNeural' && g('state.settings.edgeVoiceZh') === 'zh-CN-XiaoxiaoNeural', '旧存档合并出 Edge 音色缺省');
+
+  // 旧存档 onlineVoice(bool) → voiceSrc 三态迁移
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 15, onlineVoice: false }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.voiceSrc') === 'tts', '旧存档 onlineVoice=false 迁移为 voiceSrc=tts');
+  ok(g('state.settings.onlineVoice') === undefined, '迁移后删除 onlineVoice 旧字段');
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 15, voiceSrc: 'bogus' }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.voiceSrc') === 'youdao', '非法 voiceSrc 回落 youdao');
 
   // 沙箱无 Audio/caches:在线播放不可用返回 false,降级链函数存在且 speakWord 不抛异常
   ok(await g('audioPlayAwait("hello", "en-US", 1)') === false, '无 Audio 环境在线播放返回 false');
@@ -774,11 +788,12 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   g('stopDictPlayback()');
   ok(true, 'stopDictPlayback 兼容在线引擎不抛异常');
 
-  // 设置项切换与声音选择器渲染
-  g('setOnlineVoice(false)');
-  ok(g('state.settings.onlineVoice') === false, 'setOnlineVoice 关闭在线音源并持久化');
-  ok(g('canUseOnlineVoice()') === false, '关闭后 canUseOnlineVoice 为 false');
-  g('setOnlineVoice(true)');
+  // 设置项切换与声音选择器渲染(音源三态)
+  g("setVoiceSrc('tts')");
+  ok(g('state.settings.voiceSrc') === 'tts', 'setVoiceSrc 切到设备TTS');
+  ok(g('canUseOnlineVoice()') === false, '设备TTS音源下 canUseOnlineVoice 为 false');
+  g("setVoiceSrc('youdao')");
+  ok(g('state.settings.voiceSrc') === 'youdao', '切回在线真人');
   g('setAudioAcc(0)');
   ok(g('state.settings.audioAcc') === 0, 'setAudioAcc 切英音');
   g('setAudioAcc(1)');
@@ -836,6 +851,57 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   g('ttsVoices = []');
   g('refreshSettings()');
   ok(documentStub.getElementById('setTtsEngVoice').innerHTML.includes('未检测到本机声音'), '声音列表空时显示提示项');
+
+  /* ================= 27. Edge 朗读音源（方案C） ================= */
+  console.log('\n[27] Edge朗读:UA判定/token/SSML/音色表/设置渲染');
+  // UA 判定:网页拿不到也伪造不了 UA,能不能用由浏览器本身决定
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0")`) === true, '桌面 Edge UA 判可用');
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7204.99 Mobile Safari/537.36 EdgA/143.0.7204.99")`) === true, '安卓 Edge(EdgA) UA 判可用');
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 EdgiOS/143.2410.0 Mobile/15E148 Safari/604.1")`) === true, 'iOS Edge(EdgiOS) UA 判可用');
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36 EdgA/130.0.2849.68")`) === false, '旧版 Edge(130) 判不可用(服务端实测 403)');
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36")`) === false, 'Chrome 手机 UA 判不可用');
+  ok(g(`isEdgeBrowser("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 MicroMessenger/8.0.49 Chrome/130.0.0.0 Mobile Safari/537.36")`) === false, '微信 UA 判不可用');
+  ok(g(`isEdgeBrowser('')`) === false && g('isEdgeBrowser(null)') === false, '空/缺失 UA 判不可用');
+  ok(g(`edgeUaVersion("Mozilla/5.0 (Linux; Android 14) Mobile Safari/537.36 EdgA/143.0.7204.99")`) === '143.0.7204.99', 'edgeUaVersion 提取版本号');
+
+  // token 时间刻度:固定输入的官方基准值(Python edge-tts 对拍;float64 语义,BigInt 精确值会 403)
+  ok(g('edgeGecTicks(1756550000000)') === '134010234000000000', 'edgeGecTicks 固定输入=官方基准值');
+  ok(g(`edgeTtsUrl('ABC123', '143.0.1.2')`) === 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC=ABC123&Sec-MS-GEC-Version=1-143.0.1.2', 'WS URL 拼装(token/版本走查询参数)');
+  ok(g(`edgeTtsUrl('ABC123')`).indexOf('Sec-MS-GEC-Version=1-143.0.3650.75') > 0, '版本号缺省兜底 143');
+  ok(g('edgeRate(1)') === '+0%' && g('edgeRate(0.9)') === '-10%' && g('edgeRate(1.5)') === '+50%' && g('edgeRate(0.5)') === '-50%', '语速→SSML rate 映射');
+  ok(g(`edgeSsml('a<b&c>d', 'zh-CN-XiaoxiaoNeural', 1)`).indexOf('&lt;b&amp;c&gt;d') > 0, 'SSML 文本 XML 转义');
+  ok(g(`edgeSsml('hello', 'en-US-AriaNeural', 0.9)`).indexOf("rate='-10%'") > 0 && g(`edgeSsml('hello', 'en-US-AriaNeural', 0.9)`).indexOf("voice name='en-US-AriaNeural'") > 0, 'SSML 含音色与语速');
+
+  // 音色表:ID 唯一/性别口音标注/缺省回落
+  ok(g('EDGE_VOICES.length') >= 16, `音色表规模(${g('EDGE_VOICES.length')} 个)`);
+  ok(g('new Set(EDGE_VOICES.map(v=>v.id)).size') === g('EDGE_VOICES.length'), '音色 ID 无重复');
+  ok(g(`edgeVoiceById('en-US-AriaNeural').g`) === 'f' && g(`edgeVoiceById('zh-CN-YunxiNeural').g`) === 'm', '音色性别标注');
+  ok(g(`edgeVoiceById('en-GB-SoniaNeural').tag`) === '英音' && g(`edgeVoiceById('zh-CN-XiaoxiaoNeural').tag`) === undefined, '英语带口音标签/中文无');
+  ok(g('edgeVoiceById("不存在")') === null, '未知音色返回 null');
+  ok(g(`edgeVoiceOf('en-US')`) === 'en-US-AriaNeural' && g(`edgeVoiceOf('zh-CN')`) === 'zh-CN-XiaoxiaoNeural', '音色取设置值');
+  g(`state.settings.edgeVoiceEn = 'bad-id'`);
+  ok(g(`edgeVoiceOf('en-US')`) === 'en-US-AriaNeural', '非法音色值回落缺省');
+  g(`state.settings.edgeVoiceEn = ''`);
+  ok(g(`edgeVoiceOf('en-US')`) === 'en-US-AriaNeural', '空音色值回落缺省');
+  g(`state.settings.edgeVoiceEn = 'en-GB-SoniaNeural'`);
+  ok(g(`edgeVoiceOf('en-US')`) === 'en-GB-SoniaNeural', '可自选英音音色');
+  g(`state.settings.edgeVoiceEn = 'en-US-AriaNeural'`);
+
+  // 沙箱无 WebSocket/navigator:Edge 判不可用,选 Edge 被拒并保持原音源
+  ok(g('edgeTtsAvailable()') === false, '无 WebSocket/Edge UA 的环境 Edge 判不可用');
+  ok(g('canUseEdgeVoice()') === false, 'canUseEdgeVoice 为 false');
+  g("setVoiceSrc('edge')");
+  ok(g('state.settings.voiceSrc') === 'youdao', '不可用环境里选 Edge 被拒并保持原音源');
+
+  // 设置页渲染:Edge 音色下拉分组/中文标注
+  g('refreshSettings()');
+  const enEdge = documentStub.getElementById('setEdgeVoiceEn').innerHTML;
+  const zhEdge = documentStub.getElementById('setEdgeVoiceZh').innerHTML;
+  ok(enEdge.indexOf('艾莉雅（女 · 美音）') > 0 && enEdge.indexOf('托马斯（男 · 英音）') > 0, '英语音色下拉含中文名+性别+口音');
+  ok(enEdge.indexOf('晓晓') < 0, '英语音色下拉不含中文音色');
+  ok(zhEdge.indexOf('晓晓（女）') > 0 && zhEdge.indexOf('云希（男）') > 0, '普通话音色下拉含中文名+性别');
+  ok(zhEdge.indexOf('艾莉雅') < 0, '普通话音色下拉不含英语音色');
+  ok(enEdge.indexOf('selected') > 0, '当前音色处于选中态');
 
   console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
   process.exit(fail ? 1 : 0);
