@@ -2,7 +2,7 @@
  * 策略:缓存优先(cache-first),版本号 CACHE_VER 变更后旧缓存整体清除
  * 注意:只在 https(GitHub Pages 等)或 localhost 下生效;http 局域网 IP 浏览器不注册 SW
  */
-const CACHE_VER = 'cet4-vocab-v11';
+const CACHE_VER = 'cet4-vocab-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -37,6 +37,8 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
+      /* cet4-audio-v1 是已移除的"在线真人音源"(有道/百度)的音频缓存,一并清除;
+       * Edge 朗读的音频在页面侧 IndexedDB,不经过 SW */
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VER).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
@@ -44,23 +46,8 @@ self.addEventListener('activate', (e) => {
 
 /* stale-while-revalidate:命中缓存立即返回(快),同时后台拉网络刷新缓存(下次打开即新版)
  * 修复:纯 cache-first 在部署窗口期抓到旧资源后会永不自愈 */
-/* 在线音源路径:命中即走音频缓存(cache-first),不进下方静态资源逻辑 */
-const AUDIO_PATHS = {
-  'dict.youdao.com': '/dictvoice',
-  'fanyi.baidu.com': '/gettts',
-};
-/* 音频独立缓存:不随 CACHE_VER 版本清除(重装 App 不想重新联网抓几千个单词音频) */
-const AUDIO_CACHE = 'cet4-audio-v1';
-
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  let url;
-  try { url = new URL(e.request.url); } catch (err) { return; }
-  const audioPath = AUDIO_PATHS[url.hostname];
-  if (audioPath && url.pathname === audioPath) {
-    e.respondWith(audioCacheFirst(url.href));
-    return;
-  }
   e.respondWith(
     caches.open(CACHE_VER).then(async (cache) => {
       const sameOrigin = new URL(e.request.url).origin === self.location.origin;
@@ -85,23 +72,3 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
-
-/* 音源缓存策略:cache-first。
- * 音源接口无 CORS 头,拿到的是不透明响应(读不了内容),但可以整包存、整包回:
- * <audio> 发起的 Range 请求由 SW 回完整 200,浏览器可接受(本应用不 seek);
- * 存储时用不带 Range 的干净请求抓完整音频(Cache API 不收 206) */
-async function audioCacheFirst(href) {
-  const cache = await caches.open(AUDIO_CACHE);
-  const hit = await cache.match(href);
-  if (hit) return hit;
-  try {
-    const resp = await fetch(href, { mode: 'no-cors' });
-    if (resp && (resp.type === 'opaque' || resp.ok)) {
-      await cache.put(href, resp);
-      return (await cache.match(href)) || resp;
-    }
-    return resp || Response.error();
-  } catch (err) {
-    return Response.error();
-  }
-}

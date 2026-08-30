@@ -22,8 +22,7 @@ const DEFAULT_SETTINGS = {
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
   dictWords: [],                                          // 听写自选词单
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
-  voiceSrc: 'youdao',                                     // 音源:'youdao'在线真人 / 'edge'Edge朗读 / 'tts'设备TTS
-  audioAcc: 1,                                            // 在线音源口音:1 美音 / 0 英音(Edge 音源的口音由音色决定)
+  voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
 };
@@ -78,22 +77,6 @@ function speakableDef(word) {
     .replace(/^，|，$/g, '')
     .trim();
   return def || raw.trim();
-}
-
-/* 是否含中文(决定走哪条在线音源) */
-function isZhText(text) {
-  return /[\u4e00-\u9fff]/.test(text || '');
-}
-
-/* 在线音源 URL(纯函数,测试用)。两个接口都无 CORS 头,页面 fetch 不到数据,
- * 播放必须走 <audio> 元素(媒体元素不受 CORS 限制),离线复用交给 Service Worker
- * - 英文单词:有道词典 dictvoice(词典真人发音),type 1=美音 0=英音
- * - 中文汉译:百度翻译 gettts,标准普通话;有道对任意中文长句不稳定(部分文本 500),故弃用 */
-function onlineVoiceUrl(text, isZh, acc) {
-  if (isZh) {
-    return 'https://fanyi.baidu.com/gettts?lan=zh&text=' + encodeURIComponent(text) + '&spd=4&source=web';
-  }
-  return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=' + (acc === 0 ? 0 : 1);
 }
 
 /* ---------------- Edge 朗读音源(微软,2026-08-30 方案C) ----------------
@@ -410,10 +393,11 @@ function loadState() {
       if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
         s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
       }
-      // 旧存档 onlineVoice(bool) → voiceSrc 三态(youdao/edge/tts)
-      if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'youdao';
+      // 旧存档 onlineVoice(bool)/voiceSrc 三态 → voiceSrc 二态(edge/tts,在线真人已移除)
+      if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'edge';
       delete s.settings.onlineVoice;
-      if (!['youdao', 'edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'youdao';
+      delete s.settings.audioAcc;
+      if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）

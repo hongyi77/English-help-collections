@@ -732,16 +732,9 @@ console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
   })();
 })();
 
-/* ================= 25. 发音引擎：在线真人音源 + 设备TTS兜底 ================= */
-console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链');
+/* ================= 25. 发音引擎：Edge 朗读音源 + 设备TTS兜底 ================= */
+console.log('\n[25] 发音引擎:声音优选/默认设置/降级链');
 (async () => {
-  // 音源 URL 构造(纯函数)
-  ok(g(`onlineVoiceUrl('hello', false, 1)`) === 'https://dict.youdao.com/dictvoice?audio=hello&type=1', '有道美音 URL');
-  ok(g(`onlineVoiceUrl('hello', false, 0)`) === 'https://dict.youdao.com/dictvoice?audio=hello&type=0', '有道英音 URL');
-  ok(g(`onlineVoiceUrl('test word', false, 1)`) === 'https://dict.youdao.com/dictvoice?audio=test%20word&type=1', '英文文本 encodeURIComponent');
-  ok(g(`onlineVoiceUrl('你好', true, 1)`) === 'https://fanyi.baidu.com/gettts?lan=zh&text=%E4%BD%A0%E5%A5%BD&spd=4&source=web', '汉译走百度普通话 TTS');
-  ok(g(`isZhText('在下面')`) === true && g(`isZhText('hello')`) === false && g(`isZhText('')`) === false, 'isZhText 判定中英文');
-
   // 设备TTS声音优选(纯函数):英语优先高质量音色,普通话只收 zh-CN
   const voices = [
     { name: 'Microsoft David Desktop', lang: 'en-US' },
@@ -761,12 +754,12 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
     settings: { dailyNew: 15 }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
   }));
   g('state = loadState();');
-  ok(g('state.settings.voiceSrc') === 'youdao', '旧存档合并出 voiceSrc=youdao(缺省在线真人)');
-  ok(g('state.settings.audioAcc') === 1, '旧存档合并出 audioAcc=1(美音)');
+  ok(g('state.settings.voiceSrc') === 'edge', '旧存档合并出 voiceSrc=edge(缺省 Edge 朗读)');
+  ok(g('state.settings.audioAcc') === undefined, '旧存档 audioAcc 字段已清除');
   ok(g('state.settings.ttsEngVoiceName') === '' && g('state.settings.ttsZhVoiceName') === '', '旧存档合并出空声音指定');
   ok(g('state.settings.edgeVoiceEn') === 'en-US-AriaNeural' && g('state.settings.edgeVoiceZh') === 'zh-CN-XiaoxiaoNeural', '旧存档合并出 Edge 音色缺省');
 
-  // 旧存档 onlineVoice(bool) → voiceSrc 三态迁移
+  // 旧存档 onlineVoice(bool)/旧三态 → voiceSrc 二态迁移
   storage.set('cet4_study_state_v1', JSON.stringify({
     settings: { dailyNew: 15, onlineVoice: false }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
   }));
@@ -774,13 +767,17 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   ok(g('state.settings.voiceSrc') === 'tts', '旧存档 onlineVoice=false 迁移为 voiceSrc=tts');
   ok(g('state.settings.onlineVoice') === undefined, '迁移后删除 onlineVoice 旧字段');
   storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 15, voiceSrc: 'youdao' }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.voiceSrc') === 'edge', '已移除的 youdao 音源迁移为 edge');
+  storage.set('cet4_study_state_v1', JSON.stringify({
     settings: { dailyNew: 15, voiceSrc: 'bogus' }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
   }));
   g('state = loadState();');
-  ok(g('state.settings.voiceSrc') === 'youdao', '非法 voiceSrc 回落 youdao');
+  ok(g('state.settings.voiceSrc') === 'edge', '非法 voiceSrc 回落 edge');
 
-  // 沙箱无 Audio/caches:在线播放不可用返回 false,降级链函数存在且 speakWord 不抛异常
-  ok(await g('audioPlayAwait("hello", "en-US", 1)') === false, '无 Audio 环境在线播放返回 false');
+  // 沙箱无 WebSocket/caches:Edge 不可用,降级链函数存在且 speakWord 不抛异常
   ok(g('typeof speakDictText') === 'function' && g('typeof stopSpeakAudio') === 'function', '降级链与停止函数已接入');
   let spok = true;
   try { g("speakWord('hello')"); } catch (e) { spok = false; }
@@ -788,15 +785,11 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   g('stopDictPlayback()');
   ok(true, 'stopDictPlayback 兼容在线引擎不抛异常');
 
-  // 设置项切换与声音选择器渲染(音源三态)
+  // 设置项切换与声音选择器渲染(音源二态:edge/tts,在线真人已移除)
   g("setVoiceSrc('tts')");
   ok(g('state.settings.voiceSrc') === 'tts', 'setVoiceSrc 切到设备TTS');
-  ok(g('canUseOnlineVoice()') === false, '设备TTS音源下 canUseOnlineVoice 为 false');
   g("setVoiceSrc('youdao')");
-  ok(g('state.settings.voiceSrc') === 'youdao', '切回在线真人');
-  g('setAudioAcc(0)');
-  ok(g('state.settings.audioAcc') === 0, 'setAudioAcc 切英音');
-  g('setAudioAcc(1)');
+  ok(g('state.settings.voiceSrc') === 'tts', '已移除的 youdao 音源选择被拒并保持原音源');
   g('refreshSettings()');   // 声音选择器渲染(沙箱 getVoices 拿不到 → 只有自动优选项)
   const engSel = documentStub.getElementById('setTtsEngVoice').innerHTML;
   ok(engSel.includes('自动优选'), '英语声音下拉含自动优选项');
@@ -839,14 +832,6 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   ok(enSel.includes('丹尼尔（男）') && enSel.includes('谷歌英语·美式（女）'), '英语下拉同样中文标注');
   ok(!enSel.includes('Xiaoxiao'), '英语下拉不含中文声音');
 
-  // 回归:口音=0(英音)不能被 || 1 吞成美音(2026-08-30 手机端高亮卡在美音的根因)
-  g('setAudioAcc(0)');
-  ok(g('state.settings.audioAcc') === 0, '英音设置值持久化为 0');
-  ok(g('(state.settings.audioAcc == null ? 1 : state.settings.audioAcc)') === 0, '高亮计算保留英音 0(不用 || 1)');
-  storage.set('cet4_study_state_v1', g('JSON.stringify(state)'));
-  g('state = loadState();');
-  ok(g('state.settings.audioAcc') === 0, '刷新后英音 0 不被缺省合并覆盖');
-  g('setAudioAcc(1)');
   // 回归:声音列表为空时给出提示项(安卓 voices 异步加载/设备无语音包场景)
   g('ttsVoices = []');
   g('refreshSettings()');
@@ -891,7 +876,7 @@ console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链')
   ok(g('edgeTtsAvailable()') === false, '无 WebSocket/Edge UA 的环境 Edge 判不可用');
   ok(g('canUseEdgeVoice()') === false, 'canUseEdgeVoice 为 false');
   g("setVoiceSrc('edge')");
-  ok(g('state.settings.voiceSrc') === 'youdao', '不可用环境里选 Edge 被拒并保持原音源');
+  ok(g('state.settings.voiceSrc') === 'tts', '不可用环境里选 Edge 被拒并保持原音源');
 
   // 设置页渲染:Edge 音色下拉分组/中文标注
   g('refreshSettings()');
