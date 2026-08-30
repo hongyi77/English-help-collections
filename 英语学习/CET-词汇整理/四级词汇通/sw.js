@@ -2,7 +2,7 @@
  * 策略:缓存优先(cache-first),版本号 CACHE_VER 变更后旧缓存整体清除
  * 注意:只在 https(GitHub Pages 等)或 localhost 下生效;http 局域网 IP 浏览器不注册 SW
  */
-const CACHE_VER = 'cet4-vocab-v6';
+const CACHE_VER = 'cet4-vocab-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -34,23 +34,28 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/* stale-while-revalidate:命中缓存立即返回(快),同时后台拉网络刷新缓存(下次打开即新版)
+ * 修复:纯 cache-first 在部署窗口期抓到旧资源后会永不自愈 */
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request).then((resp) => {
-        // 同源成功响应顺手入缓存,便于后续版本新增文件无需改清单
+    caches.open(CACHE_VER).then(async (cache) => {
+      const netFetch = fetch(e.request).then((resp) => {
         if (resp.ok && new URL(e.request.url).origin === self.location.origin) {
-          const copy = resp.clone();
-          caches.open(CACHE_VER).then((c) => c.put(e.request, copy));
+          cache.put(e.request, resp.clone());
         }
         return resp;
-      }).catch(() => {
-        // 断网时导航请求回落到缓存的首页
-        if (e.request.mode === 'navigate') return caches.match('./index.html');
-        return Response.error();
-      });
+      }).catch(() => null);
+      const cached = await cache.match(e.request, { ignoreSearch: true });
+      if (cached) {
+        netFetch.catch(() => {});   // 后台更新,不阻塞响应
+        return cached;
+      }
+      const net = await netFetch;
+      if (net) return net;
+      // 断网且无缓存:导航请求回落到缓存的首页
+      if (e.request.mode === 'navigate') return cache.match('./index.html');
+      return Response.error();
     })
   );
 });
