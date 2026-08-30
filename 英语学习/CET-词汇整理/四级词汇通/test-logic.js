@@ -732,5 +732,98 @@ console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
   })();
 })();
 
-console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
-process.exit(fail ? 1 : 0);
+/* ================= 25. 发音引擎：在线真人音源 + 设备TTS兜底 ================= */
+console.log('\n[25] 发音引擎:音源URL/声音优选/默认设置/降级链');
+(async () => {
+  // 音源 URL 构造(纯函数)
+  ok(g(`onlineVoiceUrl('hello', false, 1)`) === 'https://dict.youdao.com/dictvoice?audio=hello&type=1', '有道美音 URL');
+  ok(g(`onlineVoiceUrl('hello', false, 0)`) === 'https://dict.youdao.com/dictvoice?audio=hello&type=0', '有道英音 URL');
+  ok(g(`onlineVoiceUrl('test word', false, 1)`) === 'https://dict.youdao.com/dictvoice?audio=test%20word&type=1', '英文文本 encodeURIComponent');
+  ok(g(`onlineVoiceUrl('你好', true, 1)`) === 'https://fanyi.baidu.com/gettts?lan=zh&text=%E4%BD%A0%E5%A5%BD&spd=4&source=web', '汉译走百度普通话 TTS');
+  ok(g(`isZhText('在下面')`) === true && g(`isZhText('hello')`) === false && g(`isZhText('')`) === false, 'isZhText 判定中英文');
+
+  // 设备TTS声音优选(纯函数):英语优先高质量音色,普通话只收 zh-CN
+  const voices = [
+    { name: 'Microsoft David Desktop', lang: 'en-US' },
+    { name: 'Google US English', lang: 'en-US' },
+    { name: 'Daniel', lang: 'en-GB' },
+    { name: 'Microsoft Xiaoxiao Online', lang: 'zh-CN' },
+    { name: 'Ting-Ting', lang: 'zh-TW' },
+    { name: 'Sin-ji', lang: 'zh-HK' },
+  ];
+  const vCode = JSON.stringify(voices);
+  ok(g(`pickBestTTSVoice(${vCode}, 'en-US').name`) === 'Google US English', '英语优选带 Google 标记的高质量音色');
+  ok(g(`pickBestTTSVoice(${vCode}, 'zh-CN').name`) === 'Microsoft Xiaoxiao Online', '普通话优选 zh-CN(排除粤语/台普)');
+  ok(g(`pickBestTTSVoice([], 'en-US')`) === null, '空声音列表返回 null(交给引擎默认)');
+
+  // 设置缺省合并:旧存档补出发音新字段
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 15 }, today: new Date().toDateString(), learnedToday: [], reviewedToday: [], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.settings.onlineVoice') === true, '旧存档合并出 onlineVoice=true');
+  ok(g('state.settings.audioAcc') === 1, '旧存档合并出 audioAcc=1(美音)');
+  ok(g('state.settings.ttsEngVoiceName') === '' && g('state.settings.ttsZhVoiceName') === '', '旧存档合并出空声音指定');
+
+  // 沙箱无 Audio/caches:在线播放不可用返回 false,降级链函数存在且 speakWord 不抛异常
+  ok(await g('audioPlayAwait("hello", "en-US", 1)') === false, '无 Audio 环境在线播放返回 false');
+  ok(g('typeof speakDictText') === 'function' && g('typeof stopSpeakAudio') === 'function', '降级链与停止函数已接入');
+  let spok = true;
+  try { g("speakWord('hello')"); } catch (e) { spok = false; }
+  ok(spok, 'speakWord 走降级链不抛异常');
+  g('stopDictPlayback()');
+  ok(true, 'stopDictPlayback 兼容在线引擎不抛异常');
+
+  // 设置项切换与声音选择器渲染
+  g('setOnlineVoice(false)');
+  ok(g('state.settings.onlineVoice') === false, 'setOnlineVoice 关闭在线音源并持久化');
+  ok(g('canUseOnlineVoice()') === false, '关闭后 canUseOnlineVoice 为 false');
+  g('setOnlineVoice(true)');
+  g('setAudioAcc(0)');
+  ok(g('state.settings.audioAcc') === 0, 'setAudioAcc 切英音');
+  g('setAudioAcc(1)');
+  g('refreshSettings()');   // 声音选择器渲染(沙箱 getVoices 拿不到 → 只有自动优选项)
+  const engSel = documentStub.getElementById('setTtsEngVoice').innerHTML;
+  ok(engSel.includes('自动优选'), '英语声音下拉含自动优选项');
+
+  // 注入声音列表后:自动优选/按名字指定/语言过滤
+  g(`ttsVoices = ${vCode}`);
+  ok(g(`resolveTTSVoice('', 'en-US').name`) === 'Google US English', 'resolveTTSVoice 自动优选英语');
+  ok(g(`resolveTTSVoice('Daniel', 'en-US').name`) === 'Daniel', '显式指定的声音名优先');
+  ok(g(`resolveTTSVoice('不存在', 'zh-CN').name`) === 'Microsoft Xiaoxiao Online', '指定名字不存在时回落优选');
+  g('refreshSettings()');
+  ok(documentStub.getElementById('setTtsEngVoice').innerHTML.includes('Google US English'), '英语下拉列出可选声音');
+  ok(documentStub.getElementById('setTtsZhVoice').innerHTML.includes('Xiaoxiao'), '普通话下拉列出 zh-CN 声音');
+  ok(!documentStub.getElementById('setTtsZhVoice').innerHTML.includes('Sin-ji'), '普通话下拉排除粤语声音');
+
+  /* ================= 26. 声音中文名与性别分组 ================= */
+  console.log('\n[26] 声音选择器:中文名对照与女声/男声分组');
+  // voiceMeta 对照表
+  ok(JSON.stringify(g(`voiceMeta({ name: 'Microsoft Huihui - Chinese (Simplified, PRC)' })`)) === '{"zh":"晓慧","g":"f"}', '晓慧=中文女声');
+  ok(JSON.stringify(g(`voiceMeta({ name: 'Microsoft Kangkang - Chinese (Simplified, PRC)' })`)) === '{"zh":"康康","g":"m"}', '康康=中文男声');
+  ok(JSON.stringify(g(`voiceMeta({ name: 'Ting-Ting' })`)) === '{"zh":"婷婷","g":"f"}', 'Ting-Ting=婷婷(女)');
+  ok(JSON.stringify(g(`voiceMeta({ name: 'Google US English' })`)) === '{"zh":"谷歌英语·美式","g":"f"}', '谷歌英语=美式(女)');
+  ok(JSON.stringify(g(`voiceMeta({ name: 'Daniel' })`)) === '{"zh":"丹尼尔","g":"m"}', 'Daniel=丹尼尔(男)');
+  ok(JSON.stringify(g(`voiceMeta({ name: '完全未收录的声音 XYZ' })`)) === '{"zh":"","g":""}', '未收录声音返回空标注');
+  ok(g(`voiceMeta({ name: 'America Voice' })`).zh === '', '边界:America 不误匹配 eric');
+
+  // 下拉分组渲染:女声/男声/其他 + 值保留原名(供 resolveTTSVoice 精确匹配)
+  g('ttsVoices = [{"name":"Microsoft Huihui - Chinese (Simplified, PRC)","lang":"zh-CN"},' +
+    '{"name":"Microsoft Kangkang - Chinese (Simplified, PRC)","lang":"zh-CN"},' +
+    '{"name":"Microsoft Yaoyao - Chinese (Simplified, PRC)","lang":"zh-CN"},' +
+    '{"name":"自定义神秘音色","lang":"zh-CN"},' +
+    '{"name":"Daniel","lang":"en-GB"},{"name":"Google US English","lang":"en-US"}]');
+  g('refreshSettings()');
+  const zhSel = documentStub.getElementById('setTtsZhVoice').innerHTML;
+  ok(zhSel.includes('<optgroup label="女声">') && zhSel.includes('<optgroup label="男声">'), '普通话下拉分女声/男声组');
+  ok(zhSel.includes('晓慧（女）') && zhSel.includes('康康（男）'), '收录声音显示中文名+性别');
+  ok(zhSel.includes('<optgroup label="其他">') && zhSel.includes('自定义神秘音色'), '未收录声音归入其他组');
+  ok(zhSel.includes('value="Microsoft Huihui - Chinese (Simplified, PRC)"'), 'option 值保留原始声音名');
+  ok(zhSel.includes('自动优选（晓慧 · 女）'), '自动优选标注中文名与性别');
+  const enSel = documentStub.getElementById('setTtsEngVoice').innerHTML;
+  ok(enSel.includes('丹尼尔（男）') && enSel.includes('谷歌英语·美式（女）'), '英语下拉同样中文标注');
+  ok(!enSel.includes('Xiaoxiao'), '英语下拉不含中文声音');
+
+  console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
+  process.exit(fail ? 1 : 0);
+})().catch(e => { console.error('测试异常:', e); process.exit(1); });

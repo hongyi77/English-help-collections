@@ -172,6 +172,9 @@
   }
   .set-ctrl button:active { background: var(--paper); }
   .set-ctrl span { min-width: 36px; text-align: center; font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--ink); }
+  .set-ctrl .master-tab { width: auto; height: auto; font-size: 13px; padding: 6px 14px; }
+  .set-ctrl button:disabled { opacity: .4; cursor: default; }
+  .voice-select { max-width: 168px; font-size: 13px; padding: 7px 8px; border: 1px solid var(--hairline); border-radius: 9px; background: var(--card); color: var(--ink); }
   .danger-btn { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--pen-red); background: var(--card); color: var(--pen-red); font-size: 15px; cursor: pointer; }
   .danger-btn:active { background: var(--red-soft); }
   .data-btn {
@@ -651,6 +654,40 @@
         <div class="set-ctrl">
           <button id="setSpeak" onclick="toggleAutoSpeak()">开</button>
         </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>发音</h3>
+      <div class="set-row">
+        <label>单词音源</label>
+        <div class="set-ctrl" style="gap:8px">
+          <button id="setOnlineVoice" class="master-tab active" onclick="setOnlineVoice(!state.settings.onlineVoice)">在线真人</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.7;margin:-6px 0 14px">
+        在线真人音源更纯正（单词=有道词典，汉译=标准普通话合成），熄屏/切后台可继续播；首次播放需联网，之后离线可用；失败自动切换设备语音。
+      </p>
+      <div class="set-row">
+        <label>单词口音（在线音源）</label>
+        <div class="set-ctrl" id="voiceAccChips" style="gap:8px">
+          <button class="master-tab" data-acc="1" onclick="setAudioAcc(1)">美音</button>
+          <button class="master-tab" data-acc="0" onclick="setAudioAcc(0)">英音</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>试听</label>
+        <div class="set-ctrl" style="gap:8px">
+          <button class="master-tab" onclick="previewVoice('en')">🔊 英语</button>
+          <button class="master-tab" onclick="previewVoice('zh')">🔊 汉译</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label style="flex:1">设备TTS英语声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>
+        <select id="setTtsEngVoice" class="voice-select" onchange="onTTSVoiceChange('en', this.value)"></select>
+      </div>
+      <div class="set-row">
+        <label style="flex:1">设备TTS普通话声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>
+        <select id="setTtsZhVoice" class="voice-select" onchange="onTTSVoiceChange('zh', this.value)"></select>
       </div>
     </div>
     <div class="settings-card">

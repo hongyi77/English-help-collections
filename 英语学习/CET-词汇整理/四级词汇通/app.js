@@ -22,6 +22,9 @@ const DEFAULT_SETTINGS = {
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
   dictWords: [],                                          // 听写自选词单
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
+  onlineVoice: true,                                      // 在线真人音源(单词=有道/汉译=百度),失败自动降级设备TTS
+  audioAcc: 1,                                            // 在线音源口音:1 美音 / 0 英音
+  ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
 };
 
 /* 自定义拼写/听写的取词范围 */
@@ -74,6 +77,102 @@ function speakableDef(word) {
     .replace(/^，|，$/g, '')
     .trim();
   return def || raw.trim();
+}
+
+/* 是否含中文(决定走哪条在线音源) */
+function isZhText(text) {
+  return /[\u4e00-\u9fff]/.test(text || '');
+}
+
+/* 在线音源 URL(纯函数,测试用)。两个接口都无 CORS 头,页面 fetch 不到数据,
+ * 播放必须走 <audio> 元素(媒体元素不受 CORS 限制),离线复用交给 Service Worker
+ * - 英文单词:有道词典 dictvoice(词典真人发音),type 1=美音 0=英音
+ * - 中文汉译:百度翻译 gettts,标准普通话;有道对任意中文长句不稳定(部分文本 500),故弃用 */
+function onlineVoiceUrl(text, isZh, acc) {
+  if (isZh) {
+    return 'https://fanyi.baidu.com/gettts?lan=zh&text=' + encodeURIComponent(text) + '&spd=4&source=web';
+  }
+  return 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=' + (acc === 0 ? 0 : 1);
+}
+
+/* 设备TTS声音优选(纯函数):同语言里挑高质量音色
+ * 英语优先带 Natural/Enhanced/Premium/Google/Siri 标记的;中文只收 zh-CN(普通话),排除 zh-HK/zh-TW
+ * 语言不匹配返回 NaN;加分后总分可为负,不能用 >=0 判语言归属 */
+function pickBestTTSVoice(voices, lang) {
+  const wantZh = /^zh/i.test(lang || '');
+  const score = (v) => {
+    const l = (v.lang || '').replace('_', '-').toLowerCase();
+    let s;
+    if (wantZh) {
+      if (l === 'zh-cn') s = 0;
+      else if (l === 'zh-hans' || l === 'zh') s = 2;
+      else return NaN;
+    } else {
+      if (l === 'en-us') s = 0;
+      else if (l.indexOf('en') === 0) s = 3;
+      else return NaN;
+    }
+    if (/(natural|enhanced|premium|neural|google|siri)/i.test(v.name || '')) s -= 1.5;
+    if (wantZh && /(普通话|mandarin|xiaoxiao|xiaoyi|yunxi)/i.test(v.name || '')) s -= 1;
+    return s;
+  };
+  let best = null, bestS = Infinity;
+  for (const v of (voices || [])) {
+    const s = score(v);
+    if (!isNaN(s) && s < bestS) { bestS = s; best = v; }
+  }
+  return best;
+}
+
+/* 常见TTS声音的中文显示名与性别对照(名称按小写匹配;顺序敏感,先具体后一般)
+ * 浏览器拿不到系统音色的性别,只能按知名声音名单标注;
+ * 未收录的声音返回空 zh/g,UI 显示原名并归入「其他」组 */
+const VOICE_META = [
+  // 中文声音(Windows 简中 / 微软自然语音 / iOS 简中)
+  { re: /huihui/, zh: '晓慧', g: 'f' },
+  { re: /yaoyao/, zh: '瑶瑶', g: 'f' },
+  { re: /kangkang/, zh: '康康', g: 'm' },
+  { re: /xiaoxiao/, zh: '晓晓', g: 'f' },
+  { re: /xiaoyi/, zh: '晓伊', g: 'f' },
+  { re: /yunxi/, zh: '云希', g: 'm' },
+  { re: /yunyang/, zh: '云扬', g: 'm' },
+  { re: /xiaoxuan/, zh: '晓萱', g: 'f' },
+  { re: /yunfeng/, zh: '云枫', g: 'm' },
+  // 英语及其他声音(Windows / iOS&macOS / 谷歌系)
+  { re: /google uk english female/, zh: '谷歌英语·英式', g: 'f' },
+  { re: /google uk english male/, zh: '谷歌英语·英式', g: 'm' },
+  { re: /google us english/, zh: '谷歌英语·美式', g: 'f' },
+  { re: /\bmicrosoft david|david\b/, zh: '大卫', g: 'm' },
+  { re: /\bzira\b/, zh: '吉拉', g: 'f' },
+  { re: /\bhazel\b/, zh: '海泽尔', g: 'f' },
+  { re: /\baria\b/, zh: '艾莉雅', g: 'f' },
+  { re: /\bjenny\b/, zh: '珍妮', g: 'f' },
+  { re: /\bguy\b/, zh: '盖伊', g: 'm' },
+  { re: /\beric\b/, zh: '埃里克', g: 'm' },
+  { re: /\bryan\b/, zh: '瑞安', g: 'm' },
+  { re: /\bsonia\b/, zh: '索尼娅', g: 'f' },
+  { re: /\blibby\b/, zh: '利比', g: 'f' },
+  { re: /\bsamantha\b/, zh: '萨曼莎', g: 'f' },
+  { re: /\bting-?ting\b/, zh: '婷婷', g: 'f' },
+  { re: /\bmeijia\b/, zh: '美佳', g: 'f' },
+  { re: /\bsin-?ji\b/, zh: '善怡', g: 'f' },
+  { re: /\bdaniel\b/, zh: '丹尼尔', g: 'm' },
+  { re: /\balex\b/, zh: '亚历克斯', g: 'm' },
+  { re: /\bfred\b/, zh: '弗雷德', g: 'm' },
+  { re: /\baaron\b/, zh: '亚伦', g: 'm' },
+  { re: /\bkaren\b/, zh: '凯伦', g: 'f' },
+  { re: /\btessa\b/, zh: '特莎', g: 'f' },
+  { re: /\bfiona\b/, zh: '菲奥娜', g: 'f' },
+  { re: /\bmoira\b/, zh: '莫伊拉', g: 'f' },
+];
+
+/* 查声音的中文显示名与性别;未收录返回 { zh:'', g:'' } */
+function voiceMeta(voice) {
+  const name = ((voice && voice.name) || '').toLowerCase();
+  for (const m of VOICE_META) {
+    if (m.re.test(name)) return { zh: m.zh, g: m.g };
+  }
+  return { zh: '', g: '' };
 }
 
 let WORD_MAP = new Map();
