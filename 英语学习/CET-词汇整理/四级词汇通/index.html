@@ -3,7 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>四级词汇通</title>
+<title>英语词汇通</title>
+<!-- PWA:添加到主屏幕后独立窗口运行,sw.js 提供离线缓存(需 https 或 localhost) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F6F0E4">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="英语词汇通">
+<script>
+/* Service Worker 注册:仅 https/localhost 下可用;file:// 打开的手机单文件版自动跳过 */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  const secure = location.protocol === 'https:' ||
+    location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!secure) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+})();
+</script>
 <style>
   :root {
     --paper: #F6F0E4;
@@ -178,7 +197,7 @@
   }
   @keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
   .quiz-card::after {
-    content: "CET-4"; position: absolute; top: 0; right: 18px;
+    content: var(--lib-badge, "CET-4"); position: absolute; top: 0; right: 18px;
     font-family: var(--mono); font-size: 10px; letter-spacing: 1px; color: var(--ink-soft);
     background: var(--paper); border: 1px solid var(--hairline); border-top: none; border-radius: 0 0 6px 6px; padding: 3px 10px;
   }
@@ -186,6 +205,15 @@
   .quiz-type.rev { background: var(--amber-soft); color: var(--amber); }
   .quiz-prompt { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--ink); margin: 16px 0 8px; word-break: break-word; }
   .quiz-prompt.small { font-size: 24px; }
+  .speak-btn { background: none; border: none; font-size: 18px; cursor: pointer; vertical-align: middle; margin-left: 8px; opacity: .7; padding: 2px 6px; }
+  .speak-btn:hover { opacity: 1; }
+  .speak-btn:active { transform: scale(.9); }
+  .master-search-wrap { margin-bottom: 10px; }
+  .master-search {
+    width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid var(--hairline);
+    border-radius: 10px; background: var(--card); font-size: 15px; font-family: inherit; color: var(--ink); outline: none;
+  }
+  .master-search:focus { border-color: var(--ink-blue); box-shadow: 0 0 0 3px rgba(31, 78, 121, .12); }
   .progress-line { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 6px; }
   .options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
   @media (min-width: 420px) { .options { grid-template-columns: 1fr 1fr; } }
@@ -212,12 +240,15 @@
   .wrong-actions .book-toggle { flex: 1; margin-top: 0; }
   .wrong-actions .next-btn { flex: 1; margin-top: 0; }
   .wrong-pair {
-    display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;
+    margin-top: 10px;
     font-family: var(--serif);
   }
-  .wrong-pair .wp-ans { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: .5px; }
-  .wrong-pair .wp-sep { font-size: 16px; color: var(--ink-soft); }
-  .wrong-pair .wp-def { font-size: 15px; color: var(--ink-soft); flex: 1; line-height: 1.5; }
+  .wrong-pair .wp-ans { display: block; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: .5px; }
+  .wrong-pair .wp-def { display: block; margin-top: 4px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+  .wrong-memo {
+    margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
+    border: 1px solid var(--hairline); font-size: 14px; color: var(--ink); line-height: 1.6;
+  }
   .wrong-hint {
     margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
     border: 1px dashed var(--hairline); font-size: 14px; color: var(--ink-soft); line-height: 1.6;
@@ -261,6 +292,12 @@
   .list-def { flex: 1; color: var(--ink-soft); font-size: 13px; line-height: 1.6; word-break: break-word; }
   .list-del { background: none; border: none; font-size: 19px; color: var(--pen-red); cursor: pointer; padding: 6px; }
   .list-del:active { opacity: .6; }
+  .list-memo-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 4px; opacity: .75; }
+  .list-memo-btn:active { opacity: 1; transform: scale(.9); }
+  .memo-panel {
+    background: var(--paper); border-left: 3px solid var(--amber); padding: 10px 14px;
+    font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 10px; border-radius: 0 8px 8px 0;
+  }
   .empty-tip { text-align: center; color: var(--ink-soft); padding: 60px 0; font-size: 15px; }
 
   /* ---------- 掌握情况 ---------- */
@@ -296,7 +333,7 @@
 
 <div class="topbar">
   <button class="back" id="topBack" onclick="goHome()" style="display:none">‹</button>
-  <span id="topTitle">四级词汇通</span>
+  <span id="topTitle">英语词汇通</span>
   <span class="sub" id="topSub"></span>
 </div>
 
@@ -308,10 +345,11 @@
         <div class="mini-card back"></div>
         <div class="mini-card front"><b>word</b><span>释义</span></div>
       </div>
-      <div class="hero-eyebrow">CET-4 · 4543 WORDS</div>
-      <h1>四级词汇通</h1>
+      <div class="hero-eyebrow" id="heroLib">CET-4 · 4543 WORDS</div>
+      <h1>英语词汇通</h1>
       <div class="hero-sub">艾宾浩斯记忆曲线 · 英译汉 · 生词本</div>
     </div>
+    <div class="master-tabs" id="libList" style="margin-bottom:14px"></div>
     <div class="stats-grid">
       <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
       <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
@@ -335,6 +373,7 @@
         <span class="goal-ico rev">🔁</span>
         <div class="goal-info">
           <div class="goal-label">复习 <span class="goal-num" id="goalReviewNum">0 词</span></div>
+          <div class="goal-bar"><div class="goal-bar-in" id="goalReviewBar"></div></div>
         </div>
         <span class="goal-status" id="goalReviewStatus">今日无待复习</span>
       </div>
@@ -469,6 +508,12 @@
           <button onclick="adjSetting('dailyReview',5)">+</button>
         </div>
       </div>
+      <div class="set-row">
+        <label>自动发音（出题朗读单词）</label>
+        <div class="set-ctrl">
+          <button id="setSpeak" onclick="toggleAutoSpeak()">开</button>
+        </div>
+      </div>
     </div>
     <div class="settings-card">
       <h3>数据管理（跨设备同步）</h3>
@@ -496,11 +541,23 @@
   </div>
 </div>
 
+<!-- 词库切换确认 -->
+<div class="modal-mask" id="switchLibModal">
+  <div class="modal">
+    <h3 id="switchLibTitle">切换词库？</h3>
+    <p id="switchLibDesc"></p>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeSwitchLib()">取消</button>
+      <button class="btn-danger" onclick="doSwitchLib()">切换</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== 重置确认弹窗 ==================== -->
 <div class="modal-mask" id="resetModal">
   <div class="modal">
     <h3 id="resetTitle">确认重置？</h3>
-    <p id="resetDesc">将清空全部学习进度、生词本和复习记录，所有 4543 个单词回到"未学习"状态。此操作不可恢复。</p>
+    <p id="resetDesc">将清空全部学习进度、生词本和复习记录，所有词库的单词回到"未学习"状态。此操作不可恢复。</p>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeReset()">取消</button>
       <button class="btn-danger" onclick="doReset()">确认重置</button>
@@ -521,6 +578,8 @@
 </div>
 
 <script src="vocab-data.js"></script>
+<script src="vocab-libs.js"></script>
+<script src="vocab-extra.js"></script>
 <script src="app.js"></script>
 <script src="ui.js"></script>
 </body>

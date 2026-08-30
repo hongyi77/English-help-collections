@@ -1,0 +1,150 @@
+﻿lion	n. 狮子
+berry	n. 浆果
+edition	n. 版本
+hatred	n. 憎恨，仇恨
+poverty	n. 贫困
+type	n. 型，类型 v. 打字
+pleasure	n. 快乐，乐事
+banner	n. 横幅，旗帜
+experiment	n. 实验，试验
+pear	n. 梨子
+marxism	n. 马克思主义
+drip	v. 滴下 n. 水滴
+dictation	n. 听写，口授
+advisable	adj. 明智的，可取的
+mind	n. 头脑，理智
+blow	v. 吹，吹动，吹响
+model	n. 模型，模特儿
+compass	n. 罗盘，指南针，圆规
+germ	n. 细菌，微生物
+probably	adv. 或许，大概
+library	n. 图书馆，藏书
+my	det. 我的
+beloved	adj. 心爱的，钟爱的 n. 爱人
+nephew	n. 侄子，外甥
+aluminium	n. 铝
+rarely	adv. 很少，难得
+subsequent	adj. 随后的，后来的
+itself	pron. 它自己，自身
+jewish	adj. 犹太人的
+journey	n. 旅行，旅程 v. 旅行
+bite	v. 咬，叮
+bullet	n. 子弹
+history	n. 历史，个人经历
+list	n. 表，目录 v. 列举
+new	adj. 新的，新近出现的
+van	n. 大篷车，运货车
+amount	n. 总数，数量
+early	adv. 早 adj. 早的，早期的
+number	n. 数字，号码
+hint	n. 暗示，建议 v. 暗示
+fashionable	adj. 流行的，时髦的
+tolerate	v. 忍受，容忍，容许
+condense	v. 压缩，浓缩，冷凝
+flash	n. 闪光，闪光灯 v. 闪，闪烁
+flour	n. 面粉
+catch	v. 捉住，赶上，领会
+purple	n. 紫色 adj. 紫的
+feed	v. 喂（养），吃饲料
+league	n. 联盟，联合会
+exert	v. 运用，尽（力）
+finding	n. 发现，调查结果
+foreign	adj. 外国的，外来的
+shave	v. 剃，刮，修面 n. 修面
+following	adj. 下列的，接着的 n. 追随者
+play	v. 玩，游戏，演奏
+steamer	n. 轮船
+lump	n. 团，块，肿块 v. 结块
+prince	n. 王子，亲王
+formation	n. 形成，构成，队形
+inward	adj. 内心的，里面的 adv. 向内
+plentiful	adj. 丰富的，充足的
+insurance	n. 保险，保险费
+humorous	adj. 幽默的，诙谐的
+dissolve	v. 溶解，解散，消失
+prior	adj. 在先的，优先的
+farther	adv. 更远地 adj. 更远的
+liner	n. 班船，班机
+mist	n. 薄雾 v. 蒙上薄雾，模糊
+exceedingly	adv. 非常
+coil	n. 线圈，卷 v. 卷
+wit	n. 才智，风趣
+spin	v. 旋转，纺 n. 旋转
+noise	n. 噪声，响声
+masterpiece	n. 杰作，名著
+illustration	n. 说明，图解，例证
+recent	adj. 最近的
+compute	v. 计算，估计
+difficulty	n. 困难，困境
+electricity	n. 电，电流
+past	adj. 过去的 n. 过去
+alloy	n. 合金
+temple	n. 庙宇，神殿
+feast	n. 盛宴，节日
+invitation	n. 邀请，请柬
+group	n. 小组，群 v. 聚集
+visual	adj. 视觉的，视力的 n. 视觉资料
+atmospheric	adj. 大气的
+stranger	n. 陌生人，新来者
+present	adj. 现在的 n. 目前
+frog	n. 蛙
+music	n. 音乐，乐曲
+simply	adv. 简单地
+heart	n. 心，内心，勇气
+easily	adv. 容易地
+suspend	v. 悬挂，暂停，推迟
+burn	v. 烧，燃烧 n. 烧伤
+workman	n. 工人，工匠
+leadership	n. 领导
+jealous	adj. 妒忌的，猜疑的
+can	n. 罐头，容器
+cotton	n. 棉花，棉布
+european	adj. 欧洲的 n. 欧洲人
+explain	v. 解释，说明
+natural	adj. 自然的，天然的
+clean	adj. 清洁的，纯洁的
+rebel	v. 反叛，造反 n. 反叛者
+rain	n. 雨，雨水 v. 下雨
+management	n. 管理，经营，管理部门
+eighth	num. 第八 n. 八分之一
+bread	n. 面包，食物
+sorrow	n. 悲伤，悲痛
+cattle	n. 牛，牲口
+inspect	v. 检查，审查，视察
+mental	adj. 精神的，智力的，心理的
+mushroom	n. 蘑菇 v. 迅速增长
+beautiful	adj. 美丽的
+descend	v. 下降，下来
+fahrenheit	n. 华氏温度
+freedom	n. 自由，自主
+lumber	n. 木材
+encounter	v. 遭遇，遇到 n. 遭遇
+toe	n. 脚趾
+touch	v. 触摸，触动，感动 n. 接触
+troublesome	adj. 麻烦的
+congratulation	n. 祝贺，贺词
+package	n. 包裹，包装 v. 打包，包装
+part	n. 部分，零件
+credit	n. 信用，信贷，学分 v. 相信，把…归于
+judge	n. 法官，裁判员
+decision	n. 决定，决心
+compose	v. 组成，构成，创作
+rag	n. 破布，碎布
+satellite	n. 卫星
+transport	v. 运输 n. 运输工具
+drawing	n. 图画，素描
+protective	adj. 保护的
+ago	adv. 以前
+poem	n. 诗
+hear	v. 听见，听说
+overall	n. 工装裤 adj. 全面的，总体的
+freely	adv. 自由地，直率地
+creature	n. 生物，动物，创造物
+solar	adj. 太阳的，太阳能的
+sort	n. 种类，类别 v. 整理
+dishonour	n. 不光彩，耻辱
+permit	v. 允许 n. 执照
+magnificent	adj. 壮丽的，宏伟的，极好的
+drift	v. 漂流，漂泊 n. 趋势
+proper	adj. 适当的，合适的
+lame	adj. 跛的，瘸的

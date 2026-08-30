@@ -1,0 +1,150 @@
+﻿childish	adj. 幼稚的，孩子气的
+name	n. 名字 v. 命名
+prefer	v. 更喜欢
+exact	adj. 确切的，精确的
+often	adv. 经常，常常
+residence	n. 住宅，居住
+flood	n. 洪水 v. 淹没
+genius	n. 天才，天赋
+nerve	n. 神经，胆量
+northern	adj. 北方的
+hen	n. 母鸡
+act	v. 行动 n. 行为
+one	num. 一 pron. 一个人
+argument	n. 争论，理由
+painter	n. 画家
+burst	v. 爆裂，爆发 n. 爆炸
+closely	adv. 紧密地，接近地
+church	n. 教堂，教会
+chase	n. 追逐 v. 追赶
+note	n. 笔记，便条
+attract	v. 吸引，引起注意
+both	pron. 两者都
+brilliant	adj. 光辉的，卓越的
+axis	n. 轴，轴线
+relation	n. 关系，亲属
+succession	n. 连续，继任
+officer	n. 军官，官员
+keep	v. 保持，坚持
+electronics	n. 电子学
+permission	n. 允许，许可
+brick	n. 砖，砖块
+loose	adj. 松的，宽松的
+paper	n. 纸，文件，文章
+former	adj. 在前的 n. 前者
+truth	n. 事实，真理
+pie	n. 馅饼
+reply	n./v. 回答，答复
+cake	n. 蛋糕
+parcel	n. 包裹，小包 v. 打包，分配
+edge	n. 边缘，刀刃
+kettle	n. 水壶
+positive	adj. 积极的，肯定的，确定的
+gaze	v. 凝视，注视
+close	v. 关闭，结束
+presence	n. 出席，存在
+production	n. 生产，产量
+foolish	adj. 愚蠢的
+found	v. 创立，建立
+whisper	n./v. 低语，耳语
+gather	v. 聚集，收集
+captive	n. 俘虏
+colonel	n. 上校
+hateful	adj. 可恨的
+routine	n. 惯例，常规 adj. 日常的，例行的
+mess	n. 混乱，凌乱 v. 弄乱，弄脏
+pronounce	v. 发音，宣布
+correspond	v. 相符，通信
+blank	adj. 空白的，茫然的 n. 空白
+hello	int. 喂
+slit	n. 裂缝 v. 切开
+chalk	n. 粉笔
+midday	n. 中午
+despise	v. 鄙视，蔑视
+humour	n. 幽默
+volt	n. 伏特
+roller	n. 滚筒，滚轴
+navigation	n. 航行，导航
+needle	n. 针
+torch	n. 手电筒，火炬
+another	det. 另一个，别的
+bubble	n. 气泡 v. 冒泡
+finger	n. 手指
+charming	adj. 迷人的，可爱的
+endless	adj. 无止境的
+fast	adj. 快的 adv. 快
+die	v. 死亡
+abnormal	adj. 反常的
+peasant	n. 农民
+hydrogen	n. 氢
+heel	n. 脚后跟，鞋跟
+base	n. 基础，基地
+uncover	v. 揭开，揭露
+interior	adj. 内部的，内地的 n. 内部
+chain	n. 链条
+historical	adj. 历史的
+mechanically	adv. 机械地
+myself	pron. 我自己
+thoughtful	adj. 体贴的，沉思的
+discipline	n. 纪律，学科 v. 训练
+draft	n. 草稿 v. 起草
+workshop	n. 车间，研讨会
+listener	n. 听者，听众
+paint	v. 油漆，绘画
+perform	v. 表演，履行
+fertilizer	n. 肥料
+recognize	v. 认出，承认
+okay	int. 好，行
+police	n. 警察
+forth	adv. 向前，向外
+framework	n. 框架，结构
+gracious	adj. 有礼貌的，仁慈的
+screw	n. 螺丝 v. 拧紧
+pause	n./v. 暂停，中止
+cheese	n. 奶酪
+sleeve	n. 袖子
+donkey	n. 驴
+vacant	adj. 空的，空缺的
+expense	n. 花费，开支
+lead	n. 铅
+friendship	n. 友谊
+bare	adj. 赤裸的，光秃的 v. 露出
+athlete	n. 运动员
+regarding	prep. 关于
+commonly	adv. 通常，一般
+magic	n. 魔法，魔力 adj. 有魔力的
+cook	v. 烹调，煮
+powder	n. 粉末，火药
+pitch	n. 沥青，球场，音高 v. 投掷，搭建
+ninth	num. 第九 n. 九分之一
+filter	v. 过滤 n. 过滤器
+deal	n. 交易，待遇
+collect	v. 收集
+conjunction	n. 连接，连词
+bond	n. 债券，联系 v. 结合
+jail	n. 监狱 v. 监禁
+arrangement	n. 安排，排列
+section	n. 部分，章节
+confusion	n. 混乱，困惑
+mercy	n. 仁慈，宽容
+successive	adj. 连续的
+pour	v. 倒，倾泻
+mention	n./v. 提及
+decide	v. 决定
+conscious	adj. 有意识的，清醒的
+companion	n. 同伴，伴侣
+football	n. 足球
+careful	adj. 仔细的，小心的
+receive	v. 收到，接待
+nowhere	adv. 任何地方都不
+settle	v. 解决，定居，安顿
+sign	n. 标志，符号 v. 签名
+hide	v. 隐藏，隐瞒
+architecture	n. 建筑学，建筑
+daylight	n. 日光，白昼
+appropriate	adj. 适当的
+crust	n. 外壳，地壳
+existence	n. 存在，生存
+outlet	n. 出口，发泄途径
+subtract	v. 减去
+italian	adj. 意大利的 n. 意大利人

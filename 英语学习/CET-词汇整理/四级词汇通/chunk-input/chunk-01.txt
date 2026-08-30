@@ -1,0 +1,150 @@
+﻿access	v. 获取，存取 n. 接近，入口
+project	n. 工程，项目，计划 v. 投射，预计
+intention	n. 打算，意图，目的
+equivalence	n. 相等，等值
+negotiate	v. 谈判，协商，成功通过
+disappointing	adj. 令人失望的
+alternative	n. 选择，替代物 adj. 供选择的，另类的
+generous	adj. 慷慨的，大量的
+biological	adj. 生物的
+strategy	n. 策略，战略
+paradox	n. 悖论，自相矛盾
+primary	adj. 主要的，基本的，初级的
+standpoint	n. 立场，观点
+grab	v. 抓取，抢夺 n. 抓，夺
+crucial	adj. 至关重要的，决定性的
+flaw	n. 缺点，瑕疵
+depressed	adj. 沮丧的，萧条的
+obstacle	n. 障碍，障碍物
+automatic	adj. 自动的，机械的，无意识的
+passionate	adj. 热情的
+gambling	n. 赌博
+logic	n. 逻辑，推理
+theory	n. 理论，原理，学说
+download	v. 下载
+signal	n. 信号，标志 v. 发信号，示意 adj. 显著的
+authoritative	adj. 权威的
+smooth	adj. 光滑的
+institution	n. 机构，制度，习俗
+vehicle	n. 车辆，工具，媒介
+plague	v. 使困扰
+psychological	adj. 心理的
+shade	n. 阴凉处，遮光物 v. 遮蔽
+persistent	adj. 持续的，坚持的
+voluntary	adj. 自愿的，志愿的
+tolerance	n. 宽容，容忍，忍耐力
+senior	n. 年长者，高年级学生 adj. 年长的，资历较深的
+individual	n. 个人，个体 adj. 个别的，独特的
+contemporary	adj. 当代的，同时代的 n. 同代人
+opposite	adj. 相反的，对面的 n. 对立面
+specialize	v. 专攻，专门从事
+content	n. 内容 adj. 满足的，满意的
+philosopher	n. 哲学家
+unrest	n. 动荡，不安
+startle	v. 使吃惊
+emission	n. 排放，排放物
+overweight	adj. 超重的
+occupation	n. 职业，占领
+mainstream	n. 主流
+scholarship	n. 奖学金，学识
+contract	n. 合同，契约 v. 缩小，感染
+cheek	n. 脸颊
+interdependence	n. 相互依靠
+import	n. 进口，进口商品 v. 进口，输入
+fiction	n. 小说，虚构
+upbringing	n. 教养，培养
+preserve	v. 保护，保存，腌制
+vitally	adv. 极其重要地
+masculine	adj. 男性的
+advocate	v. 倡导，提倡 n. 提倡者，拥护者
+dust	n. 灰尘，尘土
+track	n. 轨道，足迹，路径 v. 追踪
+confidence	n. 信心，信任，自信
+riotous	adj. 狂暴的
+sophisticated	adj. 复杂的，精密的，世故的
+similar	adj. 相似的，类似的
+transform	v. 改变，变换，改造
+approve	v. 赞成，同意，批准
+session	n. 会议，会期
+awareness	n. 意识
+exhaust	v. 用尽，使筋疲力尽 n. 废气，排气装置
+subsidize	v. 资助，补贴
+grocery	n. 杂货店，食品杂货
+ignorance	n. 无知，愚昧
+intelligence	n. 智力，情报
+tiny	adj. 微小的
+praise	v. 赞扬 n. 赞扬，赞美
+memorize	v. 熟记，牢记
+relative	adj. 相对的 n. 亲戚，亲属
+breakthrough	n. 突破
+incidence	n. 发生率
+scratch	n. 划痕，抓痕 v. 抓，刮，搔
+harmful	adj. 有害的
+undergo	v. 经历，经受，承受
+recession	n. 衰退
+extraordinary	adj. 非凡的，特别的
+improper	adj. 不合适的，不适当的
+marginalize	v. 边缘化，排斥
+vital	adj. 极其重要的，生死攸关的
+fortunately	adv. 幸运地，幸亏
+commencement	n. 毕业典礼
+fetch	v. 取回，拿来
+clumsy	adj. 笨拙的
+establishment	n. 建立，机构，企业
+emit	v. 发出，排放，发射
+entertaining	adj. 有趣的，令人愉快的
+irregular	adj. 不规则的，不规律的
+psychologist	n. 心理学家
+era	n. 时代，年代
+triumph	n. 胜利 v. 成功
+detection	n. 察觉，侦查
+cozy	adj. 舒适的
+gallery	n. 美术馆，画廊，长廊
+enormous	adj. 巨大的
+obtain	v. 获得，得到
+desert	v. 抛弃，离弃 n. 沙漠
+aviate	v. 驾驶飞机
+determine	v. 决定，查明，下决心
+disappear	v. 消失，失踪
+entitle	v. 使有权利，给…题名
+relieve	v. 减轻，缓解，解除
+generosity	n. 慷慨，大方
+colleague	n. 同事
+undertake	v. 承担，从事
+convenient	adj. 方便的，便利的
+preferentially	adv. 优先地
+column	n. 专栏，柱，栏
+affectionate	adj. 深情的
+issue	v. 发行，发布，发出 n. 问题
+inquire	v. 询问，调查
+groundlessly	adv. 无根据地
+independently	adv. 独立地
+approach	v. 靠近 n. 方法，途径
+administration	n. 管理，行政部门，政府
+adversity	n. 逆境，不幸
+technician	n. 技术员，技师
+regular	adj. 规则的，有规律的
+miscalculation	n. 算错，误算
+hinder	v. 阻碍
+selection	n. 选择，挑选
+tide	n. 潮汐，潮流
+superior	adj. 优越的，上级的 n. 上级，长官
+matter	v. 要紧 n. 事情，物质
+passively	adv. 消极地
+grant	v. 授予，给予 n. 补助金
+liberation	n. 解放
+observe	v. 观察，遵守，注意到
+institute	v. 建立，设立 n. 学院，研究所
+dormitory	n. 宿舍
+awful	adj. 可怕的，糟糕的，非常的
+emergency	n. 紧急情况
+stress	n. 压力，强调 v. 强调，着重
+launch	v. 发射，发动 n. 发射
+suppose	v. 假定，猜想，认为
+remove	v. 去除，移动，脱掉
+exposure	n. 暴露，曝光
+promote	v. 促进，提升，推销
+engage	v. 从事，吸引，聘用
+uncertain	adj. 不确定的
+accommodate	v. 容纳，提供住宿
+slave	n. 奴隶

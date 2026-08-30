@@ -1,4 +1,4 @@
-/* 四级词汇通 - 本地静态服务器(零依赖,node 内置 http)
+/* 英语词汇通 - 本地静态服务器(零依赖,node 内置 http)
  * 双击 启动服务器.bat 即可,手机连同一 WiFi 访问显示出的地址
  */
 const http = require('http');
@@ -15,6 +15,8 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
 };
 
 function getLanIP() {

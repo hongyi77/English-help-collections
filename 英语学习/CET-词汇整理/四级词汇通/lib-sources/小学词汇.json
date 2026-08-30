@@ -1,0 +1,4097 @@
+[
+{
+"en": "younger",
+"phone": "'jʌŋɡɚ",
+"cn": "更年轻的"
+},
+{
+"en": "older",
+"phone": "oldə",
+"cn": "更年长的"
+},
+{
+"en": "taller",
+"phone": "'tɔlɚ",
+"cn": "更高的"
+},
+{
+"en": "shorter",
+"phone": "",
+"cn": "更矮的"
+},
+{
+"en": "longer",
+"phone": "'lɔŋɡɚ",
+"cn": "更长的"
+},
+{
+"en": "thinner",
+"phone": "'θɪnɚ",
+"cn": "更瘦的"
+},
+{
+"en": "heavier",
+"phone": "'hɛvɪɚðən'ɛr",
+"cn": "更重的"
+},
+{
+"en": "bigger",
+"phone": "bɪgə(r)",
+"cn": "更大的"
+},
+{
+"en": "smaller",
+"phone": "smɔlər",
+"cn": "更小的"
+},
+{
+"en": "stronger",
+"phone": "strɔ:ŋɡər",
+"cn": "更强壮的"
+},
+{
+"en": "dinosaur",
+"phone": "ˈdaɪnəˌsɔr",
+"cn": "恐龙"
+},
+{
+"en": "hall",
+"phone": "hɔl",
+"cn": "大厅"
+},
+{
+"en": "metre",
+"phone": "ˈmitɚ",
+"cn": "米"
+},
+{
+"en": "meter",
+"phone": "mitɚ",
+"cn": "米"
+},
+{
+"en": "than",
+"phone": "ðæn",
+"cn": "比"
+},
+{
+"en": "both",
+"phone": "boθ",
+"cn": "两个都"
+},
+{
+"en": "kilogram",
+"phone": "'kɪləɡræm",
+"cn": "千克"
+},
+{
+"en": "countryside",
+"phone": "'kʌntrɪsaɪd",
+"cn": "乡村"
+},
+{
+"en": "lower",
+"phone": "'loɚ",
+"cn": "更低地"
+},
+{
+"en": "shadow",
+"phone": "'ʃædo",
+"cn": "影子"
+},
+{
+"en": "smarter",
+"phone": "",
+"cn": "更聪明的"
+},
+{
+"en": "become",
+"phone": "bɪ'kʌm",
+"cn": "变成"
+},
+{
+"en": "cleaned",
+"phone": "klind",
+"cn": "打扫"
+},
+{
+"en": "stayed",
+"phone": "",
+"cn": "待"
+},
+{
+"en": "washed",
+"phone": "wɔʃt",
+"cn": "洗"
+},
+{
+"en": "watched",
+"phone": "wɑtʃ",
+"cn": "看"
+},
+{
+"en": "had",
+"phone": "hæd",
+"cn": "得病（例如 had a cold 得了感冒）"
+},
+{
+"en": "had a cold",
+"phone": "",
+"cn": "感冒"
+},
+{
+"en": "slept",
+"phone": "slɛpt",
+"cn": "睡觉"
+},
+{
+"en": "read",
+"phone": "rid; rɛd",
+"cn": "读"
+},
+{
+"en": "saw",
+"phone": "sɔ",
+"cn": "看"
+},
+{
+"en": "last",
+"phone": "læst",
+"cn": "最近"
+},
+{
+"en": "yesterday",
+"phone": "ˈjɛstɚdɪ;-de",
+"cn": "昨天"
+},
+{
+"en": "before",
+"phone": "bɪ'fɔr",
+"cn": "在⋯⋯之前"
+},
+{
+"en": "drank",
+"phone": "dræŋk",
+"cn": "喝"
+},
+{
+"en": "show",
+"phone": "ʃo",
+"cn": "演出"
+},
+{
+"en": "magazine",
+"phone": "'mæɡəzin",
+"cn": "杂志"
+},
+{
+"en": "better",
+"phone": "'bɛtɚ",
+"cn": "更好的"
+},
+{
+"en": "faster",
+"phone": "'fastə",
+"cn": "更快的"
+},
+{
+"en": "hotel",
+"phone": "ho'tɛl",
+"cn": "旅馆"
+},
+{
+"en": "fixed",
+"phone": "fɪkst",
+"cn": "修理"
+},
+{
+"en": "broken",
+"phone": "'brokən",
+"cn": "破损的"
+},
+{
+"en": "lamp",
+"phone": "læmp",
+"cn": "台灯"
+},
+{
+"en": "loud",
+"phone": "laʊd",
+"cn": "大声的"
+},
+{
+"en": "enjoy",
+"phone": "ɪn'dʒɔɪ",
+"cn": "享受⋯⋯的乐趣"
+},
+{
+"en": "stay",
+"phone": "ste",
+"cn": "暂住"
+},
+{
+"en": "went",
+"phone": "wɛnt",
+"cn": "去"
+},
+{
+"en": "camp",
+"phone": "kæmp",
+"cn": "野营"
+},
+{
+"en": "went camping",
+"phone": "",
+"cn": "去野营"
+},
+{
+"en": "fish",
+"phone": "fɪʃ",
+"cn": "钓鱼"
+},
+{
+"en": "went fishing",
+"phone": "",
+"cn": "去钓鱼"
+},
+{
+"en": "rode",
+"phone": "rod",
+"cn": "骑"
+},
+{
+"en": "hurt",
+"phone": "hɝ​t",
+"cn": "受伤"
+},
+{
+"en": "ate",
+"phone": "ɛt; et",
+"cn": "吃"
+},
+{
+"en": "took",
+"phone": "tʊk",
+"cn": "拍照"
+},
+{
+"en": "took pictures",
+"phone": "",
+"cn": "照相"
+},
+{
+"en": "bought",
+"phone": "bɔt",
+"cn": "买"
+},
+{
+"en": "gift",
+"phone": "ɡɪft",
+"cn": "礼物"
+},
+{
+"en": "fell",
+"phone": "fɛl",
+"cn": "摔倒"
+},
+{
+"en": "off",
+"phone": "ɔf",
+"cn": "落下"
+},
+{
+"en": "Labour Day",
+"phone": "",
+"cn": "劳动节"
+},
+{
+"en": "mule",
+"phone": "mjul",
+"cn": "骡子"
+},
+{
+"en": "Turpan",
+"phone": "",
+"cn": "吐鲁番"
+},
+{
+"en": "could",
+"phone": "kəd; kʊd",
+"cn": "能"
+},
+{
+"en": "till",
+"phone": "tɪl",
+"cn": "直到"
+},
+{
+"en": "beach",
+"phone": "bitʃ",
+"cn": "沙滩"
+},
+{
+"en": "basket",
+"phone": "'bæskɪt",
+"cn": "篮子"
+},
+{
+"en": "part",
+"phone": "pɑrt",
+"cn": "角色"
+},
+{
+"en": "licked",
+"phone": "lɪk",
+"cn": "舔"
+},
+{
+"en": "laughed",
+"phone": "",
+"cn": "笑"
+},
+{
+"en": "dining hall",
+"phone": "",
+"cn": "饭厅"
+},
+{
+"en": "grass",
+"phone": "ɡræs",
+"cn": "草坪"
+},
+{
+"en": "gym",
+"phone": "dʒɪm",
+"cn": "体育馆"
+},
+{
+"en": "ago",
+"phone": "ə'ɡo",
+"cn": "以前"
+},
+{
+"en": "cycling",
+"phone": "'saɪklɪŋ",
+"cn": "骑自行车运动"
+},
+{
+"en": "go cycling",
+"phone": "",
+"cn": "去骑自行车"
+},
+{
+"en": "ice-skate",
+"phone": "'aisskeit",
+"cn": "滑冰"
+},
+{
+"en": "badminton",
+"phone": "'bædmɪntən",
+"cn": "羽毛球运动"
+},
+{
+"en": "star",
+"phone": "stɑr",
+"cn": "星"
+},
+{
+"en": "easy",
+"phone": "'izi",
+"cn": "容易的"
+},
+{
+"en": "look up",
+"phone": "",
+"cn": "查阅"
+},
+{
+"en": "Internet",
+"phone": "'ɪntɚnɛt",
+"cn": "互联网"
+},
+{
+"en": "different",
+"phone": "'dɪfrənt",
+"cn": "不同的"
+},
+{
+"en": "active",
+"phone": "'æktɪv",
+"cn": "活跃的"
+},
+{
+"en": "race",
+"phone": "res",
+"cn": "赛跑"
+},
+{
+"en": "nothing",
+"phone": "'nʌθɪŋ",
+"cn": "没有什么"
+},
+{
+"en": "thought",
+"phone": "θɔt",
+"cn": "想"
+},
+{
+"en": "felt",
+"phone": "fɛlt",
+"cn": "感觉"
+},
+{
+"en": "cheetah",
+"phone": "'tʃitə",
+"cn": "猎豹"
+},
+{
+"en": "trip",
+"phone": "trɪp",
+"cn": "绊倒"
+},
+{
+"en": "woke",
+"phone": "wok",
+"cn": "醒"
+},
+{
+"en": "dream",
+"phone": "drim",
+"cn": "梦"
+},
+{
+"en": "straight",
+"phone": "stret",
+"cn": "笔直的"
+},
+{
+"en": "right",
+"phone": "raɪt",
+"cn": "右"
+},
+{
+"en": "ask",
+"phone": "æsk",
+"cn": "问"
+},
+{
+"en": "sir",
+"phone": "sɝ",
+"cn": "先生"
+},
+{
+"en": "interesting",
+"phone": "'ɪntrəstɪŋ",
+"cn": "有趣的"
+},
+{
+"en": "Italian",
+"phone": "ɪˈtæljən",
+"cn": "意大利的"
+},
+{
+"en": "restaurant",
+"phone": "ˈrestərənt; rɛstərənt",
+"cn": "餐馆"
+},
+{
+"en": "pizza",
+"phone": "'pitsə",
+"cn": "比萨饼"
+},
+{
+"en": "street",
+"phone": "strit",
+"cn": "大街"
+},
+{
+"en": "get",
+"phone": "ɡɛt",
+"cn": "到达"
+},
+{
+"en": "GPS",
+"phone": "",
+"cn": "全球（卫星）"
+},
+{
+"en": "gave",
+"phone": "ɡev",
+"cn": "提供"
+},
+{
+"en": "feature",
+"phone": "'fitʃɚ",
+"cn": "特点"
+},
+{
+"en": "follow",
+"phone": "'fɑlo",
+"cn": "跟着"
+},
+{
+"en": "far",
+"phone": "fɑr",
+"cn": "较远的"
+},
+{
+"en": "tell",
+"phone": "",
+"cn": "告诉"
+},
+{
+"en": "UK",
+"phone": "",
+"cn": "英国"
+},
+{
+"en": "Canada",
+"phone": "'kænədə",
+"cn": "加拿大"
+},
+{
+"en": "USA",
+"phone": "",
+"cn": "美国"
+},
+{
+"en": "China",
+"phone": "",
+"cn": "中国"
+},
+{
+"en": "she",
+"phone": "ʃi",
+"cn": "她；（指雌性动物）它"
+},
+{
+"en": "student",
+"phone": "'studnt",
+"cn": "学生, 学者"
+},
+{
+"en": "pupil",
+"phone": "pjupl",
+"cn": "小学生"
+},
+{
+"en": "he",
+"phone": "hi",
+"cn": "他；它（指雄性动物）"
+},
+{
+"en": "teacher",
+"phone": "'titʃɚ",
+"cn": "教师, 老师, 导师"
+},
+{
+"en": "boy",
+"phone": "bɔɪ",
+"cn": "男孩, 儿子, 孩子气的人, 男仆"
+},
+{
+"en": "and",
+"phone": "ənd, ən,ænd",
+"cn": "和"
+},
+{
+"en": "girl",
+"phone": "ɡɝl",
+"cn": "女孩, 少女, 女仆, (商店等的)女工作人员"
+},
+{
+"en": "new",
+"phone": "nu",
+"cn": "新的，新近的；新来的；不熟悉的"
+},
+{
+"en": "friend",
+"phone": "frɛnd",
+"cn": "朋友，友人；支持者，同情者"
+},
+{
+"en": "today",
+"phone": "tə'de",
+"cn": "今天；现在，目前"
+},
+{
+"en": "father",
+"phone": "'fɑðɚ",
+"cn": "父亲；爸爸"
+},
+{
+"en": "dad",
+"phone": "dæd",
+"cn": "（口语）爸爸；爹爹"
+},
+{
+"en": "man",
+"phone": "mæn",
+"cn": "男人"
+},
+{
+"en": "woman",
+"phone": "'wʊmən",
+"cn": "女人"
+},
+{
+"en": "mother",
+"phone": "'mʌðɚ",
+"cn": "母亲；妈妈"
+},
+{
+"en": "sister",
+"phone": "'sɪstɚ",
+"cn": "姐；妹"
+},
+{
+"en": "brother",
+"phone": "'brʌðɚ",
+"cn": "兄；弟"
+},
+{
+"en": "grandmother",
+"phone": "'ɡrænmʌðɚ",
+"cn": "（外）祖母"
+},
+{
+"en": "grandma",
+"phone": "ɡrænmɑ",
+"cn": "（口语）（外）祖母"
+},
+{
+"en": "grandfather",
+"phone": "'græn'fɑðɚ",
+"cn": "（外）祖父"
+},
+{
+"en": "grandpa",
+"phone": "grandpa",
+"cn": "（口语）（外）祖父"
+},
+{
+"en": "family",
+"phone": "ˈfæməlɪ",
+"cn": "家；家庭"
+},
+{
+"en": "thin",
+"phone": "θɪn",
+"cn": "瘦的"
+},
+{
+"en": "fat",
+"phone": "fæt",
+"cn": "胖的；肥的"
+},
+{
+"en": "tall",
+"phone": "tɔl",
+"cn": "高的"
+},
+{
+"en": "short",
+"phone": "ʃɔrt",
+"cn": "矮的；短的"
+},
+{
+"en": "long",
+"phone": "lɔŋ",
+"cn": "长的"
+},
+{
+"en": "small",
+"phone": "smɔl",
+"cn": "小的"
+},
+{
+"en": "big",
+"phone": "bɪɡ",
+"cn": "大的"
+},
+{
+"en": "giraffe",
+"phone": "dʒəˈræf; dʒəˈræf",
+"cn": "长颈鹿"
+},
+{
+"en": "so",
+"phone": "so",
+"cn": "这么；那么"
+},
+{
+"en": "children",
+"phone": "'tʃɪldrən",
+"cn": "儿童"
+},
+{
+"en": "child",
+"phone": "tʃaɪld",
+"cn": "儿童"
+},
+{
+"en": "tail",
+"phone": "tel",
+"cn": "尾巴"
+},
+{
+"en": "on",
+"phone": "ɑn",
+"cn": "在⋯⋯上"
+},
+{
+"en": "in",
+"phone": "ɪn",
+"cn": "在⋯⋯里"
+},
+{
+"en": "under",
+"phone": "'ʌndɚ",
+"cn": "在⋯⋯下面"
+},
+{
+"en": "chair",
+"phone": "tʃɛr",
+"cn": "椅子"
+},
+{
+"en": "desk",
+"phone": "dɛsk",
+"cn": "书桌"
+},
+{
+"en": "cap",
+"phone": "kæp",
+"cn": "帽子"
+},
+{
+"en": "ball",
+"phone": "bɔl",
+"cn": "球"
+},
+{
+"en": "car",
+"phone": "kɑr",
+"cn": "小汽车"
+},
+{
+"en": "boat",
+"phone": "bot",
+"cn": "小船"
+},
+{
+"en": "map",
+"phone": "mæp",
+"cn": "地图"
+},
+{
+"en": "toy",
+"phone": "tɔɪ",
+"cn": "玩具"
+},
+{
+"en": "box",
+"phone": "bɑks",
+"cn": "盒；箱"
+},
+{
+"en": "pear",
+"phone": "pɛr",
+"cn": "梨　"
+},
+{
+"en": "apple",
+"phone": "'æpl",
+"cn": "苹果　"
+},
+{
+"en": "orange",
+"phone": "'ɔrɪndʒ",
+"cn": "橙子"
+},
+{
+"en": "banana",
+"phone": "bə'nænə",
+"cn": "香蕉"
+},
+{
+"en": "watermelon",
+"phone": "'wɔtɚmɛlən",
+"cn": "西瓜"
+},
+{
+"en": "strawberry",
+"phone": "'strɔbɛri",
+"cn": "草莓　"
+},
+{
+"en": "grape",
+"phone": "ɡrep",
+"cn": "葡萄"
+},
+{
+"en": "buy",
+"phone": "baɪ",
+"cn": "买"
+},
+{
+"en": "fruit",
+"phone": "frut",
+"cn": "水果"
+},
+{
+"en": "eleven",
+"phone": "ɪ'lɛvn",
+"cn": "十一"
+},
+{
+"en": "twelve",
+"phone": "twɛlv",
+"cn": "十二"
+},
+{
+"en": "thirteen",
+"phone": "'θɝ'tin",
+"cn": "十三"
+},
+{
+"en": "fourteen",
+"phone": ",fɔr'tin",
+"cn": "十四"
+},
+{
+"en": "fifteen",
+"phone": ",fɪf'tin",
+"cn": "十五"
+},
+{
+"en": "sixteen",
+"phone": ",sɪks'tin",
+"cn": "十六　"
+},
+{
+"en": "seventeen",
+"phone": ",sɛvn'tin",
+"cn": "十七"
+},
+{
+"en": "eighteen",
+"phone": ",e'tin",
+"cn": "十八"
+},
+{
+"en": "nineteen",
+"phone": ",naɪn'tin",
+"cn": "十九"
+},
+{
+"en": "twenty",
+"phone": "'twɛnti",
+"cn": "二十"
+},
+{
+"en": "kite",
+"phone": "kaɪt",
+"cn": "风筝"
+},
+{
+"en": "beautiful",
+"phone": "'bjʊtəfəl",
+"cn": "美丽的"
+},
+{
+"en": "ruler",
+"phone": "'rulɚ",
+"cn": "尺子"
+},
+{
+"en": "pencil",
+"phone": "'pɛnsl",
+"cn": "铅笔"
+},
+{
+"en": "eraser",
+"phone": "ɪ'resɚ",
+"cn": "橡皮"
+},
+{
+"en": "crayon",
+"phone": "kreən",
+"cn": "蜡笔"
+},
+{
+"en": "bag",
+"phone": "bæɡ",
+"cn": "包"
+},
+{
+"en": "pen",
+"phone": "pɛn",
+"cn": "钢笔"
+},
+{
+"en": "pencil box",
+"phone": "'pɛnsl bɑks",
+"cn": "铅笔盒"
+},
+{
+"en": "book",
+"phone": "bʊk",
+"cn": "书"
+},
+{
+"en": "no",
+"phone": "no",
+"cn": "不"
+},
+{
+"en": "your",
+"phone": "jʊər; jʊr",
+"cn": "你（们）的"
+},
+{
+"en": "red",
+"phone": "rɛd",
+"cn": "红色；红色的"
+},
+{
+"en": "green",
+"phone": "ɡrin",
+"cn": "绿色；绿色的"
+},
+{
+"en": "yellow",
+"phone": "ˈjɛlo",
+"cn": "黄色；黄色的"
+},
+{
+"en": "blue",
+"phone": "blu",
+"cn": "蓝色；蓝色的"
+},
+{
+"en": "black",
+"phone": "blæk",
+"cn": "黑色；黑色的"
+},
+{
+"en": "brown",
+"phone": "braʊn",
+"cn": "棕色；棕色的"
+},
+{
+"en": "white",
+"phone": "hwaɪt",
+"cn": "白色；白色的"
+},
+{
+"en": "OK",
+"phone": "",
+"cn": "好；行"
+},
+{
+"en": "mum",
+"phone": "mʌm",
+"cn": "妈妈"
+},
+{
+"en": "face",
+"phone": "fes",
+"cn": "脸"
+},
+{
+"en": "ear",
+"phone": "ɪr",
+"cn": "耳朵"
+},
+{
+"en": "eye",
+"phone": "aɪ",
+"cn": "眼睛"
+},
+{
+"en": "nose",
+"phone": "noz",
+"cn": "鼻子"
+},
+{
+"en": "mouth",
+"phone": "maʊθ",
+"cn": "嘴"
+},
+{
+"en": "arm",
+"phone": "ɑrm",
+"cn": "胳膊"
+},
+{
+"en": "hand",
+"phone": "hænd",
+"cn": "手"
+},
+{
+"en": "head",
+"phone": "hɛd",
+"cn": "头"
+},
+{
+"en": "body",
+"phone": "'bɑdi",
+"cn": "身体"
+},
+{
+"en": "leg",
+"phone": "lɛɡ",
+"cn": "腿"
+},
+{
+"en": "foot",
+"phone": "fʊt",
+"cn": "脚"
+},
+{
+"en": "school",
+"phone": "skul",
+"cn": "学校"
+},
+{
+"en": "duck",
+"phone": "dʌk",
+"cn": "鸭子"
+},
+{
+"en": "pig",
+"phone": "pɪɡ",
+"cn": "猪"
+},
+{
+"en": "cat",
+"phone": "kæt",
+"cn": "猫"
+},
+{
+"en": "bear",
+"phone": "bɛr",
+"cn": "熊"
+},
+{
+"en": "dog",
+"phone": "dɔɡ",
+"cn": "狗"
+},
+{
+"en": "elephant",
+"phone": "ˈɛləfənt",
+"cn": "大象"
+},
+{
+"en": "monkey",
+"phone": "'mʌŋki",
+"cn": "猴子"
+},
+{
+"en": "bird",
+"phone": "bɝd",
+"cn": "鸟"
+},
+{
+"en": "tiger",
+"phone": "'taɪɡɚ",
+"cn": "老虎"
+},
+{
+"en": "panda",
+"phone": "'pændə",
+"cn": "大熊猫"
+},
+{
+"en": "zoo",
+"phone": "zu",
+"cn": "动物园"
+},
+{
+"en": "funny",
+"phone": "'fʌni",
+"cn": "滑稽的；好笑的"
+},
+{
+"en": "bread",
+"phone": "brɛd",
+"cn": "面包"
+},
+{
+"en": "juice",
+"phone": "dʒus",
+"cn": "果汁"
+},
+{
+"en": "egg",
+"phone": "ɛɡ",
+"cn": "蛋"
+},
+{
+"en": "milk",
+"phone": "mɪlk",
+"cn": "牛奶"
+},
+{
+"en": "water",
+"phone": "ˈwɔtɚ",
+"cn": "水"
+},
+{
+"en": "cake",
+"phone": "kek",
+"cn": "蛋糕"
+},
+{
+"en": "rice",
+"phone": "raɪs",
+"cn": "米饭"
+},
+{
+"en": "one",
+"phone": "wʌn",
+"cn": "一"
+},
+{
+"en": "two",
+"phone": "tu",
+"cn": "二"
+},
+{
+"en": "three",
+"phone": "θri",
+"cn": "三"
+},
+{
+"en": "four",
+"phone": "fɔr",
+"cn": "四"
+},
+{
+"en": "five",
+"phone": "faɪv",
+"cn": "五"
+},
+{
+"en": "six",
+"phone": "sɪks",
+"cn": "六"
+},
+{
+"en": "seven",
+"phone": "'sɛvn",
+"cn": "七"
+},
+{
+"en": "eight",
+"phone": "et",
+"cn": "八"
+},
+{
+"en": "nine",
+"phone": "naɪn",
+"cn": "九"
+},
+{
+"en": "ten",
+"phone": "tɛn",
+"cn": "十"
+},
+{
+"en": "plate",
+"phone": "pleɪt",
+"cn": "盘子"
+},
+{
+"en": "first floor",
+"phone": "",
+"cn": "一楼（美）；二楼（英）"
+},
+{
+"en": "second floor",
+"phone": "",
+"cn": "二楼"
+},
+{
+"en": "teacher's office",
+"phone": "",
+"cn": "教师办公室"
+},
+{
+"en": "library",
+"phone": "laɪˌbrɛrɪ",
+"cn": "图书馆"
+},
+{
+"en": "playground",
+"phone": "'ple'graʊnd",
+"cn": "操场"
+},
+{
+"en": "computer room",
+"phone": "",
+"cn": "计算机房"
+},
+{
+"en": "art room",
+"phone": "",
+"cn": "美术教室"
+},
+{
+"en": "music room",
+"phone": "",
+"cn": "音乐教室"
+},
+{
+"en": "next to",
+"phone": "",
+"cn": "紧邻"
+},
+{
+"en": "homework",
+"phone": "'hom'wɝk",
+"cn": "作业"
+},
+{
+"en": "class",
+"phone": "klæs",
+"cn": "班级"
+},
+{
+"en": "forty",
+"phone": "'fɔrti",
+"cn": "四十"
+},
+{
+"en": "way",
+"phone": "we",
+"cn": "方向"
+},
+{
+"en": "breakfast",
+"phone": "'brɛkfəst",
+"cn": "早餐"
+},
+{
+"en": "English class",
+"phone": "",
+"cn": "英语课"
+},
+{
+"en": "lunch",
+"phone": "lʌntʃ",
+"cn": "午饭"
+},
+{
+"en": "music class",
+"phone": "",
+"cn": "音乐课"
+},
+{
+"en": "PE class",
+"phone": "",
+"cn": "体育课"
+},
+{
+"en": "dinner",
+"phone": "'dɪnɚ",
+"cn": "正餐"
+},
+{
+"en": "get up",
+"phone": "",
+"cn": "起床"
+},
+{
+"en": "go to school",
+"phone": "",
+"cn": "上学"
+},
+{
+"en": "go home",
+"phone": "",
+"cn": "回家"
+},
+{
+"en": "go to bed",
+"phone": "",
+"cn": "去睡觉"
+},
+{
+"en": "over",
+"phone": "'ovɚ",
+"cn": "结束"
+},
+{
+"en": "now",
+"phone": "naʊ",
+"cn": "现在"
+},
+{
+"en": "o'clock",
+"phone": "ə'klɑk",
+"cn": "⋯⋯点钟"
+},
+{
+"en": "kid",
+"phone": "kɪd",
+"cn": "小孩"
+},
+{
+"en": "thirty",
+"phone": "'θɝti",
+"cn": "三十"
+},
+{
+"en": "hurry up",
+"phone": "'hɝrɪ ʌp",
+"cn": "快点"
+},
+{
+"en": "come on",
+"phone": "",
+"cn": "加油"
+},
+{
+"en": "just a minute",
+"phone": "",
+"cn": "稍等一会儿"
+},
+{
+"en": "cold",
+"phone": "kold",
+"cn": "冷的"
+},
+{
+"en": "cool",
+"phone": "kul",
+"cn": "凉的"
+},
+{
+"en": "warm",
+"phone": "wɔrm",
+"cn": "温暖的"
+},
+{
+"en": "hot",
+"phone": "hɑt",
+"cn": "热的"
+},
+{
+"en": "sunny",
+"phone": "'sʌni",
+"cn": "阳光充足的"
+},
+{
+"en": "windy",
+"phone": "'wɪndi",
+"cn": "多风的"
+},
+{
+"en": "cloudy",
+"phone": "'klaʊdi",
+"cn": "多云的"
+},
+{
+"en": "snowy",
+"phone": "'snoɪ",
+"cn": "下雪的"
+},
+{
+"en": "rainy",
+"phone": "'reni",
+"cn": "阴雨的"
+},
+{
+"en": "outside",
+"phone": ",aʊt'saɪd",
+"cn": "在户外"
+},
+{
+"en": "be careful",
+"phone": "",
+"cn": "小心"
+},
+{
+"en": "weather",
+"phone": "'wɛðɚ",
+"cn": "天气"
+},
+{
+"en": "New York",
+"phone": "",
+"cn": "纽约"
+},
+{
+"en": "how about...",
+"phone": "",
+"cn": "怎么样？"
+},
+{
+"en": "degree",
+"phone": "dɪ'ɡri",
+"cn": "度"
+},
+{
+"en": "world",
+"phone": "wɝld",
+"cn": "世界"
+},
+{
+"en": "London",
+"phone": "ˈlʌndən",
+"cn": "伦敦"
+},
+{
+"en": "Moscow",
+"phone": "ˈmɑsˌkaʊ",
+"cn": "莫斯科"
+},
+{
+"en": "Singapore",
+"phone": "ˌsɪŋgə'pɔ:",
+"cn": "新加坡城"
+},
+{
+"en": "Sydney",
+"phone": "'sɪdnɪ",
+"cn": "悉尼"
+},
+{
+"en": "fly",
+"phone": "flaɪ",
+"cn": "放（风筝）"
+},
+{
+"en": "love",
+"phone": "lʌv",
+"cn": "爱你的"
+},
+{
+"en": "tomato",
+"phone": "tə'meto",
+"cn": "西红柿"
+},
+{
+"en": "potato",
+"phone": "pə'teto",
+"cn": "马铃薯"
+},
+{
+"en": "green beans",
+"phone": "",
+"cn": "豆角"
+},
+{
+"en": "carrot",
+"phone": "'kærət",
+"cn": "胡萝卜"
+},
+{
+"en": "horse",
+"phone": "hɔrs",
+"cn": "马"
+},
+{
+"en": "cow",
+"phone": "kaʊ",
+"cn": "牛"
+},
+{
+"en": "sheep",
+"phone": "ʃip",
+"cn": "绵羊"
+},
+{
+"en": "hen",
+"phone": "hɛn",
+"cn": "母鸡"
+},
+{
+"en": "these",
+"phone": "ðiz",
+"cn": "这些"
+},
+{
+"en": "yum",
+"phone": "jʌm",
+"cn": "味道好"
+},
+{
+"en": "animal",
+"phone": "'ænɪml",
+"cn": "动物"
+},
+{
+"en": "those",
+"phone": "ðoz",
+"cn": "那些"
+},
+{
+"en": "garden",
+"phone": "'ɡɑrdn",
+"cn": "花园"
+},
+{
+"en": "farm",
+"phone": "fɑrm",
+"cn": "农场"
+},
+{
+"en": "goat",
+"phone": "ɡot",
+"cn": "山羊"
+},
+{
+"en": "eat",
+"phone": "it",
+"cn": "吃"
+},
+{
+"en": "clothes",
+"phone": "kloz",
+"cn": "服装"
+},
+{
+"en": "pants",
+"phone": "pænts",
+"cn": "裤子"
+},
+{
+"en": "hat",
+"phone": "hæt",
+"cn": "帽子"
+},
+{
+"en": "dress",
+"phone": "drɛs",
+"cn": "连衣裙"
+},
+{
+"en": "skirt",
+"phone": "skɝt",
+"cn": "女裙"
+},
+{
+"en": "coat",
+"phone": "kot",
+"cn": "大衣"
+},
+{
+"en": "sweater",
+"phone": "'swɛtɚ",
+"cn": "毛衣"
+},
+{
+"en": "sock",
+"phone": "sɑk",
+"cn": "短袜"
+},
+{
+"en": "shorts",
+"phone": "ʃɔrts",
+"cn": "短裤"
+},
+{
+"en": "jacket",
+"phone": "'dʒækɪt",
+"cn": "夹克衫"
+},
+{
+"en": "shirt",
+"phone": "ʃɝt",
+"cn": "衬衫"
+},
+{
+"en": "yours",
+"phone": "jʊrz",
+"cn": "你的"
+},
+{
+"en": "whose",
+"phone": "huz",
+"cn": "谁的"
+},
+{
+"en": "mine",
+"phone": "maɪn",
+"cn": "我的"
+},
+{
+"en": "pack",
+"phone": "pæk",
+"cn": "收拾"
+},
+{
+"en": "wait",
+"phone": "wet",
+"cn": "等待"
+},
+{
+"en": "glove",
+"phone": "ɡlʌv",
+"cn": "手套"
+},
+{
+"en": "scarf",
+"phone": "skɑrf",
+"cn": "围巾"
+},
+{
+"en": "umbrella",
+"phone": "ʌm'brɛlə",
+"cn": "伞"
+},
+{
+"en": "sunglasses",
+"phone": "'sʌnɡlæsɪz",
+"cn": "太阳镜"
+},
+{
+"en": "pretty",
+"phone": "ˈprɪtɪ",
+"cn": "美丽的"
+},
+{
+"en": "expensive",
+"phone": "ɪk'spɛnsɪv",
+"cn": "贵的"
+},
+{
+"en": "cheap",
+"phone": "tʃip",
+"cn": "便宜的"
+},
+{
+"en": "nice",
+"phone": "naɪs",
+"cn": "好的"
+},
+{
+"en": "try on",
+"phone": "",
+"cn": "试穿"
+},
+{
+"en": "size",
+"phone": "saɪz",
+"cn": "尺码"
+},
+{
+"en": "of course",
+"phone": "",
+"cn": "当然"
+},
+{
+"en": "too",
+"phone": "tu",
+"cn": "太"
+},
+{
+"en": "just",
+"phone": "dʒʌst",
+"cn": "正好"
+},
+{
+"en": "how much",
+"phone": "haʊ mʌtʃ",
+"cn": "多少钱"
+},
+{
+"en": "eighty",
+"phone": "ˈeti",
+"cn": "八十"
+},
+{
+"en": "dollar",
+"phone": "'dɑlɚ",
+"cn": "元"
+},
+{
+"en": "sale",
+"phone": "sel",
+"cn": "特价销售"
+},
+{
+"en": "more",
+"phone": "mɔr",
+"cn": "更多的"
+},
+{
+"en": "us",
+"phone": "əs; ʌs",
+"cn": "我们"
+},
+{
+"en": "classroom",
+"phone": "'klæsrʊm",
+"cn": "教室"
+},
+{
+"en": "window",
+"phone": "'wɪndo",
+"cn": "窗户"
+},
+{
+"en": "blackboard",
+"phone": "'blækbɔrd",
+"cn": "黑板"
+},
+{
+"en": "light",
+"phone": "laɪt",
+"cn": "电灯"
+},
+{
+"en": "picture",
+"phone": "'pɪktʃɚ",
+"cn": "图画"
+},
+{
+"en": "door",
+"phone": "dɔr",
+"cn": "门"
+},
+{
+"en": "teacher's desk",
+"phone": "",
+"cn": "讲台"
+},
+{
+"en": "computer",
+"phone": "kəm'pjutɚ",
+"cn": "计算机"
+},
+{
+"en": "fan",
+"phone": "fæn",
+"cn": "风扇"
+},
+{
+"en": "wall",
+"phone": "wɔl",
+"cn": "墙壁"
+},
+{
+"en": "floor",
+"phone": "flɔr",
+"cn": "地板"
+},
+{
+"en": "really",
+"phone": "ˈriəˌli, ˈrili",
+"cn": "真的"
+},
+{
+"en": "near",
+"phone": "nɪr",
+"cn": "距离近"
+},
+{
+"en": "TV",
+"phone": "ˌti vi",
+"cn": "电视"
+},
+{
+"en": "clean",
+"phone": "klin",
+"cn": "打扫"
+},
+{
+"en": "help",
+"phone": "hɛlp",
+"cn": "帮助"
+},
+{
+"en": "schoolbag",
+"phone": "ˈskulˌbæɡ",
+"cn": "书包"
+},
+{
+"en": "maths book",
+"phone": "",
+"cn": "数学书"
+},
+{
+"en": "English book",
+"phone": "",
+"cn": "英语书"
+},
+{
+"en": "Chinese book",
+"phone": "",
+"cn": "语文书"
+},
+{
+"en": "storybook",
+"phone": "'stɔrɪ'bʊk",
+"cn": "故事书"
+},
+{
+"en": "candy",
+"phone": "ˈkændɪ",
+"cn": "糖果"
+},
+{
+"en": "notebook",
+"phone": "'notbʊk",
+"cn": "笔记本"
+},
+{
+"en": "key",
+"phone": "",
+"cn": "钥匙"
+},
+{
+"en": "wow",
+"phone": "wou",
+"cn": "呀"
+},
+{
+"en": "lost",
+"phone": "lɔst",
+"cn": "丢失"
+},
+{
+"en": "so much",
+"phone": "",
+"cn": "非常地"
+},
+{
+"en": "cute",
+"phone": "kjʊt",
+"cn": "可爱的"
+},
+{
+"en": "strong",
+"phone": "strɔŋ",
+"cn": "强壮的"
+},
+{
+"en": "friendly",
+"phone": "ˈfrɛndlɪ",
+"cn": "友好的"
+},
+{
+"en": "quiet",
+"phone": "'kwaɪət",
+"cn": "安静的"
+},
+{
+"en": "hair",
+"phone": "hɛr",
+"cn": "头发"
+},
+{
+"en": "shoe",
+"phone": "ʃu",
+"cn": "鞋"
+},
+{
+"en": "glasses",
+"phone": "'glæsɪz",
+"cn": "眼镜"
+},
+{
+"en": "his",
+"phone": "hɪz",
+"cn": "他的"
+},
+{
+"en": "or",
+"phone": "ɔr",
+"cn": "或者"
+},
+{
+"en": "her",
+"phone": "hɚ",
+"cn": "她的"
+},
+{
+"en": "bedroom",
+"phone": "'bɛdrum",
+"cn": "卧室"
+},
+{
+"en": "living room",
+"phone": "'lɪvɪŋ rum",
+"cn": "客厅"
+},
+{
+"en": "study",
+"phone": "'stʌdi",
+"cn": "书房"
+},
+{
+"en": "kitchen",
+"phone": "'kɪtʃɪn",
+"cn": "厨房"
+},
+{
+"en": "bathroom",
+"phone": "'bæθrum",
+"cn": "浴室"
+},
+{
+"en": "bed",
+"phone": "bɛd",
+"cn": "床"
+},
+{
+"en": "phone",
+"phone": "fon",
+"cn": "电话"
+},
+{
+"en": "table",
+"phone": "'tebl",
+"cn": "桌子"
+},
+{
+"en": "sofa",
+"phone": "'sofə",
+"cn": "长沙发"
+},
+{
+"en": "fridge",
+"phone": "frɪdʒ",
+"cn": "冰箱"
+},
+{
+"en": "find",
+"phone": "faɪnd",
+"cn": "找到"
+},
+{
+"en": "them",
+"phone": "ðɛm; ðəm",
+"cn": "他们"
+},
+{
+"en": "beef",
+"phone": "bif",
+"cn": "牛肉"
+},
+{
+"en": "chicken",
+"phone": "ˈtʃɪkɪn",
+"cn": "鸡肉"
+},
+{
+"en": "noodles",
+"phone": "ˈnudlz",
+"cn": "面条"
+},
+{
+"en": "soup",
+"phone": "sup",
+"cn": "汤"
+},
+{
+"en": "vegetable",
+"phone": "ˈvɛdʒtəbl",
+"cn": "蔬菜"
+},
+{
+"en": "chopsticks",
+"phone": "'tʃɑp,stɪks",
+"cn": "筷子"
+},
+{
+"en": "bowl",
+"phone": "bol",
+"cn": "碗"
+},
+{
+"en": "fork",
+"phone": "fɔrk",
+"cn": "餐叉"
+},
+{
+"en": "knife",
+"phone": "naɪf",
+"cn": "刀"
+},
+{
+"en": "spoon",
+"phone": "spun",
+"cn": "匙,勺子"
+},
+{
+"en": "ready",
+"phone": "'rɛdi",
+"cn": "准备好"
+},
+{
+"en": "help yourself",
+"phone": "",
+"cn": "为（自己）取用"
+},
+{
+"en": "pass",
+"phone": "pæs",
+"cn": "给"
+},
+{
+"en": "try",
+"phone": "traɪ",
+"cn": "试"
+},
+{
+"en": "parents",
+"phone": "'pɛrənts",
+"cn": "父母"
+},
+{
+"en": "cousin",
+"phone": "'kʌzn",
+"cn": "同辈表亲"
+},
+{
+"en": "uncle",
+"phone": "'ʌŋkl",
+"cn": "叔叔"
+},
+{
+"en": "aunt",
+"phone": "ænt",
+"cn": "阿姨"
+},
+{
+"en": "baby brother",
+"phone": "",
+"cn": "小弟弟"
+},
+{
+"en": "doctor",
+"phone": "'dɑktɚ",
+"cn": "医生"
+},
+{
+"en": "cook",
+"phone": "kʊk",
+"cn": "厨师"
+},
+{
+"en": "driver",
+"phone": "'draɪvɚ",
+"cn": "司机"
+},
+{
+"en": "farmer",
+"phone": "'fɑmɚ",
+"cn": "农民"
+},
+{
+"en": "nurse",
+"phone": "nɝs",
+"cn": "护士"
+},
+{
+"en": "people",
+"phone": "'pipl",
+"cn": "人们"
+},
+{
+"en": "but",
+"phone": "bʌt",
+"cn": "但是"
+},
+{
+"en": "little",
+"phone": "'lɪtl",
+"cn": "小的"
+},
+{
+"en": "puppy",
+"phone": "'pʌpi",
+"cn": "小狗"
+},
+{
+"en": "football player",
+"phone": "",
+"cn": "足球运动员"
+},
+{
+"en": "job",
+"phone": "",
+"cn": "工作"
+},
+{
+"en": "basketball",
+"phone": "'bæskɪtbɔl",
+"cn": "篮球"
+},
+{
+"en": "eat breakfast",
+"phone": "it brɛkfəst",
+"cn": "吃早饭"
+},
+{
+"en": "have...class",
+"phone": "",
+"cn": "上⋯⋯课"
+},
+{
+"en": "play sports",
+"phone": "",
+"cn": "进行体育运动"
+},
+{
+"en": "exercise",
+"phone": "'ɛksɚsaɪz",
+"cn": "活动"
+},
+{
+"en": "do morning exercise",
+"phone": "",
+"cn": "做早操"
+},
+{
+"en": "eat dinner",
+"phone": "",
+"cn": "吃晚饭"
+},
+{
+"en": "clean my room",
+"phone": "",
+"cn": "打扫我的房间"
+},
+{
+"en": "go for a walk",
+"phone": "",
+"cn": "散步"
+},
+{
+"en": "go shopping",
+"phone": "",
+"cn": "购物"
+},
+{
+"en": "take",
+"phone": "tek",
+"cn": "上（课）"
+},
+{
+"en": "dancing",
+"phone": "'dænsɪŋ",
+"cn": "跳舞"
+},
+{
+"en": "take a dancing class",
+"phone": "",
+"cn": "上舞蹈课"
+},
+{
+"en": "when",
+"phone": "hwen; hwɛn",
+"cn": "什么时候"
+},
+{
+"en": "after",
+"phone": "'æftɚ",
+"cn": "在⋯⋯之后"
+},
+{
+"en": "start",
+"phone": "stɑrt",
+"cn": "开始"
+},
+{
+"en": "usually",
+"phone": "juʒəlɪ",
+"cn": "通常地"
+},
+{
+"en": "Spain",
+"phone": "spen",
+"cn": "西班牙"
+},
+{
+"en": "late",
+"phone": "let",
+"cn": "晚"
+},
+{
+"en": "a.m.",
+"phone": "",
+"cn": "上午"
+},
+{
+"en": "p.m.",
+"phone": "",
+"cn": "下午"
+},
+{
+"en": "why",
+"phone": "hwaɪ",
+"cn": "为什么"
+},
+{
+"en": "shop",
+"phone": "ʃɑp",
+"cn": "购物"
+},
+{
+"en": "work",
+"phone": "wɝk",
+"cn": "工作"
+},
+{
+"en": "sound",
+"phone": "saʊnd",
+"cn": "听起来好像"
+},
+{
+"en": "also",
+"phone": "'ɔlso",
+"cn": "还"
+},
+{
+"en": "busy",
+"phone": "ˈbɪzɪ",
+"cn": "忙的"
+},
+{
+"en": "need",
+"phone": "nid",
+"cn": "需要"
+},
+{
+"en": "play",
+"phone": "ple",
+"cn": "戏剧"
+},
+{
+"en": "letter",
+"phone": "'lɛtɚ",
+"cn": "信"
+},
+{
+"en": "live",
+"phone": "laɪv；lɪv",
+"cn": "居住"
+},
+{
+"en": "island",
+"phone": "'aɪlənd",
+"cn": "岛"
+},
+{
+"en": "always",
+"phone": "'ɔlwez",
+"cn": "总是"
+},
+{
+"en": "cave",
+"phone": "kev",
+"cn": "山洞"
+},
+{
+"en": "go swimming",
+"phone": "",
+"cn": "去游泳"
+},
+{
+"en": "win",
+"phone": "wɪn",
+"cn": "获胜"
+},
+{
+"en": "spring",
+"phone": "sprɪŋ",
+"cn": "春天"
+},
+{
+"en": "summer",
+"phone": "'sʌmɚ",
+"cn": "夏天"
+},
+{
+"en": "autumn",
+"phone": "'ɔtəm",
+"cn": "秋天"
+},
+{
+"en": "winter",
+"phone": "'wɪntɚ",
+"cn": "冬天"
+},
+{
+"en": "season",
+"phone": "'sizn",
+"cn": "季节"
+},
+{
+"en": "picnic",
+"phone": "'pɪknɪk",
+"cn": "野餐"
+},
+{
+"en": "go on a picnic",
+"phone": "",
+"cn": "去野餐"
+},
+{
+"en": "pick",
+"phone": "pɪk",
+"cn": "摘"
+},
+{
+"en": "pick apples",
+"phone": "",
+"cn": "摘苹果"
+},
+{
+"en": "snowman",
+"phone": "'snomæn",
+"cn": "雪人"
+},
+{
+"en": "make a snowman",
+"phone": "",
+"cn": "堆雪人"
+},
+{
+"en": "go swimming.",
+"phone": "",
+"cn": "去游泳"
+},
+{
+"en": "which",
+"phone": "wɪtʃ",
+"cn": "哪一个"
+},
+{
+"en": "best",
+"phone": "bɛst",
+"cn": "最"
+},
+{
+"en": "snow",
+"phone": "sno",
+"cn": "雪"
+},
+{
+"en": "good job",
+"phone": "",
+"cn": "做得好"
+},
+{
+"en": "because",
+"phone": "bɪ'kɔz",
+"cn": "因为"
+},
+{
+"en": "vacation",
+"phone": "veˈkeʃən",
+"cn": "假期"
+},
+{
+"en": "all",
+"phone": "ɔl",
+"cn": "完全"
+},
+{
+"en": "pink",
+"phone": "pɪŋk",
+"cn": "粉色"
+},
+{
+"en": "lovely",
+"phone": "'lʌvli",
+"cn": "可爱的"
+},
+{
+"en": "leaf",
+"phone": "lif",
+"cn": "叶子"
+},
+{
+"en": "fall",
+"phone": "fɔl",
+"cn": "落下"
+},
+{
+"en": "paint",
+"phone": "pent",
+"cn": "绘画"
+},
+{
+"en": "January",
+"phone": "'dʒænjʊ'ɛri",
+"cn": "一月"
+},
+{
+"en": "February",
+"phone": "ˈfebrʊerɪ;'fɛbrʊɛrɪ",
+"cn": "二月"
+},
+{
+"en": "March",
+"phone": "mɑrtʃ",
+"cn": "三月"
+},
+{
+"en": "April",
+"phone": "'eprəl",
+"cn": "四月"
+},
+{
+"en": "May",
+"phone": "me",
+"cn": "五月"
+},
+{
+"en": "June",
+"phone": "dʒun",
+"cn": "六月"
+},
+{
+"en": "July",
+"phone": "dʒʊˈlaɪ",
+"cn": "七月"
+},
+{
+"en": "August",
+"phone": "ɔˈɡʌst",
+"cn": "八月"
+},
+{
+"en": "September",
+"phone": "sɛp'tɛmbɚ",
+"cn": "九月"
+},
+{
+"en": "October",
+"phone": "ɑk'tobɚ",
+"cn": "十月"
+},
+{
+"en": "November",
+"phone": "no'vɛmbɚ",
+"cn": "十一月"
+},
+{
+"en": "December",
+"phone": "dɪ'sɛmbɚ",
+"cn": "十二月"
+},
+{
+"en": "few",
+"phone": "fju",
+"cn": "不多"
+},
+{
+"en": "a few",
+"phone": "",
+"cn": "一些"
+},
+{
+"en": "thing",
+"phone": "θɪŋ",
+"cn": "事情"
+},
+{
+"en": "meet",
+"phone": "mit",
+"cn": "集会"
+},
+{
+"en": "sports meet",
+"phone": "",
+"cn": "运动会"
+},
+{
+"en": "Easter",
+"phone": "istəʳ",
+"cn": "复活节"
+},
+{
+"en": "year",
+"phone": "yir",
+"cn": "年"
+},
+{
+"en": "plant",
+"phone": "plænt",
+"cn": "种植"
+},
+{
+"en": "contest",
+"phone": "kən'tɛst",
+"cn": "比赛"
+},
+{
+"en": "the Great Wall",
+"phone": "",
+"cn": "长城"
+},
+{
+"en": "national",
+"phone": "'næʃnəl",
+"cn": "国家的"
+},
+{
+"en": "National Day",
+"phone": "ˈnæʃənəl de",
+"cn": "国庆日"
+},
+{
+"en": "American",
+"phone": "əˈmɛrɪkən",
+"cn": "美国的"
+},
+{
+"en": "Thanksgiving",
+"phone": "",
+"cn": "感恩节"
+},
+{
+"en": "Christmas",
+"phone": "",
+"cn": "圣诞节"
+},
+{
+"en": "holiday",
+"phone": "'hɑləde",
+"cn": "节日"
+},
+{
+"en": "game",
+"phone": "ɡem",
+"cn": "游戏"
+},
+{
+"en": "roll",
+"phone": "rol",
+"cn": "滚动"
+},
+{
+"en": "look for",
+"phone": "",
+"cn": "寻找"
+},
+{
+"en": "chocolate",
+"phone": "ˈtʃɑkələt",
+"cn": "巧克力"
+},
+{
+"en": "bunny",
+"phone": "'bʌni",
+"cn": "兔子"
+},
+{
+"en": "RSVP",
+"phone": "",
+"cn": "请赐复"
+},
+{
+"en": "by",
+"phone": "baɪ",
+"cn": "在⋯⋯之前"
+},
+{
+"en": "first",
+"phone": "fɝst",
+"cn": "第一"
+},
+{
+"en": "second",
+"phone": "'sɛkənd",
+"cn": "第二"
+},
+{
+"en": "third",
+"phone": "θɝd",
+"cn": "第三"
+},
+{
+"en": "fourth",
+"phone": "fɔrθ",
+"cn": "第四"
+},
+{
+"en": "fifth",
+"phone": "fɪfθ",
+"cn": "第五"
+},
+{
+"en": "twelfth",
+"phone": "twɛlfθ",
+"cn": "第十二"
+},
+{
+"en": "twentieth",
+"phone": "ˈtwɛntɪɪθ",
+"cn": "第二十"
+},
+{
+"en": "twenty-first",
+"phone": "'twenti'fə:st",
+"cn": "第二十一"
+},
+{
+"en": "twenty-third",
+"phone": "",
+"cn": "第二十三"
+},
+{
+"en": "thirtieth",
+"phone": "'θɝtɪɪθ",
+"cn": "第三十"
+},
+{
+"en": "special",
+"phone": "ˈspɛʃəl",
+"cn": "特殊的"
+},
+{
+"en": "fool",
+"phone": "ful",
+"cn": "蠢人"
+},
+{
+"en": "kitten",
+"phone": "'kɪtn",
+"cn": "小猫"
+},
+{
+"en": "diary",
+"phone": "'daɪəri",
+"cn": "日记"
+},
+{
+"en": "still",
+"phone": "stɪl",
+"cn": "仍然"
+},
+{
+"en": "noise",
+"phone": "nɔɪz",
+"cn": "噪音"
+},
+{
+"en": "fur",
+"phone": "fɝ",
+"cn": "动物皮毛"
+},
+{
+"en": "open",
+"phone": "'opən",
+"cn": "开着的"
+},
+{
+"en": "walk",
+"phone": "wɔk",
+"cn": "行走"
+},
+{
+"en": "hers",
+"phone": "hɝz",
+"cn": "她的"
+},
+{
+"en": "theirs",
+"phone": "ðɛrz",
+"cn": "他们的"
+},
+{
+"en": "ours",
+"phone": "ɑrz",
+"cn": "我们的"
+},
+{
+"en": "climbing",
+"phone": "'klaɪmɪŋ",
+"cn": "攀登"
+},
+{
+"en": "eating",
+"phone": "'itɪŋ",
+"cn": "吃"
+},
+{
+"en": "playing",
+"phone": "'pleɪŋ",
+"cn": "玩"
+},
+{
+"en": "jumping",
+"phone": "'dʒʌmpɪŋ",
+"cn": "跳"
+},
+{
+"en": "drinking",
+"phone": "'drɪŋkɪŋ",
+"cn": "喝"
+},
+{
+"en": "sleeping",
+"phone": "'slipɪŋ",
+"cn": "睡觉"
+},
+{
+"en": "each",
+"phone": "itʃ",
+"cn": "每个"
+},
+{
+"en": "other",
+"phone": "'ʌðɚ",
+"cn": "其他"
+},
+{
+"en": "each other",
+"phone": "",
+"cn": "相互"
+},
+{
+"en": "excited",
+"phone": "ɪk'saɪtɪd",
+"cn": "兴奋地"
+},
+{
+"en": "like",
+"phone": "laɪk",
+"cn": "像⋯⋯那样"
+},
+{
+"en": "doing morning exercises",
+"phone": "",
+"cn": "做早操"
+},
+{
+"en": "having...class",
+"phone": "",
+"cn": "上⋯⋯课"
+},
+{
+"en": "eating lunch",
+"phone": "",
+"cn": "吃午饭"
+},
+{
+"en": "reading a book",
+"phone": "",
+"cn": "看书"
+},
+{
+"en": "listening to music",
+"phone": "",
+"cn": "听音乐"
+},
+{
+"en": "keep",
+"phone": "kip",
+"cn": "保持"
+},
+{
+"en": "keep to the right",
+"phone": "",
+"cn": "靠右"
+},
+{
+"en": "keep your desk clean",
+"phone": "",
+"cn": "保持课桌干净"
+},
+{
+"en": "talk quietly",
+"phone": "",
+"cn": "小声讲话"
+},
+{
+"en": "turn",
+"phone": "tɝn",
+"cn": "顺序"
+},
+{
+"en": "take turns",
+"phone": "",
+"cn": "按顺序来"
+},
+{
+"en": "bamboo",
+"phone": ",bæm'bu",
+"cn": "竹子"
+},
+{
+"en": "its",
+"phone": "ɪts",
+"cn": "它的"
+},
+{
+"en": "anything",
+"phone": "'ɛnɪ'θɪŋ",
+"cn": "任何事物"
+},
+{
+"en": "else",
+"phone": "ɛls",
+"cn": "另外"
+},
+{
+"en": "exhibition",
+"phone": "ˌɛksəˈbɪʃən",
+"cn": "展览"
+},
+{
+"en": "say",
+"phone": "se",
+"cn": "说；讲"
+},
+{
+"en": "have a look",
+"phone": "",
+"cn": "看一看"
+},
+{
+"en": "sushi",
+"phone": "'sʊʃi",
+"cn": "寿司"
+},
+{
+"en": "teach",
+"phone": "titʃ",
+"cn": "教"
+},
+{
+"en": "sure",
+"phone": "ʃʊər; ʃʊr",
+"cn": "当然"
+},
+{
+"en": "Canadian",
+"phone": "kə'nedɪən",
+"cn": "加拿大的"
+},
+{
+"en": "Spanish",
+"phone": "'spænɪʃ",
+"cn": "西班牙的"
+},
+{
+"en": "science",
+"phone": "'saɪəns",
+"cn": "科学"
+},
+{
+"en": "museum",
+"phone": "mjuˈzɪəm",
+"cn": "博物馆"
+},
+{
+"en": "post office",
+"phone": "ˈpost ɔfɪs",
+"cn": "邮局"
+},
+{
+"en": "bookstore",
+"phone": "bʊkstɔr",
+"cn": "书店"
+},
+{
+"en": "cinema",
+"phone": "'sɪnəmə",
+"cn": "电影院"
+},
+{
+"en": "hospital",
+"phone": "'hɑspɪtl",
+"cn": "医院"
+},
+{
+"en": "crossing",
+"phone": "'krɔsɪŋ",
+"cn": "十字路口"
+},
+{
+"en": "left",
+"phone": "lɛft",
+"cn": "左"
+},
+{
+"en": "on foot",
+"phone": "",
+"cn": "步行"
+},
+{
+"en": "bus",
+"phone": "bʌs",
+"cn": "公共汽车"
+},
+{
+"en": "plane",
+"phone": "plen",
+"cn": "飞机"
+},
+{
+"en": "taxi",
+"phone": "'tæksi",
+"cn": "出租汽车"
+},
+{
+"en": "ship",
+"phone": "ʃɪp",
+"cn": "船"
+},
+{
+"en": "subway",
+"phone": "'sʌbwe",
+"cn": "地铁"
+},
+{
+"en": "train",
+"phone": "tren",
+"cn": "火车"
+},
+{
+"en": "slow",
+"phone": "sloʊ",
+"cn": "慢的"
+},
+{
+"en": "down",
+"phone": "daʊn",
+"cn": "减少"
+},
+{
+"en": "slow down",
+"phone": "",
+"cn": "慢下来"
+},
+{
+"en": "stop",
+"phone": "stɑp",
+"cn": "停下"
+},
+{
+"en": "Mrs",
+"phone": "ˈmɪsɪz",
+"cn": "夫人"
+},
+{
+"en": "early",
+"phone": "'ɝli",
+"cn": "早到的"
+},
+{
+"en": "helmet",
+"phone": "'hɛlmɪt",
+"cn": "头盔"
+},
+{
+"en": "must",
+"phone": "mʌst",
+"cn": "必须"
+},
+{
+"en": "wear",
+"phone": "wɛr",
+"cn": "戴"
+},
+{
+"en": "attention",
+"phone": "ə'tɛnʃən",
+"cn": "注意"
+},
+{
+"en": "pay attention to",
+"phone": "",
+"cn": "注意"
+},
+{
+"en": "traffic",
+"phone": "'træfɪk",
+"cn": "交通"
+},
+{
+"en": "traffic lights",
+"phone": "",
+"cn": "交通信号灯"
+},
+{
+"en": "Munich",
+"phone": "'mju:nik",
+"cn": "慕尼黑"
+},
+{
+"en": "Germany",
+"phone": "'dʒɝməni",
+"cn": "德国"
+},
+{
+"en": "Alaska",
+"phone": "ə'læskə",
+"cn": "阿拉斯加州"
+},
+{
+"en": "sled",
+"phone": "slɛd",
+"cn": "雪橇"
+},
+{
+"en": "fast",
+"phone": "fæst",
+"cn": "快的"
+},
+{
+"en": "ferry",
+"phone": "'fɛri",
+"cn": "轮渡"
+},
+{
+"en": "Papa Westray",
+"phone": "",
+"cn": "帕帕韦斯特雷岛"
+},
+{
+"en": "Scotland",
+"phone": "'skɔtlənd",
+"cn": "苏格兰"
+},
+{
+"en": "visit",
+"phone": "'vɪzɪt",
+"cn": "拜访"
+},
+{
+"en": "film",
+"phone": "fɪlm",
+"cn": "电影"
+},
+{
+"en": "see a film",
+"phone": "",
+"cn": "看电影"
+},
+{
+"en": "take a trip",
+"phone": "",
+"cn": "去旅行"
+},
+{
+"en": "supermarket",
+"phone": "'sʊpɚ'mɑrkɪt",
+"cn": "超市"
+},
+{
+"en": "evening",
+"phone": "'ivnɪŋ",
+"cn": "晚上"
+},
+{
+"en": "tonight",
+"phone": "tə'naɪt",
+"cn": "今晚"
+},
+{
+"en": "tomorrow",
+"phone": "tə'mɔro",
+"cn": "明天"
+},
+{
+"en": "next week",
+"phone": "nɛkst wik",
+"cn": "下周"
+},
+{
+"en": "dictionary",
+"phone": "'dɪkʃə'nɛri",
+"cn": "词典"
+},
+{
+"en": "comic",
+"phone": "'kɑmɪk",
+"cn": "滑稽的"
+},
+{
+"en": "comic book",
+"phone": "",
+"cn": "连环画"
+},
+{
+"en": "word",
+"phone": "wɝd",
+"cn": "单词"
+},
+{
+"en": "word book",
+"phone": "'wɝk'bʊk",
+"cn": "单词书"
+},
+{
+"en": "post card",
+"phone": "",
+"cn": "明信片"
+},
+{
+"en": "lesson",
+"phone": "'lɛsn",
+"cn": "课"
+},
+{
+"en": "space",
+"phone": "spes",
+"cn": "太空"
+},
+{
+"en": "travel",
+"phone": "'trævl",
+"cn": "旅行"
+},
+{
+"en": "half",
+"phone": "hæf",
+"cn": "一半"
+},
+{
+"en": "price",
+"phone": "praɪs",
+"cn": "价格"
+},
+{
+"en": "Mid-Autumn Festival",
+"phone": "",
+"cn": "中秋节"
+},
+{
+"en": "together",
+"phone": "tə'ɡɛðɚ",
+"cn": "一起"
+},
+{
+"en": "get together",
+"phone": "",
+"cn": "聚会"
+},
+{
+"en": "mooncake",
+"phone": "'munkeɪk",
+"cn": "月饼"
+},
+{
+"en": "poem",
+"phone": "'poəm",
+"cn": "诗"
+},
+{
+"en": "moon",
+"phone": "mun",
+"cn": "月亮"
+},
+{
+"en": "studies",
+"phone": "'stʌdiz",
+"cn": "学习"
+},
+{
+"en": "puzzle",
+"phone": "'pʌzl",
+"cn": "谜"
+},
+{
+"en": "hiking",
+"phone": "'haɪkɪŋ",
+"cn": "远足"
+},
+{
+"en": "pen pal",
+"phone": "",
+"cn": "笔友"
+},
+{
+"en": "hobby",
+"phone": "'hɑbi",
+"cn": "业余爱好"
+},
+{
+"en": "jasmine",
+"phone": "'dʒæzmɪn",
+"cn": "茉莉"
+},
+{
+"en": "idea",
+"phone": "aɪ'diə",
+"cn": "主意"
+},
+{
+"en": "Canberra",
+"phone": "'kænbərə",
+"cn": "堪培拉"
+},
+{
+"en": "amazing",
+"phone": "ə'mezɪŋ",
+"cn": "令人惊奇的"
+},
+{
+"en": "shall",
+"phone": "ʃəl",
+"cn": "表示征求意见"
+},
+{
+"en": "goal",
+"phone": "ɡol",
+"cn": "射门"
+},
+{
+"en": "join",
+"phone": "dʒɔɪn",
+"cn": "加入"
+},
+{
+"en": "club",
+"phone": "klʌb",
+"cn": "俱乐部"
+},
+{
+"en": "share",
+"phone": "ʃɛr",
+"cn": "分享"
+},
+{
+"en": "factory",
+"phone": "'fæktri",
+"cn": "工厂"
+},
+{
+"en": "worker",
+"phone": "'wɝkɚ",
+"cn": "工人"
+},
+{
+"en": "postman",
+"phone": "'postmən",
+"cn": "邮递员"
+},
+{
+"en": "businessman",
+"phone": "'bɪznəsmæn",
+"cn": "商人"
+},
+{
+"en": "police officer",
+"phone": "pəˈlis ˈɔfɪsɚ",
+"cn": "警察"
+},
+{
+"en": "fisherman",
+"phone": "'fɪʃɚmən",
+"cn": "渔民"
+},
+{
+"en": "scientist",
+"phone": "'saɪəntɪst",
+"cn": "科学家"
+},
+{
+"en": "pilot",
+"phone": "'paɪlət",
+"cn": "飞行员"
+},
+{
+"en": "coach",
+"phone": "kotʃ",
+"cn": "教练"
+},
+{
+"en": "country",
+"phone": "'kʌntri",
+"cn": "国家"
+},
+{
+"en": "head teacher",
+"phone": "",
+"cn": "校长"
+},
+{
+"en": "sea",
+"phone": "si",
+"cn": "大海"
+},
+{
+"en": "university",
+"phone": ",junɪ'vɝsəti",
+"cn": "大学"
+},
+{
+"en": "if",
+"phone": "ɪf",
+"cn": "如果"
+},
+{
+"en": "reporter",
+"phone": "rɪ'pɔrtɚ",
+"cn": "记者"
+},
+{
+"en": "use",
+"phone": "juz",
+"cn": "使用"
+},
+{
+"en": "type",
+"phone": "taɪp",
+"cn": "打字"
+},
+{
+"en": "quickly",
+"phone": "'kwɪkli",
+"cn": "迅速地"
+},
+{
+"en": "secretary",
+"phone": "'sɛkrətɛrɪ",
+"cn": "秘书"
+},
+{
+"en": "angry",
+"phone": "ˈæŋgrɪ",
+"cn": "生气的"
+},
+{
+"en": "afraid",
+"phone": "ə'fred",
+"cn": "害怕"
+},
+{
+"en": "sad",
+"phone": "sæd",
+"cn": "难过的"
+},
+{
+"en": "worried",
+"phone": "'wɝrɪd",
+"cn": "担心的"
+},
+{
+"en": "happy",
+"phone": "'hæpɪ",
+"cn": "高兴的"
+},
+{
+"en": "see a doctor",
+"phone": "",
+"cn": "看病"
+},
+{
+"en": "wear.",
+"phone": "wɛr",
+"cn": "穿"
+},
+{
+"en": "deep",
+"phone": "dip",
+"cn": "深的"
+},
+{
+"en": "breath",
+"phone": "brɛθ",
+"cn": "呼吸"
+},
+{
+"en": "take a deep breath",
+"phone": "",
+"cn": "深呼吸"
+},
+{
+"en": "count",
+"phone": "kaʊnt",
+"cn": "数数"
+},
+{
+"en": "count to ten",
+"phone": "",
+"cn": "数到十"
+},
+{
+"en": "chase",
+"phone": "",
+"cn": "追赶"
+},
+{
+"en": "mice",
+"phone": "maɪs",
+"cn": "老鼠"
+},
+{
+"en": "bad",
+"phone": "bæd",
+"cn": "邪恶的"
+},
+{
+"en": "ill",
+"phone": "ɪl",
+"cn": "有病"
+},
+{
+"en": "wrong",
+"phone": "rɔŋ",
+"cn": "有毛病"
+},
+{
+"en": "should",
+"phone": "ʃəd; strong form ʃʊd",
+"cn": "应该"
+},
+{
+"en": "feel",
+"phone": "fil",
+"cn": "觉得"
+},
+{
+"en": "well",
+"phone": "wɛl",
+"cn": "健康"
+},
+{
+"en": "sit",
+"phone": "sɪt",
+"cn": "坐"
+},
+{
+"en": "ant",
+"phone": "ænt",
+"cn": "蚂蚁"
+},
+{
+"en": "worry",
+"phone": "ˈwʌrɪ",
+"cn": "担心"
+},
+{
+"en": "stuck",
+"phone": "stʌk",
+"cn": "陷住"
+},
+{
+"en": "mud",
+"phone": "mʌd",
+"cn": "泥"
+},
+{
+"en": "pull",
+"phone": "pʊl",
+"cn": "拉"
+},
+{
+"en": "everyone",
+"phone": "'ɛvrɪwʌn",
+"cn": "每人"
+},
+{
+"en": "old",
+"phone": "old",
+"cn": "老的"
+},
+{
+"en": "young",
+"phone": "jʌŋ",
+"cn": "年轻的"
+},
+{
+"en": "kind",
+"phone": "kaɪnd",
+"cn": "体贴的"
+},
+{
+"en": "strict",
+"phone": "strɪkt",
+"cn": "严厉的"
+},
+{
+"en": "polite",
+"phone": "pə'laɪt",
+"cn": "有礼貌的"
+},
+{
+"en": "hard-working",
+"phone": "",
+"cn": "努力的"
+},
+{
+"en": "helpful",
+"phone": "'hɛlpfl",
+"cn": "有用的"
+},
+{
+"en": "clever",
+"phone": "'klɛvɚ",
+"cn": "聪明的"
+},
+{
+"en": "shy",
+"phone": "ʃaɪ",
+"cn": "羞怯的"
+},
+{
+"en": "know",
+"phone": "no",
+"cn": "知道"
+},
+{
+"en": "our",
+"phone": "aʊr",
+"cn": "我们的"
+},
+{
+"en": "Ms",
+"phone": "",
+"cn": "女士"
+},
+{
+"en": "will",
+"phone": "wɪl",
+"cn": "将要"
+},
+{
+"en": "sometimes",
+"phone": "'sʌmtaɪmz",
+"cn": "有时"
+},
+{
+"en": "robot",
+"phone": "'robɑt",
+"cn": "机器人"
+},
+{
+"en": "him",
+"phone": "hɪm",
+"cn": "他"
+},
+{
+"en": "speak",
+"phone": "spik",
+"cn": "会说"
+},
+{
+"en": "finish",
+"phone": "'fɪnɪʃ",
+"cn": "完成"
+},
+{
+"en": "Monday",
+"phone": "ˈmʌnde; ˈmʌndɪ",
+"cn": "星期一"
+},
+{
+"en": "Tuesday",
+"phone": "ˈtuzdɪ;-de",
+"cn": "星期二"
+},
+{
+"en": "Wednesday",
+"phone": "ˈwɛnzdɪ",
+"cn": "星期三"
+},
+{
+"en": "Thursday",
+"phone": "ˈθɝzde; ˈθɝzdɪ",
+"cn": "星期四"
+},
+{
+"en": "Friday",
+"phone": "",
+"cn": "星期五"
+},
+{
+"en": "Saturday",
+"phone": "sætɚdɪ; -de",
+"cn": "星期六"
+},
+{
+"en": "Sunday",
+"phone": "ˈsʌnde; ˈsʌndi",
+"cn": "星期日"
+},
+{
+"en": "weekend",
+"phone": "ˈwikend",
+"cn": "周末"
+},
+{
+"en": "wash",
+"phone": "wɔʃ",
+"cn": "洗"
+},
+{
+"en": "wash my clothes",
+"phone": "",
+"cn": "洗我的衣服"
+},
+{
+"en": "watch",
+"phone": "wɑtʃ",
+"cn": "看"
+},
+{
+"en": "watch TV",
+"phone": "",
+"cn": "看电视"
+},
+{
+"en": "do",
+"phone": "du",
+"cn": "做"
+},
+{
+"en": "do homework",
+"phone": "",
+"cn": "做作业"
+},
+{
+"en": "read books",
+"phone": "",
+"cn": "看书"
+},
+{
+"en": "play football",
+"phone": "",
+"cn": "踢足球"
+},
+{
+"en": "cooking",
+"phone": "'kʊkɪŋ",
+"cn": "烹饪"
+},
+{
+"en": "often",
+"phone": "ˈɔ:fn; ɔfən",
+"cn": "时常"
+},
+{
+"en": "park",
+"phone": "pɑrk",
+"cn": "公园"
+},
+{
+"en": "tired",
+"phone": "ˈtaɪrd",
+"cn": "疲倦的"
+},
+{
+"en": "sport",
+"phone": "spɔrt",
+"cn": "体育运动"
+},
+{
+"en": "every",
+"phone": "'ɛvri",
+"cn": "每一个"
+},
+{
+"en": "day",
+"phone": "de",
+"cn": "一天"
+},
+{
+"en": "schedule",
+"phone": "ˈskedʒʊl; skɛdʒʊl",
+"cn": "工作计划"
+},
+{
+"en": "sandwich",
+"phone": "'sænwɪtʃ",
+"cn": "三明治"
+},
+{
+"en": "salad",
+"phone": "'sæləd",
+"cn": "沙拉"
+},
+{
+"en": "hamburger",
+"phone": "hæmbɝ​ɡɚ",
+"cn": "汉堡包"
+},
+{
+"en": "ice cream",
+"phone": "aɪs krim",
+"cn": "冰淇淋"
+},
+{
+"en": "tea",
+"phone": "ti",
+"cn": "茶"
+},
+{
+"en": "fresh",
+"phone": "frɛʃ",
+"cn": "新鲜的"
+},
+{
+"en": "healthy",
+"phone": "'hɛlθi",
+"cn": "健康的"
+},
+{
+"en": "delicious",
+"phone": "dɪ'lɪʃəs",
+"cn": "美味的"
+},
+{
+"en": "sweet",
+"phone": "swit",
+"cn": "甜的"
+},
+{
+"en": "drink",
+"phone": "drɪŋk",
+"cn": "喝"
+},
+{
+"en": "thirsty",
+"phone": "'θɝsti",
+"cn": "渴的"
+},
+{
+"en": "favourite",
+"phone": "'fevərɪt",
+"cn": "特别喜欢的"
+},
+{
+"en": "food",
+"phone": "fud",
+"cn": "食物"
+},
+{
+"en": "Dear",
+"phone": "dɪr",
+"cn": "亲爱的"
+},
+{
+"en": "onion",
+"phone": "'ʌnjən",
+"cn": "洋葱"
+},
+{
+"en": "sing",
+"phone": "sɪŋ",
+"cn": "唱"
+},
+{
+"en": "song",
+"phone": "sɔŋ",
+"cn": "歌曲"
+},
+{
+"en": "sing English songs",
+"phone": "",
+"cn": "唱英文歌曲"
+},
+{
+"en": "play the pipa",
+"phone": "",
+"cn": "弹琵琶"
+},
+{
+"en": "kung fu",
+"phone": ",kʌŋ'fu",
+"cn": "功夫"
+},
+{
+"en": "do kung fu",
+"phone": "",
+"cn": "练武术"
+},
+{
+"en": "dance",
+"phone": "dæns",
+"cn": "跳舞"
+},
+{
+"en": "draw",
+"phone": "drɔ",
+"cn": "画"
+},
+{
+"en": "cartoon",
+"phone": "kɑr'tun",
+"cn": "漫画"
+},
+{
+"en": "draw cartoons",
+"phone": "",
+"cn": "画漫画"
+},
+{
+"en": "swim",
+"phone": "swɪm",
+"cn": "游泳"
+},
+{
+"en": "play basketball",
+"phone": "",
+"cn": "打篮球"
+},
+{
+"en": "ping-pong",
+"phone": "",
+"cn": "乒乓球"
+},
+{
+"en": "play ping-pong",
+"phone": "",
+"cn": "打乒乓球"
+},
+{
+"en": "speak English",
+"phone": "",
+"cn": "说英语"
+},
+{
+"en": "we'll",
+"phone": "wɪl",
+"cn": "我们将……（=we will）"
+},
+{
+"en": "party",
+"phone": "'pɑrti",
+"cn": "聚会"
+},
+{
+"en": "next",
+"phone": "nɛkst",
+"cn": "下一个的"
+},
+{
+"en": "wonderful",
+"phone": "ˈwʌndɚfəl",
+"cn": "极好的"
+},
+{
+"en": "learn",
+"phone": "lɝn",
+"cn": "学习"
+},
+{
+"en": "any",
+"phone": "'ɛni",
+"cn": "任何的"
+},
+{
+"en": "problem",
+"phone": "'prɑbləm",
+"cn": "没问题"
+},
+{
+"en": "no problem",
+"phone": "",
+"cn": "没问题"
+},
+{
+"en": "want",
+"phone": "wɔ:nt; wɔnt",
+"cn": "要"
+},
+{
+"en": "send",
+"phone": "sɛnd",
+"cn": "邮寄"
+},
+{
+"en": "email",
+"phone": "'imel",
+"cn": "电子邮件"
+},
+{
+"en": "at",
+"phone": "æt; ət",
+"cn": "（接邮件地址）"
+},
+{
+"en": "clock",
+"phone": "klɑk",
+"cn": "时钟"
+},
+{
+"en": "bottle",
+"phone": "'bɑtl",
+"cn": "瓶子"
+},
+{
+"en": "water bottle",
+"phone": "",
+"cn": "水瓶"
+},
+{
+"en": "bike",
+"phone": "baɪk",
+"cn": "自行车"
+},
+{
+"en": "photo",
+"phone": "'foto",
+"cn": "照片"
+},
+{
+"en": "front",
+"phone": "frʌnt",
+"cn": "正面"
+},
+{
+"en": "in front of",
+"phone": "ɪn frʌnt ʌv",
+"cn": "在⋯⋯前面"
+},
+{
+"en": "between",
+"phone": "bəˈtwin",
+"cn": "在⋯⋯中间"
+},
+{
+"en": "above",
+"phone": "ə'bʌv",
+"cn": "在⋯⋯上面"
+},
+{
+"en": "beside",
+"phone": "bɪ'saɪd",
+"cn": "在旁边"
+},
+{
+"en": "behind",
+"phone": "bɪ'haɪnd",
+"cn": "在⋯⋯后面"
+},
+{
+"en": "there",
+"phone": "ðɛr",
+"cn": "（存在或发生）"
+},
+{
+"en": "grandparent",
+"phone": "'græn'pɛrənt",
+"cn": "（外）祖父母"
+},
+{
+"en": "their",
+"phone": "ðɛr",
+"cn": "他们的"
+},
+{
+"en": "house",
+"phone": "haʊs",
+"cn": "房子"
+},
+{
+"en": "lot",
+"phone": "lɑt",
+"cn": "大量"
+},
+{
+"en": "lots of",
+"phone": "",
+"cn": "大量"
+},
+{
+"en": "flower",
+"phone": "'flaʊɚ",
+"cn": "花"
+},
+{
+"en": "move",
+"phone": "muv",
+"cn": "搬家"
+},
+{
+"en": "dirty",
+"phone": "ˈdɝ​tɪ",
+"cn": "肮脏的"
+},
+{
+"en": "everywhere",
+"phone": "'ɛvrɪwɛr",
+"cn": "处处"
+},
+{
+"en": "mouse",
+"phone": "maʊs",
+"cn": "老鼠"
+},
+{
+"en": "nature",
+"phone": "'netʃɚ",
+"cn": "自然界"
+},
+{
+"en": "forest",
+"phone": "'fɔrɪst",
+"cn": "森林"
+},
+{
+"en": "river",
+"phone": "'rɪvɚ",
+"cn": "河"
+},
+{
+"en": "lake",
+"phone": "lek",
+"cn": "湖"
+},
+{
+"en": "mountain",
+"phone": "ˈmaʊntn",
+"cn": "山"
+},
+{
+"en": "hill",
+"phone": "hɪl",
+"cn": "小山"
+},
+{
+"en": "tree",
+"phone": "tri",
+"cn": "树"
+},
+{
+"en": "bridge",
+"phone": "brɪdʒ",
+"cn": "桥"
+},
+{
+"en": "building",
+"phone": "'bɪldɪŋ",
+"cn": "建筑"
+},
+{
+"en": "village",
+"phone": "'vɪlɪdʒ",
+"cn": "村庄"
+},
+{
+"en": "house.",
+"phone": "haʊs",
+"cn": "房屋"
+},
+{
+"en": "boating",
+"phone": "'bəutiŋ",
+"cn": "划船"
+},
+{
+"en": "go boating",
+"phone": "",
+"cn": "去划船"
+},
+{
+"en": "aren't",
+"phone": "ɑrnt",
+"cn": "不是（= are not）"
+},
+{
+"en": "rabbit",
+"phone": "'ræbɪt",
+"cn": "兔"
+},
+{
+"en": "high",
+"phone": "haɪ",
+"cn": "高的"
+}
+]

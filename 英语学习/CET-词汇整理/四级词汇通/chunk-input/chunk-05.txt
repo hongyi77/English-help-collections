@@ -1,0 +1,150 @@
+﻿initially	adv. 最初
+slightly	adv. 轻微地
+objection	n. 反对，异议
+atmosphere	n. 气氛，大气
+assign	v. 分配，指派
+evidence	n. 证据，迹象
+racially	adv. 种族上地
+exclude	v. 排除，不包括
+available	adj. 可利用的，现有的，可获得的
+puzzling	adj. 令人困惑的
+evaluation	n. 评价，评估
+irritate	v. 激怒
+distinguished	adj. 杰出的，显著的
+depressing	adj. 令人沮丧的
+mutually	adv. 互相地
+mission	n. 使命，任务
+migration	n. 迁移，移民
+site	n. 地点，场所 v. 设置
+expectation	n. 期望，期待
+update	v. 更新
+gear	n. 齿轮，传动装置 v. 使适合
+reproductive	adj. 生殖的
+incredible	adj. 难以置信的，惊人的
+backward	adv. 向后 adj. 落后的，向后的
+raise	v. 提高，抚养，举起
+prohibit	v. 禁止，阻止
+bother	v. 打扰，麻烦 n. 麻烦
+pose	v. 摆姿势，造成 n. 姿势
+instrument	n. 仪器，工具，乐器
+mask	v. 掩饰 n. 面具，口罩
+essential	adj. 必要的，本质的 n. 必需品
+harvest	n. 收获，收成 v. 收割
+reject	v. 拒绝，驳回 n. 次品
+advancement	n. 进步，提升
+skyrocket	v. 猛涨
+characteristic	n. 特点，特性 adj. 典型的
+implication	n. 含义，暗示
+measure	n. 措施，尺寸 v. 测量，衡量
+replacement	n. 代替，更换
+easygoing	adj. 随和的
+squeeze	v. 挤，榨 n. 紧缺
+exhibition	n. 展览，展览会
+responsibility	n. 责任，职责
+enhance	v. 提高，增强
+retain	v. 保留，保持
+convey	v. 传达，传递
+regulation	n. 规则，规章
+integrity	n. 完整
+combine	v. 结合，联合
+impermanency	n. 非永久性
+catalogue	v. 编入目录 n. 目录
+council	n. 委员会，理事会
+prepare	v. 准备，预备
+inquiry	n. 询问，调查
+tension	n. 紧张，张力
+prompt	adj. 迅速的，及时的 v. 促使，提示
+attendance	n. 出席人数
+retail	n. 零售 v. 零售
+image	n. 形象，图像，印象
+quantity	n. 数量，量
+inspector	n. 检查员
+endurance	n. 耐力
+simplify	v. 简化
+range	n. 范围，山脉 v. 变化
+accomplish	v. 完成，达到
+treatment	n. 治疗，对待，处理
+spare	adj. 空闲的，多余的 v. 抽出
+welfare	n. 福利
+boost	n. 推动，提高 v. 促进
+consciousness	n. 意识，知觉
+patiently	adv. 耐心地
+decent	adj. 体面的，得体的，像样的
+review	n. 复习，回顾 v. 复习
+considerable	adj. 相当大的，重要的
+misguide	v. 误导
+foundation	n. 基础，地基，基金会
+postgraduate	n. 研究生
+prevail	v. 流行，盛行
+solid	adj. 坚实的，固体的 n. 固体
+counsel	v. 劝告，建议 n. 律师，忠告
+maximum	n. 最大值 adj. 最大的，最高的
+abstract	adj. 抽象的 n. 摘要，梗概 v. 提取
+realistic	adj. 现实的，实际的，逼真的
+ban	v. 禁止，取缔 n. 禁令
+ashamed	adj. 惭愧的，害臊的
+solve	v. 解决，解答
+reinforce	v. 加强，强化
+applicant	n. 申请人
+tuition	n. 学费
+persistence	n. 坚持不懈
+overcome	v. 克服，战胜
+bride	n. 新娘
+engagement	n. 婚约
+household	n. 家庭，一家人 adj. 家庭的，家喻户晓的
+evaluate	v. 评价，评估
+saint	n. 圣人，圣徒
+delay	v. 推迟，延误
+private	adj. 私人的，私下的
+definition	n. 定义，释义
+influential	adj. 有影响力的
+recommend	v. 推荐，建议
+frontier	n. 边境，新领域
+concern	n. 关心，担心 v. 涉及，关于
+organ	n. 器官，机构，管风琴
+cite	v. 引用，引证
+mechanism	n. 机制，机械装置
+contest	n. 比赛，竞赛 v. 争夺
+symptom	n. 症状，征兆
+deadline	n. 最后期限
+domination	n. 主导
+figure	n. 人物，数字，体形 v. 认为，计算
+imply	v. 暗示，意味着
+curiosity	n. 好奇心，珍品
+induce	v. 引诱
+acknowledge	v. 承认，确认
+gym	n. 体育馆，健身房
+chef	n. 厨师
+sensible	adj. 明智的，合情理的
+outline	n. 要点，轮廓 v. 概述
+react	v. 作出反应
+committee	n. 委员会
+civilian	n. 平民，百姓
+domestic	adj. 国内的，家庭的，驯养的
+complex	adj. 复杂的，难懂的
+locate	v. 位于，找出
+tighten	v. 使变紧
+physics	n. 物理学
+foothold	n. 立足处
+discharge	v. 释放，排出 n. 释放，放电
+advanced	adj. 先进的，高级的
+complicated	adj. 复杂的，难懂的
+needy	adj. 贫穷的
+stale	adj. 不新鲜的，陈腐的
+casual	adj. 随便的，偶然的，非正式的
+conform	v. 遵守，符合
+recharge	v. 再充电
+annually	adv. 每年
+frown	v. 皱眉
+decline	v. 下降，拒绝，衰退 n. 下降，衰退
+originate	v. 开始
+prospect	n. 前景，可能性 v. 勘探
+curious	adj. 好奇的，奇怪的
+incentive	n. 动机，刺激
+virus	n. 病毒
+cultivate	v. 培养，种植
+potential	n. 潜力 adj. 潜在的
+reluctant	adj. 不情愿的，勉强的
+miserable	adj. 痛苦的，悲惨的
+persuasion	n. 劝说
+competitiveness	n. 竞争力

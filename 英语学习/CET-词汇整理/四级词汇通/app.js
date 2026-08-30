@@ -1,5 +1,5 @@
 /* ============================================================
- * 四级词汇通 - 核心学习逻辑
+ * 英语词汇通 - 核心学习逻辑
  * 功能：新学 / 复习(艾宾浩斯) / 生词本 / 统计
  * 题型：英译汉（看单词选释义）
  * 数据：localStorage 持久化，双击 index.html 即可使用
@@ -15,14 +15,43 @@ const STAGE_MASTERED = INTERVALS.length; // 5 = 已掌握
 const STATE_KEY = 'cet4_study_state_v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/* ---------------- 单词数据 ----------------
- * VOCAB 定义在 vocab-data.js：[单词, 释义]
+/* ---------------- 词库注册 ----------------
+ * 内置四级词库：VOCAB 定义在 vocab-data.js：[单词, 释义]
+ * 扩展词库：VOCAB_LIBS 定义在 vocab-libs.js（build-libs.js 从 lib-sources/*.json 生成）
+ * VOCAB_EXTRA 定义在 vocab-extra.js：{ 单词: "巧记" }（按单词查，各词库通用）
+ * 巧记只覆盖四级难词，其他词库查不到会静默降级为无巧记
  */
-const WORD_MAP = new Map();
-const WORD_LIST = VOCAB.map(([w, m]) => { WORD_MAP.set(w, m); return w; });
+const LIBS = Object.assign(
+  { cet4: { name: '四级词汇', words: (typeof VOCAB !== 'undefined' ? VOCAB : []) } },
+  (typeof VOCAB_LIBS !== 'undefined' ? VOCAB_LIBS : {})
+);
+
+/* 每个词库的单词集合（导入进度时过滤用） */
+const LIB_WORD_SETS = {};
+for (const k of Object.keys(LIBS)) {
+  LIB_WORD_SETS[k] = new Set(LIBS[k].words.map(([w]) => w));
+}
+
+let WORD_MAP = new Map();
+let WORD_LIST = [];
+
+/* 按当前词库重建 WORD_MAP / WORD_LIST（启动和切换词库时调用） */
+function rebuildWordData() {
+  const lib = LIBS[libKey()];
+  WORD_MAP = new Map();
+  WORD_LIST = lib.words.map(([w, m]) => { WORD_MAP.set(w, m); return w; });
+}
+
+const EXTRA_MAP = new Map(typeof VOCAB_EXTRA !== 'undefined' ? Object.entries(VOCAB_EXTRA) : []);
+
+/* 巧记查询：无数据的词（简单词）返回空串 */
+function memoOf(word) {
+  const m = EXTRA_MAP.get(word);
+  return (typeof m === 'string' && m.trim()) ? m.trim() : '';
+}
 
 /* ---------------- 全局状态 ----------------
- * state.words[word] = {
+ * 学习进度按词库隔离：state.libs[libKey].words[word] = {
  *   stage: 0新词, 1-5复习级, 5已掌握
  *   due:   下次复习时间戳(仅 stage>=1 使用)
  *   right: 累计答对
@@ -30,18 +59,41 @@ const WORD_LIST = VOCAB.map(([w, m]) => { WORD_MAP.set(w, m); return w; });
  *   inBook: 是否在生词本
  *   created: 首次学习时间戳
  * }
+ * 每日目标/学习记录(history)是全局的，不随词库切换分开
  */
 const defaultState = () => ({
-  settings: { dailyNew: 20, dailyReview: 30 },
-  words: {},
+  settings: { dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4' },
+  libs: {},      // libs[libKey].words = { 单词: 学习记录 }
   today: todayStr(),
   learnedToday: [],
   reviewedToday: [],
-  masteredTotal: 0,
   history: {},   // history['YYYY-MM-DD'] = { learned:[], reviewed:[], wrongs:[] }
 });
 
 let state = loadState();
+
+/* 当前词库 key（存档里没有或已失效时回落到内置四级） */
+function libKey() {
+  const k = state.settings && state.settings.lib;
+  return (k && LIBS[k]) ? k : 'cet4';
+}
+
+/* 当前词库的学习记录表（懒创建） */
+function curWords() {
+  const k = libKey();
+  if (!state.libs) state.libs = {};
+  if (!state.libs[k]) state.libs[k] = { words: {} };
+  if (!state.libs[k].words) state.libs[k].words = {};
+  return state.libs[k].words;
+}
+
+/* 切换词库：仅切设置，进度天然隔离；调用方负责清掉进行中的会话 */
+function setLibrary(key) {
+  if (!LIBS[key] || key === libKey()) return;
+  state.settings.lib = key;
+  saveState();
+  rebuildWordData();
+}
 
 function todayStr() {
   return new Date().toDateString();
@@ -89,6 +141,15 @@ function loadState() {
         s.learnedToday = [];
         s.reviewedToday = [];
       }
+      // 设置项缺省合并（旧存档没有 autoSpeak/lib 等新字段）
+      s.settings = Object.assign({ dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4' }, s.settings);
+      if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
+      // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
+      if (s.words && !s.libs) {
+        s.libs = { cet4: { words: s.words } };
+        delete s.words;
+      }
+      if (!s.libs) s.libs = {};
       return s;
     }
   } catch (e) { /* 损坏则重建 */ }
@@ -102,35 +163,50 @@ function saveState() {
 }
 
 /* ---------------- 进度导出 / 导入（跨设备同步） ---------------- */
-const EXPORT_VERSION = 1;
+const EXPORT_VERSION = 2;
 
 function exportProgress() {
   const data = { app: 'cet4-vocab', version: EXPORT_VERSION, exportedAt: Date.now(), state: state };
   return JSON.stringify(data);
 }
 
+function wordInAnyLib(w) {
+  return Object.keys(LIB_WORD_SETS).some(k => LIB_WORD_SETS[k].has(w));
+}
+
 // 合并导入的数据；返回本次实际导入的单词数
+// v2 存档按词库合并；v1 旧档（扁平 state.words）当作四级词库处理
 function importProgress(json) {
   let data;
   try { data = JSON.parse(json); } catch (e) { throw new Error('文件内容不是有效的 JSON'); }
-  if (!data || data.app !== 'cet4-vocab' || !data.state) throw new Error('这不是四级词汇通的进度文件');
+  if (!data || data.app !== 'cet4-vocab' || !data.state) throw new Error('这不是英语词汇通的进度文件');
   const incoming = data.state;
-  const incomingWords = incoming.words || {};
+  const incLibs = incoming.libs || { cet4: { words: incoming.words || {} } };
 
-  // 逐词合并：目标设备没有记录才写入；已掌握数按 source 来源
+  // 逐词库逐词合并：目标设备没有记录才写入
   let importedCount = 0;
-  for (const w of Object.keys(incomingWords)) {
-    if (!WORD_MAP.has(w)) continue;          // 过滤本词库不存在的词
-    if (!state.words[w]) {                   // 本地没有 → 直接导入
-      state.words[w] = incomingWords[w];
-      importedCount++;
+  if (!state.libs) state.libs = {};
+  for (const k of Object.keys(incLibs)) {
+    if (!LIBS[k]) continue;   // 本地没有这个词库（版本过旧），跳过
+    const incWords = incLibs[k].words || {};
+    if (!state.libs[k]) state.libs[k] = { words: {} };
+    if (!state.libs[k].words) state.libs[k].words = {};
+    const localWords = state.libs[k].words;
+    for (const w of Object.keys(incWords)) {
+      if (!LIB_WORD_SETS[k].has(w)) continue;   // 过滤该词库不存在的词
+      if (!localWords[w]) {                     // 本地没有 → 直接导入
+        localWords[w] = incWords[w];
+        importedCount++;
+      }
     }
   }
-  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划
+  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准
   if (incoming.settings) {
     state.settings = {
       dailyNew: Math.max(state.settings.dailyNew, incoming.settings.dailyNew || 0),
       dailyReview: Math.max(state.settings.dailyReview, incoming.settings.dailyReview || 0),
+      autoSpeak: state.settings.autoSpeak,
+      lib: libKey(),
     };
   }
   // 合并历史记录
@@ -141,7 +217,7 @@ function importProgress(json) {
       for (const cat of ['learned', 'reviewed', 'wrongs']) {
         const list = incoming.history[day][cat] || [];
         for (const w of list) {
-          if (WORD_MAP.has(w) && !state.history[day][cat].includes(w)) state.history[day][cat].push(w);
+          if (wordInAnyLib(w) && !state.history[day][cat].includes(w)) state.history[day][cat].push(w);
         }
       }
     }
@@ -176,24 +252,24 @@ function daysBetween(fromTs, toTs) {
 
 /* ---------------- 词汇池 ---------------- */
 function unseenWords() {
-  return WORD_LIST.filter(w => !state.words[w] || state.words[w].stage === 0);
+  return WORD_LIST.filter(w => !curWords()[w] || curWords()[w].stage === 0);
 }
 
 function dueWords() {
   const now = Date.now();
   return WORD_LIST.filter(w => {
-    const r = state.words[w];
+    const r = curWords()[w];
     return r && r.stage >= 1 && r.stage < STAGE_MASTERED && r.due <= now;
   });
 }
 
 function bookWords() {
-  return WORD_LIST.filter(w => state.words[w] && state.words[w].inBook);
+  return WORD_LIST.filter(w => curWords()[w] && curWords()[w].inBook);
 }
 
 function masteredWords() {
   return WORD_LIST.filter(w => {
-    const r = state.words[w];
+    const r = curWords()[w];
     return r && r.stage >= STAGE_MASTERED;
   });
 }
@@ -201,7 +277,7 @@ function masteredWords() {
 /* 学习中：已学过、未掌握（stage 1-4，含待复习） */
 function learningWords() {
   return WORD_LIST.filter(w => {
-    const r = state.words[w];
+    const r = curWords()[w];
     return r && r.stage >= 1 && r.stage < STAGE_MASTERED;
   });
 }
@@ -220,7 +296,7 @@ function classCount(cls) {
 
 /* 单个单词的掌握状态描述 */
 function wordStatus(word) {
-  const r = state.words[word];
+  const r = curWords()[word];
   if (!r || r.stage === 0) {
     return { cls: 'unlearned', label: '未学习', stage: 0, right: 0, wrong: 0, due: null };
   }
@@ -240,34 +316,27 @@ function wordStatus(word) {
 
 /* 重置单个单词：删除记录，回到未学习 */
 function resetWord(word) {
-  delete state.words[word];
+  delete curWords()[word];
   saveState();
 }
 
 /* 重置某分类全部单词 */
 function resetWordsByClass(cls) {
   const list = wordsByClass(cls);
-  for (const w of list) delete state.words[w];
+  for (const w of list) delete curWords()[w];
   saveState();
 }
 
 /* ---------------- 状态变更 ---------------- */
 
-// 学习新词：self 认识=true/false
-function learnWord(word, known) {
-  let r = state.words[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
+// 学习新词：识别阶段答对达标后记为已学
+function learnWord(word) {
+  let r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   if (!r.created) r.created = Date.now();
-  if (known) {
-    r.right++;
-    r.stage = 1;
-    r.due = Date.now() + INTERVALS[0] * DAY_MS;
-  } else {
-    r.wrong++;
-    r.stage = 0;             // 没记住，保持新词，稍后再来
-    r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后可再复习
-    r.inBook = true;          // 自动进生词本
-  }
-  state.words[word] = r;
+  r.right++;
+  r.stage = 1;
+  r.due = Date.now() + INTERVALS[0] * DAY_MS;
+  curWords()[word] = r;
   if (!state.learnedToday.includes(word)) state.learnedToday.push(word);
   recordLearned(word);
   saveState();
@@ -275,17 +344,16 @@ function learnWord(word, known) {
 
 // 复习答对：按艾宾浩斯升级
 function reviewCorrect(word) {
-  const r = state.words[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
+  const r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.right++;
   if (r.stage < STAGE_MASTERED) r.stage++;
   if (r.stage >= STAGE_MASTERED) {
     // 完全记住，移出复习循环
     r.due = Infinity;
-    state.masteredTotal++;
   } else {
     r.due = Date.now() + INTERVALS[r.stage - 1] * DAY_MS;
   }
-  state.words[word] = r;
+  curWords()[word] = r;
   if (!state.reviewedToday.includes(word)) state.reviewedToday.push(word);
   recordReviewed(word);
   saveState();
@@ -293,12 +361,13 @@ function reviewCorrect(word) {
 
 // 复习答错：降级；addBook 决定是否进生词本
 function reviewWrong(word, addBook) {
-  const r = state.words[word] || { stage: 1, right: 0, wrong: 0, inBook: false, created: Date.now() };
+  const r = curWords()[word] || { stage: 1, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.wrong++;
-  r.stage = Math.max(0, r.stage - 2); // 连降两级
+  // 最低降到 1 级：stage 0 会被 dueWords 排除，导致「10 分钟后再复习」永远不出现
+  r.stage = Math.max(1, r.stage - 2);
   r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后重试
   if (addBook !== false) r.inBook = true;
-  state.words[word] = r;
+  curWords()[word] = r;
   if (!state.reviewedToday.includes(word)) state.reviewedToday.push(word);
   recordReviewed(word);
   recordWrong(word);
@@ -306,39 +375,85 @@ function reviewWrong(word, addBook) {
 }
 
 function toggleBook(word) {
-  const r = state.words[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
+  const r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.inBook = !r.inBook;
-  state.words[word] = r;
+  curWords()[word] = r;
   saveState();
 }
 
 // 会话中答错：累计错误次数，addBook 决定是否加入生词本
 function noteWrong(word, addBook) {
-  let r = state.words[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
+  let r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.wrong++;
   if (addBook) r.inBook = true;
-  state.words[word] = r;
+  curWords()[word] = r;
   recordWrong(word);
   saveState();
 }
 
-/* ---------------- 出题（英译汉：看单词选释义） ---------------- */
-function makeQuestion(word) {
-  // 干扰项：从词库随机抽 3 个不同的词
-  const others = pickRandom(WORD_LIST.filter(w => w !== word), 3);
-  const distractors = others.map(w => WORD_MAP.get(w));
+/* ---------------- 出题 ----------------
+ * 英译汉：看单词选释义
+ * 汉译英：看释义选单词（复习模式增强提取练习）
+ */
+
+/* 从释义提取词性标记，如 "adj." / "n." / "v." */
+function posOf(def) {
+  const m = /^(adj\.|adv\.|n\.|v\.|vt\.|vi\.|prep\.|conj\.|pron\.|int\.|num\.|art\.|abbr\.)/.exec(def || '');
+  return m ? m[1] : '';
+}
+
+/* 抽优质干扰项：优先同词性、词长相近；排除与答案同释义的词，
+ * 且干扰项之间释义也互不相同（74 组同释义词，两个同义干扰项会出重复选项） */
+function pickDistractors(word, n) {
+  const answerDef = WORD_MAP.get(word);
+  const pool = WORD_LIST.filter(w => w !== word && WORD_MAP.get(w) !== answerDef);
+  const myPos = posOf(answerDef);
+  const myLen = word.length;
+  const samePos = shuffle(pool.filter(w => posOf(WORD_MAP.get(w)) === myPos))
+    .sort((a, b) => Math.abs(a.length - myLen) - Math.abs(b.length - myLen));
+  const rest = shuffle(pool.filter(w => posOf(WORD_MAP.get(w)) !== myPos));
+  const candidates = samePos.concat(rest);
+  const picked = [];
+  const usedDefs = new Set([answerDef]);
+  for (const w of candidates) {
+    const d = WORD_MAP.get(w);
+    if (usedDefs.has(d)) continue;
+    usedDefs.add(d);
+    picked.push(w);
+    if (picked.length >= n) break;
+  }
+  return picked;
+}
+
+function makeQuestion(word, reverse) {
+  const answerDef = WORD_MAP.get(word);
+  const distractorWords = pickDistractors(word, 3);
+  if (reverse) {
+    // 汉译英：看释义选单词（干扰项是英文单词）
+    const texts = [word, ...distractorWords];
+    return {
+      type: '汉译英',
+      prompt: answerDef,
+      answer: word,
+      speakWord: word,
+      options: shuffle(texts.map(t => ({ text: t, isAnswer: t === word }))),
+    };
+  }
+  // 英译汉：看单词选释义（干扰项是中文释义）
+  const texts = [answerDef, ...distractorWords.map(w => WORD_MAP.get(w))];
   return {
     type: '英译汉',
     prompt: word,
-    answer: WORD_MAP.get(word),
-    options: shuffle([WORD_MAP.get(word), ...distractors].map(m => ({ text: m, isAnswer: m === WORD_MAP.get(word) }))),
+    answer: answerDef,
+    speakWord: word,
+    options: shuffle(texts.map(t => ({ text: t, isAnswer: t === answerDef }))),
   };
 }
 
 /* ---------------- 统计 ---------------- */
 function stats() {
   const total = WORD_LIST.length;
-  const seen = Object.keys(state.words).length;
+  const seen = Object.keys(curWords()).length;
   const mastered = masteredWords().length;
   const inBook = bookWords().length;
   const due = dueWords().length;
@@ -362,3 +477,7 @@ function goalInfo() {
     reviewedToday: state.reviewedToday.length,
   };
 }
+
+/* ---------------- 启动 ---------------- */
+/* 按存档里的词库设置初始化词表（ui.js 加载后 refreshHome 依赖 WORD_LIST） */
+rebuildWordData();

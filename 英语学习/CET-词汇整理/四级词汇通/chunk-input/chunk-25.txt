@@ -1,0 +1,150 @@
+﻿card	n. 卡片，名片
+bush	n. 灌木，灌木丛
+rouse	v. 唤醒，激起
+reflexion	n. 反射，反映
+arabian	adj. 阿拉伯的
+widen	v. 加宽
+violent	adj. 暴力的，猛烈的
+basic	adj. 基本的，基础的
+director	n. 导演，主任
+own	adj. 自己的 v. 拥有
+ampere	n. 安培
+blast	n. 爆炸，冲击波 v. 炸
+doubtless	adv. 无疑地，很可能
+cloak	n. 斗篷
+mistress	n. 女主人，情妇
+mathematics	n. 数学
+housewife	n. 家庭主妇
+headmaster	n. 校长
+oak	n. 橡树，橡木
+no	adv. 不 adj. 没有
+somebody	pron. 某人，有人
+rotation	n. 旋转
+virtue	n. 美德，优点
+urban	adj. 城市的，都市的
+hardware	n. 硬件，五金
+centigrade	adj. 摄氏的
+ink	n. 墨水
+parallel	adj. 平行的，类似的 n. 平行线，相似处 v. 与…平行
+naughty	adj. 顽皮的，淘气的
+cassette	n. 盒式磁带
+fifth	num. 第五 n. 五分之一
+organization	n. 组织，机构
+hall	n. 大厅，会堂
+continue	v. 继续
+microcomputer	n. 微型计算机，微机
+persist	v. 坚持，持续
+unless	conj. 除非，如果不
+manage	v. 管理，设法，应付
+owner	n. 物主，所有人
+weep	v. 哭泣，流泪
+vacuum	n. 真空，真空吸尘器 v. 用吸尘器清扫
+realize	v. 认识到，实现
+portable	adj. 轻便的，手提的
+ditch	n. 沟，沟渠
+relief	n. 减轻，救济，宽慰
+laboratory	n. 实验室
+brush	n. 刷子，画笔
+microscope	n. 显微镜
+emperor	n. 皇帝
+plug	n. 塞子，插头 v. 塞，把…塞住
+candle	n. 蜡烛
+adult	n. 成年人 adj. 成年的
+eventually	adv. 终于，最后
+glad	adj. 高兴的，乐意的
+conclude	v. 推断出，结束，缔结
+radiation	n. 辐射，放射物
+accidental	adj. 偶然的，意外的
+dog	n. 狗
+automation	n. 自动化
+huge	adj. 巨大的
+few	adj. 很少的
+angel	n. 天使
+handsome	adj. 英俊的，相当大的
+class	n. 班级，等级
+nation	n. 国家，民族
+port	n. 港，港口
+message	n. 信息，消息，要旨
+pack	v. 打包，装箱，挤满 n. 包，小盒
+black	adj. 黑色的，黑暗的
+scan	v. 细看，浏览，扫描 n. 扫描
+variation	n. 变化，变异
+lend	v. 借给，贷
+reflection	n. 反射，映像，沉思
+acre	n. 英亩
+removal	n. 移动，除去
+sail	n. 帆 v. 航行
+france	n. 法国
+cafeteria	n. 自助食堂
+costly	adj. 昂贵的，代价高的
+ideal	adj. 理想的 n. 理想
+sample	n. 样品，样本 v. 抽样，品尝
+continuous	adj. 连续不断的，持续的
+joy	n. 欢乐，喜悦
+navy	n. 海军
+fabric	n. 织物，结构
+staff	n. 全体职员，工作人员 v. 配备人员
+repeat	v. 重说，重做 n. 重演
+freight	n. 货运，货物 v. 运送
+educate	v. 教育，培养
+fence	n. 栅栏
+lick	v. 舔 n. 少量
+necessary	adj. 必要的，必然的
+read	v. 读，看懂
+and	conj. 和，又
+thrust	v. 插，刺 n. 猛冲，要点
+junior	adj. 年少的，资历较浅的 n. 晚辈
+leading	adj. 主要的，带头的
+spur	n. 刺激物 v. 刺激，激励
+commercial	adj. 商业的
+climate	n. 气候，风气
+outward	adj. 外表的，向外的
+pessimistic	adj. 悲观的
+frost	n. 霜，严寒 v. 结霜
+curse	n. 诅咒，祸根 v. 诅咒
+heroic	adj. 英勇的
+dive	v. 跳水，潜水
+leak	v. 漏，泄露 n. 漏洞
+apart	adv. 相隔，分开 adj. 分离的
+resort	v. 求助，凭借 n. 胜地，手段
+utter	adj. 完全的，彻底的 v. 说出
+penetrate	v. 穿过，渗入
+passenger	n. 乘客，旅客
+boast	v. 自夸，吹嘘 n. 自夸
+breadth	n. 宽度，幅度
+opportunity	n. 机会，良机
+precious	adj. 珍贵的，宝贵的
+feeble	adj. 虚弱的
+kind	n. 种类
+helpful	adj. 有帮助的，有用的
+apology	n. 道歉
+lighten	v. 照亮，使明亮
+hot	adj. 热的，辣的
+hasty	adj. 仓促的
+civil	adj. 公民的，民用的，文明的
+able	adj. 有能力的
+drive	v. 驾驶，驱
+eleventh	adj. 第十一的
+friction	n. 摩擦，摩擦力
+commission	n. 委员会，佣金 v. 委托
+old	adj. 老的，…岁的
+night	n. 夜，夜间
+joyful	adj. 快乐的
+highly	adv. 很，非常，高度地
+full	adj. 满的，完全的
+foot	n. 脚，最下部，英尺
+tag	n. 标签 v. 加上标签
+cash	n. 现金 v. 兑现
+movie	n. 电影
+convert	v. 转变，转化
+although	conj. 尽管，虽然
+submerge	v. 浸没，淹没
+event	n. 事件，大事
+jam	n. 果酱
+mutton	n. 羊肉
+pot	n. 锅，壶，罐
+murder	n. 谋杀 v. 谋杀
+language	n. 语言
+wire	n. 金属线，电缆
+honourable	adj. 光荣的，可敬的
+nationality	n. 国籍

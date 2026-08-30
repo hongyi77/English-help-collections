@@ -1,0 +1,120 @@
+﻿honesty	n. 诚实，正直
+physical	adj. 身体的，物理的，物质的
+guideline	n. 指导方针，准则
+revolution	n. 革命，旋转
+interruption	n. 中断，打扰
+permanent	adj. 永久的，持久的
+manufacture	v. 制造，生产 n. 制造业
+dictate	v. 命令，口授 n. 命令
+professional	adj. 专业的，职业的 n. 专业人员
+prosper	v. 繁荣
+exchange	n. 交换，交流 v. 兑换
+concentration	n. 集中，浓度，专注
+gesture	n. 手势，姿态 v. 做手势
+deliberate	adj. 故意的，慎重的 v. 仔细考虑
+contribution	n. 贡献，捐款
+detective	n. 侦探
+evident	adj. 明显的，明白的
+retreat	v. 撤退，退却
+responsible	adj. 负责的，有责任的
+identity	n. 身份，特性
+statistics	n. 统计学，数据
+appreciate	v. 感激，欣赏，领会
+neglect	v. 忽视，疏忽 n. 疏忽
+primarily	adv. 主要地
+incline	v. 倾向于，倾斜 n. 斜坡
+overtake	v. 追上，超过
+extension	n. 延长，伸展，分机
+emphasize	v. 强调
+genuine	adj. 真正的，真诚的
+fascination	n. 魅力，入迷
+lodge	v. 住宿 n. 乡间小屋
+security	n. 安全，保障，证券
+painful	adj. 痛苦的，疼痛的
+instance	n. 例子，实例
+rigorous	adj. 严格的
+persuade	v. 说服
+procedure	n. 程序，步骤
+signature	n. 签名，署名
+surpass	v. 超过
+campaign	n. 运动，战役 v. 参加竞选
+advance	n. 进展 v. 前进，提高
+charity	n. 慈善事业，慈善机构
+average	adj. 平均的，平常的 n. 平均数 v. 平均
+indispensable	adj. 必不可少的
+irrationally	adv. 不合理地
+accompany	v. 陪伴，伴随
+aviation	n. 航空，航空学
+distress	v. 使痛苦 n. 痛苦，忧虑
+invariably	adv. 不变地，一直
+approximately	adv. 大约，近似地
+conservation	n. 保护，保存
+ease	n. 轻松，容易 v. 缓和
+extracurricular	adj. 课外的
+undoubtedly	adv. 无疑，肯定地
+excellent	adj. 优秀的，极好的
+investigate	v. 调查，研究
+judgement	n. 判断，意见
+struggle	v. 搏斗
+prohibitively	adv. 过分地
+military	adj. 军事的，军用的 n. 军队
+consequently	adv. 因此，所以
+visible	adj. 可见的
+swift	adj. 迅速的，敏捷的
+liability	n. 责任
+resistant	adj. 抵抗的，反抗的，耐…的
+nutritious	adj. 营养的
+constantly	adv. 不断地，时常地
+familiar	adj. 熟悉的
+terribly	adv. 可怕地，非常
+restore	v. 修复，恢复，归还
+inspire	v. 鼓舞，激发，赋予灵感
+justice	n. 公正，正义，司法
+district	n. 地区，区域
+installation	n. 安装，装置，设施
+marvelous	adj. 了不起的，奇迹般的
+provoke	v. 激怒，激起，引起
+interview	n. 面谈，会见 v. 采访，面试
+release	v. 释放，发布，松开
+explore	v. 探索，探究，探险
+profound	adj. 深厚的
+exploit	v. 剥削，利用，开采 n. 功绩
+constructive	adj. 建设性的
+unbearable	adj. 无法忍受的
+laundry	n. 洗衣店，要洗的衣服，洗好的衣服
+wedding	n. 婚礼
+geographic	adj. 地理的
+comprehensive	adj. 全面的，综合的，广泛的
+conspicuous	adj. 显著的
+acute	adj. 敏锐的，严重的，急性的
+assembly	n. 集会，装配，议会
+opponent	n. 对手，对抗者
+confront	v. 面对，正视，遭遇
+stir	v. 搅拌，激起，煽动 n. 搅动，骚乱
+attribute	v. 归因于，把…归因于 n. 属性
+tempting	adj. 诱人的，吸引人的
+commitment	n. 承诺，保证，献身
+feasible	adj. 可行的，可能的
+outcome	n. 结果，后果
+diligent	adj. 勤奋的
+deprive	v. 剥夺，使丧失
+distribute	v. 分发，分布，分配
+destruction	n. 破坏，毁灭
+highlight	v. 强调，突出 n. 最精彩的部分
+justify	v. 证明…是正当的
+announce	v. 宣布，宣告
+proposal	n. 提议，建议，求婚
+advisory	n. 警告，报告
+mystery	n. 神秘，神秘的事物，谜
+punctual	adj. 准时的
+harmony	n. 和谐，协调
+unwilling	adj. 不愿意的
+financial	adj. 金融的，财政的
+priority	n. 优先，优先权，重点
+impermanent	adj. 暂时的，不持久的
+symbolize	v. 象征
+bankrupt	adj. 破产的
+addiction	n. 上瘾
+productive	adj. 富有成效的
+reflect	v. 反映，反射，思考
+underline	v. 强调，在…下划线

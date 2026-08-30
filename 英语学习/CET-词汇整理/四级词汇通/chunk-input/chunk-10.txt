@@ -1,0 +1,150 @@
+﻿canoe	n. 独木舟
+entertain	v. 招待，使欢乐
+abandon	v. 抛弃，放弃 n. 放任
+lorry	n. 卡车
+congress	n. 国会，代表大会
+double	adj. 双的，两倍的
+confident	adj. 自信的，确信的
+extreme	adj. 极度的 n. 极端
+frequency	n. 频率，次数
+confess	v. 承认，坦白
+elevator	n. 电梯
+kilogram	n. 千克，公斤
+industrial	adj. 工业的
+explosive	n. 炸药 adj. 爆炸的
+swear	v. 宣誓，咒骂
+departure	n. 出发，离开
+elastic	n. 松紧带 adj. 有弹性的，灵活的
+break	v. 打破，破坏
+capital	n. 首都，资本
+progress	n. 进步，进展
+paste	n. 糊，浆糊 v. 粘贴
+exam	n. 考试
+inhabit	v. 居住，栖息
+ministry	n. 部
+stem	n. 茎，词干 v. 起源，堵住
+core	n. 核心，要点
+correspondent	n. 记者，通讯员
+possibly	adv. 可能，也许
+roll	v. 滚动，转动
+repair	v. 修理，修补 n. 修理，修补
+broken	adj. 破碎的
+wax	n. 蜡 v. 上蜡
+centimetre	n. 厘米
+gaseous	adj. 气态的
+lecture	n. 演讲，讲课 v. 演讲，讲课
+recommendation	n. 推荐，建议，推荐信
+bleed	v. 流血，出血
+kid	n. 小孩 v. 开玩笑
+become	v. 成为，变得
+rid	v. 使摆脱，去除
+land	n. 土地，陆地 v. 上岸
+bold	adj. 大胆的，粗体的
+prison	n. 监狱
+modest	adj. 谦虚的，适中的
+leather	n. 皮革
+length	n. 长度
+prosperous	adj. 繁荣的
+grammatical	adj. 语法上的
+turbine	n. 汽轮机
+contempt	n. 轻蔑，藐视
+settlement	n. 解决，协议，定居地
+label	n. 标签 v. 贴标签，标明
+dew	n. 露水
+professor	n. 教授
+nothing	n. 没有东西 adv. 毫不
+palm	n. 手掌，棕榈树
+limit	n. 限度，限制
+crude	adj. 粗糙的，粗鲁的
+cold	adj. 冷的，冷淡的 n. 冷
+frank	adj. 坦率的
+forget	v. 忘记
+bean	n. 豆
+appear	v. 出现，似乎
+price	n. 价格，代价
+emotion	n. 情感，情绪
+worst	adj. 最坏的 adv. 最坏地
+moan	n. 呻吟声 v. 呻吟
+terrible	adj. 可怕的，极度的
+dollar	n. 美元，元
+answer	v. 回答，响应
+barn	n. 谷仓
+learn	v. 学习，学会
+industry	n. 工业，产业
+friendly	adj. 友好的
+pale	adj. 苍白的，淡的
+dramatic	adj. 戏剧性的，引人注目的
+rhythm	n. 节奏，韵律
+local	adj. 当地的，地方的
+nuclear	adj. 核能的，核武器的
+gentleman	n. 绅士
+exactly	adv. 确切地，正好
+shield	n. 盾，防护物 v. 保护
+hawk	n. 鹰
+network	n. 网络
+disease	n. 疾病
+french	adj. 法国的 n. 法国人
+aural	adj. 听觉的
+basket	n. 篮子
+interpreter	n. 译员，口译者
+mountain	n. 山，山脉
+activity	n. 活动
+lung	n. 肺
+throughout	prep. 遍及 adv. 到处
+measurable	adj. 可测量的
+clasp	n. 扣子，钩子
+unit	n. 单位，单元
+spring	v. 跳，跃 n. 泉，跳跃
+home	n. 家，家乡 adj. 家庭的
+grammar	n. 语法
+army	n. 军队，陆军
+clock	n. 钟
+ladder	n. 梯子
+doubt	n. 怀疑，疑虑 v. 怀疑
+fork	n. 餐叉，叉子
+course	n. 课程，过程
+envy	v. 羡慕，嫉妒 n. 羡慕，嫉妒
+duck	n. 鸭，鸭肉
+remark	n. 评论，话语 v. 评论，说
+native	adj. 本土的 n. 本地人
+purchase	n. 购买，购买品 v. 购买
+explode	v. 爆炸，激增
+tragedy	n. 悲剧，惨事
+scissors	n. 剪刀
+atom	n. 原子
+suck	v. 吸，吮
+flag	n. 旗帜
+person	n. 人，本人
+cliff	n. 悬崖，峭壁
+hair	n. 头发，毛发
+clever	adj. 聪明的，机敏的
+chimney	n. 烟囱
+orphan	n. 孤儿
+plane	n. 飞机，平面
+queen	n. 女王，王后
+really	adv. 真正地，实在
+hook	n. 钩，挂钩 v. 钩住
+recognition	n. 认出，承认，赏识
+leaf	n. 叶子
+preliminary	adj. 初步的，预备的 n. 初步做法
+meeting	n. 会议，会见
+property	n. 财产，性质，房产
+correct	adj. 正确的 v. 纠正
+month	n. 月
+destination	n. 目的地，终点
+purse	n. 钱包，手提包
+route	n. 路线
+error	n. 错误
+trust	n. 信任 v. 相信，委托
+quick	adj. 快的，敏捷的
+hunger	n. 饥饿，渴望
+fearful	adj. 害怕的，可怕的
+suspicion	n. 怀疑，猜疑
+knowledge	n. 知识，学识
+dish	n. 盘子，菜肴
+amuse	v. 逗乐，娱乐
+cheque	n. 支票
+orchestra	n. 管弦乐队
+favourite	adj. 最喜爱的 n. 最喜爱的人
+centre	n. 中心，中枢 v. 集中
+come	v. 来，来到，出现

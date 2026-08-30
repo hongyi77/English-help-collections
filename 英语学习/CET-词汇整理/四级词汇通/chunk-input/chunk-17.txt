@@ -1,0 +1,150 @@
+﻿brake	n./v. 刹车，制动
+brain	n. 大脑
+commander	n. 指挥官
+limb	n. 肢体
+highway	n. 公路
+quite	adv. 相当，完全
+disposal	n. 处理，处置
+analyse	v. 分析
+flight	n. 航班，飞行
+repetition	n. 重复
+inform	v. 通知，告知
+flat	adj. 平的，平淡的 n. 公寓
+idea	n. 想法，意见
+blue	adj. 蓝色的 n. 蓝色
+married	adj. 已婚的
+kitchen	n. 厨房
+bridge	n. 桥，桥牌
+anyone	pron. 任何人
+envelope	n. 信封
+glare	n./v. 瞪眼，怒视
+fault	n. 缺点，过失
+calculation	n. 计算
+driver	n. 司机
+airport	n. 机场
+intermediate	adj. 中级的，中间的
+location	n. 位置，场所
+unlike	adj. 不同的 prep. 不像
+fresh	adj. 新的，新鲜的
+chance	n. 机会，可能性
+cement	n. 水泥 v. 粘结，巩固
+extra	adj. 额外的 adv. 特别地 n. 额外的事物
+drill	n. 钻头，操练 v. 钻孔，训练
+accessary	n. 同谋，从犯
+dwelling	n. 住处
+hardly	adv. 几乎不
+dance	v. 跳舞 n. 舞蹈
+atomic	adj. 原子的，原子能的
+omit	v. 省略，遗漏
+neck	n. 脖子
+lady	n. 女士，夫人
+announcer	n. 播音员
+engineering	n. 工程，工程学
+formula	n. 公式，配方，原则
+law	n. 法律，法则
+lieutenant	n. 陆军中尉
+dependent	adj. 依赖的，取决于…的
+utmost	adj. 最大的 n. 极限
+begin	v. 开始
+cooperate	v. 合作，协作
+rush	v. 冲，催促
+grieve	v. 悲痛
+gymnasium	n. 体育馆，健身房
+brim	n. 边，帽沿
+construct	v. 建造，构思 n. 建筑物
+ant	n. 蚂蚁
+lovely	adj. 可爱的，令人愉快的
+shelter	n. 掩蔽处，掩蔽，庇护 v. 掩蔽，庇护
+uniform	adj. 一致的 n. 制服
+promise	n. 诺言 v. 允诺
+handkerchief	n. 手帕
+international	adj. 国际的
+country	n. 国家，农村
+bend	v. 弯曲
+learned	adj. 有学问的，学术上的
+prescribe	v. 开处方，规定
+lock	n. 锁 v. 锁上
+relativity	n. 相对论，相对性
+moon	n. 月亮，卫星
+internal	adj. 内部的，国内的
+tale	n. 故事，传说
+accent	n. 口音，重音
+say	v. 说，比如说
+brandy	n. 白兰地
+meaning	n. 意义，意思
+bomb	n. 炸弹 v. 轰炸
+fry	v. 油煎，油炸
+maintenance	n. 维修，保养，抚养费
+hill	n. 小山，丘陵
+tense	n. 时态 adj. 紧张的 v. 拉紧
+fare	n. 车费，票价 v. 进展
+tend	v. 照料，倾向
+brand	n. 品牌，烙印 v. 铭刻
+correction	n. 改正，修改
+cease	v. 停止 n. 停止
+shed	v. 脱落，流出 n. 棚，小屋
+america	n. 美洲，美国
+directly	adv. 直接地，立即
+camera	n. 照相机，摄影机
+analysis	n. 分析，解析
+intentional	adj. 故意的
+jazz	n. 爵士乐
+unity	n. 团结，统一
+trial	n. 审判，试验
+beggar	n. 乞丐 v. 使贫穷
+amongst	prep. 在…之中
+colony	n. 殖民地，群体
+north	n. 北方 adj. 北方的
+funny	adj. 滑稽的，古怪的
+camp	n. 营地，野营
+circuit	n. 电路，线路
+button	n. 扣子，按钮 v. 扣紧
+classical	adj. 古典的，经典的
+reservoir	n. 水库，蓄水池
+vision	n. 视力，想象力
+friday	n. 星期五
+headline	n. 大字标题，新闻提要
+product	n. 产品，产物，乘积
+ridge	n. 山脊，岭
+bucket	n. 水桶
+need	v. 需要
+exceed	v. 超过
+official	adj. 官方的，正式的 n. 官员
+obvious	adj. 明显的
+leave	v. 离去
+wrist	n. 腕
+hence	adv. 因此，今后
+journalist	n. 记者
+profit	n. 利润，收益 v. 得益
+marine	adj. 海的，海军的 n. 海军陆战队士兵
+cable	n. 电缆，电报
+key	n. 钥匙，键，答案
+rear	n. 后部，后面 adj. 后部的 v. 抚养
+birth	n. 出生，出身，分娩
+much	adv. 非常 det. 许多的
+pardon	n. 原谅 v. 原谅
+phrase	n. 短语
+pan	n. 平底锅
+jewel	n. 宝石
+sword	n. 剑
+wander	v. 漫游，闲逛，离题
+i	pron. 我
+weakness	n. 弱点，虚弱
+japan	n. 日本
+picture	n. 图画，图片 v. 描绘
+cabin	n. 小屋，船舱，机舱
+minute	n. 分钟，一会儿
+semiconductor	n. 半导体
+minus	adj. 负的 prep. 减 n. 减号
+silly	adj. 愚蠢的
+hungry	adj. 饥饿的，渴望的
+odd	adj. 奇特的，奇数的，临时的
+traffic	n. 交通
+unconscious	adj. 不省人事的
+reading	n. 阅读
+carbon	n. 碳
+senate	n. 参议院
+physician	n. 内科医生
+proportional	adj. 成比例的
+pace	n. 步伐，节奏 v. 踱步
+harness	v. 控制，利用 n. 马具

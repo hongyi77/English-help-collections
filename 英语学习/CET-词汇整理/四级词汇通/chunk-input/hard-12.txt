@@ -1,0 +1,120 @@
+﻿furnace	n. 熔炉
+political	adj. 政治的
+geometry	n. 几何学
+petroleum	n. 石油
+northwest	n. 西北 adj. 西北的
+lantern	n. 灯笼
+earnest	adj. 认真的，诚恳的
+lavatory	n. 厕所
+oneself	pron. 自己，亲自
+veteran	n. 老兵，老手
+declare	v. 宣布，声明
+span	n. 跨距，一段时间 v. 跨越，持续
+collapse	v. 倒塌，崩溃 n. 崩溃
+strange	adj. 陌生的，奇怪的
+invention	n. 发明，创造
+disaster	n. 灾难
+conduct	n. 行为，举止 v. 进行，指挥，传导
+respond	v. 回答，响应
+precise	adj. 精确的，准确的
+reality	n. 现实，真实
+rust	n. 锈，铁锈 v. 生锈
+disagree	v. 不同意，有分歧
+eastern	adj. 东方的
+automobile	n. 汽车
+transformation	n. 变化，转变
+national	adj. 国家的，民族的
+excursion	n. 远足，短途旅行
+haste	n. 匆忙，急速
+needless	adj. 不必要的
+habitual	adj. 习惯性的，惯常的
+noticeable	adj. 显而易见的
+orderly	adj. 整洁的，有秩序的
+horizon	n. 地平线，眼界
+similarly	adv. 类似地
+protein	n. 蛋白质
+tendency	n. 倾向，趋势
+specimen	n. 样本，标本
+information	n. 信息，消息
+exterior	adj. 外部的 n. 外部，外表
+tidy	adj. 整洁的 v. 整理
+variable	adj. 易变的 n. 变量
+herself	pron. 她自己
+fertile	adj. 肥沃的，多产的
+chamber	n. 房间，会议室，腔
+condition	n. 条件，状况，环境
+neither	adj. 两者都不的
+register	n. 登记，注册 v. 登记，注册
+continent	n. 大陆，洲
+echo	n. 回声，回响 v. 回响，附和
+accident	n. 事故，意外
+aircraft	n. 飞机，飞行器
+torture	n. 折磨，拷打 v. 折磨
+contradiction	n. 矛盾
+likewise	adv. 同样地，也
+preferable	adj. 更可取的，更好的
+impatient	adj. 不耐烦的，急躁的
+chemist	n. 化学家，药剂师
+forward	adv. 向前
+civilize	v. 使文明，使开化
+disturb	v. 打扰，扰乱
+favourable	adj. 有利的，顺利的
+exciting	adj. 令人兴奋的
+plot	n. 情节，阴谋，小块土地 v. 密谋，标绘
+concentrate	v. 集中，专注
+achievement	n. 成就，成绩
+comparison	n. 比较，对照
+strengthen	v. 加强，巩固
+deny	v. 否认，拒绝
+surgery	n. 外科手术
+fortune	n. 运气，财富
+interesting	adj. 有趣的
+mankind	n. 人类
+mechanics	n. 力学
+crystal	n. 水晶，晶体
+effective	adj. 有效的
+reflexion	n. 反射，反映
+arabian	adj. 阿拉伯的
+violent	adj. 暴力的，猛烈的
+doubtless	adv. 无疑地，很可能
+mistress	n. 女主人，情妇
+mathematics	n. 数学
+somebody	pron. 某人，有人
+rotation	n. 旋转
+hardware	n. 硬件，五金
+centigrade	adj. 摄氏的
+parallel	adj. 平行的，类似的 n. 平行线，相似处 v. 与…平行
+naughty	adj. 顽皮的，淘气的
+cassette	n. 盒式磁带
+organization	n. 组织，机构
+continue	v. 继续
+microcomputer	n. 微型计算机，微机
+persist	v. 坚持，持续
+weep	v. 哭泣，流泪
+realize	v. 认识到，实现
+portable	adj. 轻便的，手提的
+ditch	n. 沟，沟渠
+laboratory	n. 实验室
+microscope	n. 显微镜
+emperor	n. 皇帝
+plug	n. 塞子，插头 v. 塞，把…塞住
+eventually	adv. 终于，最后
+conclude	v. 推断出，结束，缔结
+radiation	n. 辐射，放射物
+accidental	adj. 偶然的，意外的
+automation	n. 自动化
+message	n. 信息，消息，要旨
+scan	v. 细看，浏览，扫描 n. 扫描
+variation	n. 变化，变异
+reflection	n. 反射，映像，沉思
+removal	n. 移动，除去
+cafeteria	n. 自助食堂
+continuous	adj. 连续不断的，持续的
+freight	n. 货运，货物 v. 运送
+lick	v. 舔 n. 少量
+necessary	adj. 必要的，必然的
+thrust	v. 插，刺 n. 猛冲，要点
+leading	adj. 主要的，带头的
+commercial	adj. 商业的
+outward	adj. 外表的，向外的
+pessimistic	adj. 悲观的

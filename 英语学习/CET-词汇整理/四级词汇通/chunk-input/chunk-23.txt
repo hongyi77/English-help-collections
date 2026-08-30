@@ -1,0 +1,150 @@
+﻿greedy	adj. 贪婪的，贪吃的
+everything	pron. 一切，每件事
+total	adj. 总的，全部的 v. 合计
+ad	n. 广告
+check	v. 检查，核对 n. 检查，核对
+create	v. 创造，产生
+cheap	adj. 便宜的，廉价的
+anyway	adv. 无论如何，不管怎样
+string	n. 细绳，线，一串 v. 串起，系
+moisture	n. 潮湿，湿气
+memory	n. 记忆，回忆
+accept	v. 接受，同意
+behind	prep. 在…后面
+investment	n. 投资
+false	adj. 错误的，假的
+increase	v. 增加，增长 n. 增加
+guest	n. 客人，旅客
+constitution	n. 宪法，体质
+carriage	n. 马车，车厢
+summarize	v. 概括，总结
+raw	adj. 生的，未加工的，原始的
+polite	adj. 有礼貌的
+broom	n. 扫帚
+thereby	adv. 因此，从而
+threat	n. 威胁，恐吓
+box	n. 箱，盒
+usage	n. 使用，用法
+aloud	adv. 大声地
+cripple	n. 残疾人 v. 使残疾
+cigaret	n. 香烟，纸烟
+square	n. 正方形，广场
+pray	v. 祈祷，请求
+attraction	n. 吸引力，吸引
+decrease	v. 减少 n. 减少
+cave	n. 山洞，洞穴
+banana	n. 香蕉
+unknown	adj. 未知的，不知道的
+collar	n. 衣领，项圈
+lean	v. 倾斜，靠 adj. 瘦的，贫瘠的
+undergraduate	n. 大学本科生
+material	n. 材料，素材 adj. 物质的，实质性的
+male	adj. 男的，雄的 n. 男子，雄性动物
+circle	n. 圆，圈子
+thickness	n. 厚度，密度
+news	n. 新闻，消息
+wicked	adj. 坏的，淘气的
+suspicious	adj. 可疑的，怀疑的
+shoot	v. 发射，射中 n. 芽
+publication	n. 出版，出版物
+possibility	n. 可能性，可能的事
+lie	v. 躺，位于
+quarrel	n. 争吵，吵架
+here	adv. 这里
+scrape	v. 刮，擦 n. 擦伤，擦痕
+example	n. 例子，榜样
+bible	n. 圣经
+stability	n. 稳定，稳定性
+equip	v. 装备，配备
+forest	n. 森林
+reasonable	adj. 合理的，公道的
+lower	adj. 较低的，下面的 v. 放下，降低
+beneath	prep. 在…下方，低于 adv. 在下方
+musician	n. 音乐家
+saddle	n. 马鞍，车座 v. 装鞍
+trunk	n. 树干，后备箱，象鼻
+customer	n. 顾客
+observation	n. 观察，观察力
+moderate	adj. 中等的，适度的 v. 缓和，节制
+cope	v. 对付，应付
+king	n. 国王
+reaction	n. 反应，反作用力
+outlook	n. 观点，前景
+member	n. 成员，会员
+passport	n. 护照
+reduction	n. 减少，缩小
+childhood	n. 童年
+corner	n. 角落，拐角
+grandmother	n. 祖母，外祖母
+lightning	n. 闪电
+of	prep. …的
+strip	v. 剥去，剥夺 n. 条，带
+condemn	v. 谴责，判刑
+hopeful	adj. 有希望的
+invisible	adj. 看不见的，无形的
+noun	n. 名词
+blend	v. 混合 n. 混合物
+electronic	adj. 电子的
+fire	n. 火，火灾 v. 开火
+layer	n. 层，层次
+ahead	adv. 向前，提前
+chop	v. 砍，劈 n. 排骨
+gulf	n. 海湾，分歧
+eleven	num. 十一
+by	prep. 在…旁，被，由
+australian	adj. 澳大利亚的
+main	adj. 主要的
+candy	n. 糖果
+repeatedly	adv. 反复地，一再
+explanation	n. 解释，说明
+mainly	adv. 主要地
+skillful	adj. 娴熟的，灵巧的
+data	n. 数据，资料
+pollution	n. 污染
+possession	n. 拥有，财产
+manly	adj. 男子气概的
+gallon	n. 加仑
+have	v. 有，吃
+boy	n. 男孩
+mister	n. 先生
+crawl	v. 爬行
+employment	n. 就业，雇用，职业
+dread	n. 恐惧，畏惧 v. 惧怕
+difficult	adj. 困难的，难对付的
+elder	adj. 年长的 n. 长者
+twin	adj. 孪生的 n. 孪生儿
+furnace	n. 熔炉
+political	adj. 政治的
+statue	n. 雕像
+geometry	n. 几何学
+union	n. 工会，联合
+accord	v. 给予，一致 n. 一致，协议
+petroleum	n. 石油
+northwest	n. 西北 adj. 西北的
+wool	n. 羊毛，毛线
+hollow	adj. 空的，中空的
+lantern	n. 灯笼
+earnest	adj. 认真的，诚恳的
+lavatory	n. 厕所
+oneself	pron. 自己，亲自
+veteran	n. 老兵，老手
+declare	v. 宣布，声明
+span	n. 跨距，一段时间 v. 跨越，持续
+bunch	n. 束，串，群 v. 集中
+hobby	n. 业余爱好
+pea	n. 豌豆
+collapse	v. 倒塌，崩溃 n. 崩溃
+insect	n. 昆虫，虫
+he	pron. 他
+eat	v. 吃
+add	v. 添加，增加
+growth	n. 增长，生长
+strange	adj. 陌生的，奇怪的
+invention	n. 发明，创造
+female	n. 女性 adj. 女的，雌的
+disaster	n. 灾难
+headache	n. 头痛，头痛的事
+damage	v. 损害，毁坏 n. 损害
+assure	v. 使确信，保证
+store	n. 商店，储存
+withdraw	v. 撤退，收回，撤回

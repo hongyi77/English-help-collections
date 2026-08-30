@@ -1,0 +1,150 @@
+﻿drunk	adj. 醉的，陶醉的
+magazine	n. 杂志
+patience	n. 耐心
+direction	n. 方向，指导
+job	n. 工作，职业
+practise	v. 练习，训练
+slope	n. 斜坡，斜面 v. 倾斜
+ankle	n. 脚踝
+dead	adj. 死的
+me	pron. （宾格）我
+develop	v. 发展，开发
+immense	adj. 巨大的
+rabbit	n. 兔子
+outset	n. 开端
+disguise	n. 伪装 v. 伪装，掩饰
+brisk	adj. 活泼的，清新的
+keyboard	n. 键盘
+onion	n. 洋葱
+energy	n. 能量，精力
+shriek	n./v. 尖叫
+elaborate	adj. 复杂的 v. 详述
+horse	n. 马
+requirement	n. 要求，必要条件
+moment	n. 时刻，瞬间
+occurrence	n. 发生，事件
+deed	n. 行为，契约
+owl	n. 猫头鹰
+isolate	v. 隔离，孤立
+collection	n. 收集，收藏品
+container	n. 容器，集装箱
+knife	n. 刀，小刀
+milk	n. 牛奶 v. 挤奶
+exercise	n. 锻炼，练习 v. 练习
+shortly	adv. 不久，立刻
+retire	v. 退休，退出
+communist	n. 共产党员
+supplement	n. 补充，增刊 v. 增补
+betray	v. 背叛，泄漏
+meal	n. 一餐，膳食
+august	n. 八月
+during	prep. 在…期间
+brief	adj. 简短的，短暂的 n. 摘要
+inferior	adj. 劣等的 n. 下级
+marble	n. 大理石
+inventor	n. 发明家
+metal	n. 金属
+efficiency	n. 效率
+high	adj. 高的，高级的 adv. 高
+born	adj. 出生的，天生的
+destroy	v. 破坏，毁灭
+heating	n. 加热，供暖
+comprise	v. 包含，构成
+wholly	adv. 完全地
+split	v. 分裂，劈开 n. 裂口
+basin	n. 盆，盆地
+weed	n. 杂草 v. 除草
+calm	adj. 平静的 v. 使平静
+sweater	n. 毛衣
+shear	v. 剪
+greet	v. 问候，招呼
+practical	adj. 实践的，实用的
+basically	adv. 基本上
+conductor	n. 售票员，指挥
+naturally	adv. 自然地，当然
+despair	n. 绝望 v. 绝望
+nose	n. 鼻子
+morning	n. 早晨，上午
+mild	adj. 温和的，轻微的
+interrupt	v. 打断，中断
+period	n. 时期，句号
+loaf	n. 一条面包 v. 闲逛
+enforce	v. 实施，强制
+definitely	adv. 一定地，明确地
+grow	v. 生长，增长
+federal	adj. 联邦的
+lively	adj. 活泼的
+interval	n. 间隔，休息
+motor	n. 发动机
+brute	n. 畜生
+account	n. 账目，解释 v. 说明，占
+gramme	n. 克
+absence	n. 缺席，缺乏
+beef	n. 牛肉
+heap	n. 一堆，大量
+deposit	n. 存款，押金 v. 存放，储蓄
+displease	v. 使不悦
+bound	adj. 必定的，有义务的 v. 跳跃 n. 界限
+merely	adv. 仅仅
+besides	prep. 除…之外 adv. 而且
+park	n. 公园，停车场
+nineteen	num. 十九
+depress	v. 使沮丧，抑制
+cry	v. 哭，叫喊
+into	prep. 进入，到…里
+maths	n. 数学
+significance	n. 意义，重要性
+bag	n. 包，袋子
+crack	n. 裂缝 v. 破裂
+certainty	n. 确定
+lazy	adj. 懒惰的
+hurt	v. 伤害
+hillside	n. 山坡
+specialist	n. 专家
+worm	n. 蠕虫
+dictionary	n. 词典
+cabbage	n. 卷心菜
+date	n. 日期 v. 注明日期
+warmth	n. 温暖，热情
+latter	adj. 后者的
+indoors	adv. 在室内
+helicopter	n. 直升机
+leg	n. 腿
+command	v. 命令，指挥
+actually	adv. 实际上
+secondary	adj. 次要的，中等的
+academy	n. 学院，学会
+report	v. 报告，汇报
+magnet	n. 磁铁
+none	pron. 没有人 adv. 毫不
+large	adj. 大的
+corporation	n. 公司
+thorough	adj. 彻底的
+chin	n. 下巴
+nearby	adj. 附近的 adv. 在附近
+map	n. 地图
+vinegar	n. 醋
+article	n. 文章，物品
+angle	n. 角度，观点
+zone	n. 地区，区域
+rail	n. 铁轨，栏杆 v. 抱怨
+holy	adj. 神圣的
+copy	n. 副本 v. 复制
+elephant	n. 大象
+hasten	v. 催促，赶紧
+helpless	adj. 无助的
+mutter	v. 咕哝，抱怨
+musical	adj. 音乐的
+silk	n. 丝绸
+anything	pron. 任何事物
+outskirt	n. 郊区
+peculiar	adj. 奇怪的，特有的
+index	n. 索引，指数
+anxious	adj. 焦虑的，渴望的
+likely	adj. 可能的 adv. 很可能
+mat	n. 垫子，席子
+cushion	n. 坐垫，靠垫
+flock	n. 羊群，一群
+vague	adj. 模糊的
+generator	n. 发电机
+scatter	v. 撒，驱散

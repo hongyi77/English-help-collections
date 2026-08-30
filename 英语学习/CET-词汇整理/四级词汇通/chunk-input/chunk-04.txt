@@ -1,0 +1,150 @@
+﻿disadvantage	n. 缺点，不利
+compensate	v. 补偿，弥补
+rescue	v. 营救，救援 n. 营救
+monitor	v. 监控，监测 n. 班长，显示器
+refusal	n. 拒绝
+exile	n. 流放，放逐
+encourage	v. 鼓励，支持
+concept	n. 概念，观念
+render	v. 使得，给予
+trait	n. 特征，特点
+feature	n. 特点，特征 v. 以…为特色
+reframe	v. 重新构造
+identify	v. 识别，鉴定，认同
+impose	v. 强加，征收
+snack	n. 零食，小吃
+require	v. 需要，要求
+donation	n. 捐赠，捐款
+equal	adj. 相等的，平等的
+rare	adj. 稀有的，罕见的
+specify	v. 指定，详细说明
+constant	adj. 不断的，持续的 n. 常数
+standardize	v. 使标准化
+consume	v. 消费，消耗
+status	n. 地位，身份
+complement	v. 补充
+lengthy	adj. 漫长的
+embarrassed	adj. 尴尬的
+rational	adj. 理性的，合理的
+distant	adj. 遥远的，疏远的
+homemaker	n. 家庭主妇
+exception	n. 例外
+sustainable	adj. 可持续的
+trigger	v. 引发，引起
+intend	v. 打算，想要
+spread	v. 传播，扩散
+estimate	v. 估计 n. 估计
+technique	n. 技术，技巧
+include	v. 包括，包含
+academic	adj. 学术的
+distinctive	adj. 独特的
+consist	v. 由…组成，在于
+bid	n. 出价，投标 v. 出价，投标
+benefit	v. 有益于 n. 利益，好处
+downsize	v. 裁员
+avoid	v. 避免
+gender	n. 性别
+interracial	adj. 种族间的
+complaint	n. 抱怨，投诉
+pattern	n. 模式，式样 v. 仿制
+mood	n. 情绪，心情，语气
+sympathy	n. 同情，支持
+discount	n. 折扣 v. 打折
+value	v. 重视 n. 价值
+altitude	n. 海拔，高度
+groundsheet	n. 防潮布
+evolutionary	adj. 进化的
+implement	v. 实施，执行 n. 工具
+dominant	adj. 占优势的，统治的
+scope	n. 范围，余地
+suspect	v. 怀疑，猜想 n. 嫌疑犯 adj. 可疑的
+confrontation	n. 对抗，冲突
+puzzle	v. 使迷惑 n. 谜，难题
+critic	n. 评论家，批评家
+apartment	n. 公寓
+analyze	v. 分析
+maintain	v. 维持，维修，主张
+curb	v. 控制 n. 控制
+version	n. 版本，说法，译本
+rival	n. 对手，竞争者 adj. 竞争的 v. 与…匹敌
+beneficial	adj. 有益的
+substantial	adj. 大量的，可观的，实质的
+recover	v. 恢复
+diploma	n. 文凭
+carpenter	n. 木匠
+circumstance	n. 情况，环境
+canteen	n. 食堂，小卖部
+advocator	n. 倡导者
+disorderly	adj. 杂乱的
+essentially	adv. 本质上
+prevent	v. 防止，阻止
+ceremony	n. 典礼，仪式
+assume	v. 假定，认为，承担
+demand	n. 需求，要求 v. 要求
+principle	n. 原则，原理
+reception	n. 接待，招待会
+transfer	v. 转移，转让，转乘 n. 转移
+preventable	adj. 可预防的
+anticipate	v. 预期，预料
+assumption	n. 假设，假定
+prescription	n. 处方
+evolution	n. 进化，演变
+annoy	v. 使恼怒
+unintended	adj. 意想不到的
+origin	n. 起源，出身
+qualify	v. 使有资格，合格
+emergence	n. 出现
+complain	v. 抱怨，投诉
+merit	n. 优点，长处 v. 值得
+forum	n. 论坛
+arrange	v. 安排，筹备
+determination	n. 决心，决定
+bargain	n. 便宜货，交易 v. 讨价还价
+appetite	n. 食欲，胃口
+neutral	adj. 中立的
+primitive	adj. 原始的，简陋的
+therapy	n. 治疗，疗法
+conscience	n. 良心
+define	v. 下定义，限定
+creativity	n. 创造力
+tailor	v. 专门制作，调整使适应 n. 裁缝
+dramatically	adv. 戏剧性地
+panic	n. 恐慌 v. 惊慌
+motivation	n. 动力，动机
+durable	adj. 耐用的，持久的
+remedy	n. 补救，药物 v. 补救
+inevitable	adj. 不可避免的
+diverse	adj. 多样的，不同的
+context	n. 背景，环境
+prominent	adj. 突出的，杰出的
+witness	n. 目击者，证人 v. 目击
+save	v. 节省
+inherit	v. 继承
+occasion	n. 场合，时机
+initiative	n. 主动性，主动权
+insight	n. 洞察力，见解
+misguided	adj. 被误导的
+sponsor	v. 赞助 n. 发起者
+porter	n. 搬运工，看门人
+loyalty	n. 忠诚
+overwhelming	adj. 压倒性的
+appreciation	n. 感激
+setting	n. 环境，背景
+display	n. 展览 v. 显示
+deliver	v. 递送，发表
+astonish	v. 使惊讶
+adequate	adj. 足够的
+consumption	n. 消费，消耗
+abuse	v. 滥用，虐待 n. 滥用
+broad	adj. 宽的，广泛的
+inappropriate	adj. 不合适的
+worldwide	adv. 全世界地
+strict	adj. 严格的
+means	n. 方法，手段
+reveal	v. 揭露，显示
+confirm	v. 证实，确认
+consensus	n. 一致意见
+agent	n. 代理人，代理商
+neighborhood	n. 地区
+participate	v. 参与，参加
+valid	adj. 有效的

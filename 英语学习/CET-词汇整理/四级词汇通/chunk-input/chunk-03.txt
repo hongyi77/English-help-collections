@@ -1,0 +1,150 @@
+﻿harsh	adj. 严厉的，严酷的，刺耳的
+reliable	adj. 可靠的，可信赖的
+massive	adj. 巨大的，大量的
+alcohol	n. 酒精
+pregnant	adj. 怀孕的
+adapt	v. 适应，改编
+bogus	adj. 假冒的
+slippery	adj. 滑的，狡猾的
+current	adj. 当前的，流行的
+overwhelm	v. 压倒，战胜
+stressful	adj. 有压力的
+toothache	n. 牙痛
+eliminate	v. 消除，排除，淘汰
+terminal	n. 终点站，终端 adj. 晚期的
+severe	adj. 严重的，严厉的，严峻的
+immobile	adj. 不变的
+diplomatic	adj. 外交的，有手腕的
+candidate	n. 候选人，报考者
+fund	n. 基金，资金 v. 提供资金
+complacency	n. 自满
+delight	n. 高兴，快乐 v. 使高兴
+inadequate	adj. 不足的
+steady	adj. 稳定的，平稳的 v. 使稳定
+accurate	adj. 准确的，精确的
+identification	n. 身份证明，识别
+previously	adv. 事先
+identical	adj. 相同的，同一的
+retirement	n. 退休
+commit	v. 犯（罪），承诺
+element	n. 元素，要素，成分
+assess	v. 评估，估价
+hire	v. 雇佣，租用 n. 租用
+represent	v. 代表，象征，描绘
+overestimate	v. 高估
+supervision	n. 监督
+expose	v. 暴露，揭露
+seemingly	adv. 表面上，似乎
+assignment	n. 作业，任务，分配
+preference	n. 偏爱，优先权
+energetic	adj. 精力充沛的
+application	n. 申请，应用
+moral	adj. 道德的 n. 寓意
+dispute	n. 争论 v. 争论
+influence	n. 影响 v. 影响
+illegal	adj. 非法的
+esteem	n. 尊重
+abundant	adj. 丰富的，充足的
+survey	n. 调查，测量 v. 调查，测量
+extensively	adv. 广泛地
+deserve	v. 值得，应受
+crash	v. 碰撞，坠毁 n. 撞车，坠毁
+affirm	v. 断言，肯定
+reputation	n. 名声，名誉
+degree	n. 程度，学位，度
+fade	v. 褪色，消失
+competitor	n. 竞争者，对手
+confuse	v. 使困惑，混淆
+task	n. 任务，工作
+lessen	v. 减少，减轻
+admit	v. 承认，准许进入
+bow	v. 鞠躬 n. 鞠躬，弓
+division	n. 部门，分配，分歧
+literature	n. 文学，文献
+consultant	n. 顾问
+penalty	n. 惩罚，罚金
+comment	n. 评论，意见 v. 评论
+major	adj. 主要的，重大的 v. 主修 n. 专业，少校
+option	n. 选择，选择权
+socialize	v. 交往，交际
+bureau	n. 局，所
+budget	n. 预算 v. 编预算 adj. 低廉的
+pop	v. 突然出现 n. 流行音乐
+position	n. 职位，位置，姿势
+unaffordable	adj. 负担不起的
+function	n. 功能，职责 v. 运行
+perceive	v. 察觉，理解，意识到
+reserve	v. 预定，保留 n. 储备，保留
+innovation	n. 创新，改革
+alert	adj. 警觉的 v. 提醒 n. 警报
+cautious	adj. 谨慎的
+document	n. 文件，证件 v. 记录，证明
+characterize	v. 以…为特征，描述
+achieve	v. 实现，达到
+address	v. 解决，演讲 n. 地址
+inspiration	n. 灵感
+agency	n. 机构，代理处
+formulate	v. 制定，阐述
+fate	n. 命运
+surf	v. 冲浪
+steer	v. 驾驶，操纵
+structure	n. 结构，构造 v. 建造
+architect	n. 建筑师，设计师
+frame	n. 框架，构架 v. 镶框，陷害
+amaze	v. 使惊奇
+affirmation	n. 断言，肯定
+intelligent	adj. 聪明的，有智慧的
+code	n. 代码，密码，准则
+burden	n. 负担，重担 v. 使负担
+absorb	v. 吸收，吸引注意
+instruction	n. 说明，指示，命令
+admission	n. 准许进入，承认
+additional	adj. 额外的，附加的
+prejudice	n. 偏见 v. 使有偏见
+process	n. 过程，进程 v. 处理，加工
+elegant	adj. 优雅的，优美的
+hospitable	adj. 热情友好的
+refreshing	adj. 恢复活力的
+ensure	v. 确保，保证
+frighten	v. 使惊恐，吓唬
+civilized	adj. 文明的
+approval	n. 批准，同意
+publicize	v. 宣传，公布
+resident	n. 居民 adj. 居住的
+considerate	adj. 体贴的，考虑周到的
+twist	v. 扭曲，缠绕 n. 转折
+citizen	n. 公民，市民
+stake	n. 赌注，风险 v. 冒险
+keenly	adv. 敏锐地
+superficial	adj. 肤浅的，表面的
+flexibility	n. 灵活性，适应性
+favorable	adj. 赞同的
+competent	adj. 有能力的，胜任的
+emotional	adj. 情绪上的，情感上的
+pioneer	v. 开拓，开创 n. 先驱者
+sustain	v. 维持，支撑，遭受
+gloomy	adj. 阴沉的，沮丧的
+convince	v. 使信服，说服
+profitable	adj. 有利可图的，有益的
+routinely	adv. 例行公事地
+phenomenon	n. 现象
+variety	n. 种类，多样性
+gum	n. 口香糖，牙龈
+criticism	n. 批评，评论
+fatal	adj. 致命的，重大的
+delightful	adj. 令人高兴的
+tedious	adj. 单调乏味的
+flexible	adj. 灵活的
+considerably	adv. 相当地
+efficiently	adj. 有效地
+appearance	n. 外表，出现
+album	n. 相册，专辑
+optimistic	adj. 乐观的
+clue	n. 线索，提示
+grief	n. 悲伤
+synthetic	adj. 合成的，人造的
+resistance	n. 抵抗，阻力
+install	v. 安装
+pledge	n. 誓言，保证 v. 保证
+unique	adj. 独特的，唯一的
+stock	n. 股票，库存，牲畜 adj. 常备的 v. 储备

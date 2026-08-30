@@ -1,0 +1,150 @@
+﻿important	adj. 重要的
+flare	v. 闪耀，闪烁
+off	adv. 离开，停止
+dear	adj. 亲爱的 int. 啊
+mode	n. 方式，样式
+coal	n. 煤
+approximate	adj. 近似的 v. 近似，估计
+defect	n. 缺点，缺陷 v. 变节，叛变
+afternoon	n. 下午
+worthless	adj. 无价值的，无用的
+infect	v. 传染，感染，影响
+ultimate	adj. 最后的，最终的 n. 终极
+linen	n. 亚麻布
+moist	adj. 潮湿的，湿润的
+anger	n. 愤怒 v. 使发怒
+april	n. 四月
+match	n. 比赛，对手
+gasoline	n. 汽油
+how	adv. 怎么，怎样
+patient	adj. 有耐心的 n. 病人
+cunning	adj. 狡猾的
+paragraph	n. 段落，段
+wound	n. 伤口，伤 v. 使受伤
+grade	v. 分等级 n. 等级
+vast	adj. 巨大的，大量的
+enjoy	v. 享受，欣赏
+deceive	v. 欺骗，蒙蔽
+voltage	n. 电压
+reporter	n. 记者
+dialog	n. 对话，对白
+air	n. 空气，空中
+circulate	v. 循环，流通，传播
+garden	n. 花园，菜园
+discovery	n. 发现
+look	v. 看，显得 n. 看
+forever	adv. 永远，总是
+worship	n. 崇拜，礼拜 v. 崇拜
+altogether	adv. 完全，总而言之
+glimpse	v. 瞥见 n. 一瞥
+dialect	n. 方言
+vertical	adj. 垂直的
+vice	n. 罪恶，恶习
+romantic	adj. 浪漫的，多情的
+health	n. 健康
+plural	adj. 复数的 n. 复数
+piece	n. 块，碎片 v. 拼合
+free	adj. 自由的，空闲的
+robot	n. 机器人
+applicable	adj. 适用的，合适的
+nobody	pron. 没有人，无人
+unload	v. 卸货，卸下
+apologize	v. 道歉，认错
+anxiety	n. 焦虑，忧虑
+drag	v. 拖，拉 n. 累赘
+clay	n. 粘土，泥土
+government	n. 政府
+flower	n. 花，花卉
+outwards	adv. 向外
+withstand	v. 抵挡，反抗
+forgive	v. 原谅，宽恕
+eve	n. 前夕，前夜
+bind	v. 捆绑，包扎，约束
+pillar	n. 柱子，栋梁
+metric	adj. 公制的
+pine	n. 松树，松木 vi. 渴望，消瘦
+profession	n. 职业
+eighteen	num. 十八
+breath	n. 呼吸，气息
+gang	n. 一帮，一伙 vi. 聚集
+effort	n. 努力
+hardship	n. 艰难，困苦
+near	adv. 近，接近 adj. 近的
+shower	n. 阵雨，淋浴
+alive	adj. 活着的，活跃的
+indian	adj. 印度的 n. 印度人
+serve	v. 服务，招待
+fear	n. 害怕，担心 v. 害怕
+operational	adj. 可使用的，操作的
+arithmetic	n. 算术
+madam	n. 夫人，女士
+dangerous	adj. 危险的
+if	conj. 如果
+per	prep. 每，每一
+loss	n. 损失，失败
+damp	adj. 潮湿的 n. 潮湿 v. 使潮湿
+age	n. 年龄，时代 v. 变老
+stain	v. 玷污，着色 n. 污点
+vain	adj. 徒劳的，自负的
+gratitude	n. 感激，感谢
+egg	n. 蛋，鸡蛋
+pole	n. 杆，柱，极
+june	n. 六月
+accordingly	adv. 因此，所以
+comfort	n. 舒适，安慰 v. 安慰
+employee	n. 雇员
+typical	adj. 典型的，代表性的
+nucleus	n. 核，核心
+all	det. 全部的 pron. 全部
+india	n. 印度
+cottage	n. 村舍，小屋
+oblige	v. 迫使，使感激
+skilled	adj. 熟练的，有技能的
+inn	n. 小旅店，小酒店
+static	adj. 静止的，静态的 n. 静电
+forty	num. 四十
+portrait	n. 肖像，画像
+partial	adj. 部分的，偏袒的
+yearly	adv. 每年，一年一度 adj. 每年的
+straw	n. 稻草，吸管
+dip	v. 浸，蘸
+invite	v. 邀请，请求
+cord	n. 细绳，粗线
+invasion	n. 入侵，侵略
+audience	n. 听众，观众
+compound	n. 化合物，复合物 adj. 复合的 v. 使合成，加重
+risk	n. 风险，危险 v. 冒…的危险
+almost	adv. 几乎，差不多
+loosen	v. 解开，放松
+industrialize	v. 使工业化
+normally	adv. 通常，正常地
+ridiculous	adj. 荒谬的，可笑的
+balloon	n. 气球
+in	prep. 在…里
+everyday	adj. 日常的
+furthermore	adv. 而且，此外
+criminal	n. 罪犯，犯人 adj. 犯罪的，刑事的
+christian	n. 基督教徒 adj. 基督教的
+cargo	n. 货物
+plantation	n. 种植园
+gross	adj. 总的，粗俗的
+gradual	adj. 逐渐的
+culture	n. 文化，文明，教养
+four	num. 四
+immigrant	n. 移民
+trend	n. 趋势，倾向 vi. 倾向
+humid	adj. 潮湿的，湿气重的
+preparation	n. 准备，预备
+magnetic	adj. 磁的，有吸引力的
+november	n. 十一月
+clothes	n. 衣服，服装
+glow	n. 光辉，灼热 v. 发光，灼热
+pad	n. 垫，便笺本 v. 填塞
+dusk	n. 黄昏，薄暮
+force	v. 强迫 n. 力量，军队，武力
+rainy	adj. 多雨的
+tame	adj. 驯服的 v. 驯服，制服
+formal	adj. 正式的
+fruit	n. 水果，果实
+equation	n. 方程，等式
+eighty	num. 八十

@@ -1,0 +1,150 @@
+﻿restriction	n. 限制，限定
+minor	adj. 较小的，次要的 n. 未成年人
+grain	n. 谷物，颗粒
+rate	n. 比率，速度，价格 v. 评估
+radically	adv. 完全地，彻底地
+distinct	adj. 明显的，不同的，清楚的
+equality	n. 平等，相等
+hardworking	adj. 勤奋的
+qualification	n. 资格，合格证书
+bacteria	n. 细菌
+corporate	adj. 团体的，法人的
+undermine	v. 削弱
+selfish	adj. 自私的，利己的
+cater	v. 迎合
+survival	n. 幸存，幸存者
+favor	v. 偏爱
+conflict	v. 冲突，抵触 n. 冲突，斗争
+client	n. 客户，委托人
+garage	n. 车库，加油站
+fatigue	n. 疲劳，劳累 v. 疲劳
+plant	n. 植物，工厂 v. 栽种
+endanger	v. 危及，危害
+operation	n. 手术，操作，行动
+handle	v. 处理，操作 n. 把手，柄
+laborious	adj. 费力的
+passion	n. 热情，激情
+cooperative	adj. 合作的
+inflate	v. 膨胀
+resourceful	adj. 机智的
+exaggerate	v. 夸张，夸大
+loan	n. 贷款 v. 借出
+vocabulary	n. 词汇，词汇表
+illustrate	v. 说明，阐明
+overflow	v. 溢出
+fantasize	v. 想象，幻想
+amusing	adj. 有趣的
+universal	adj. 普遍的，通用的
+generate	v. 产生，引起
+schedule	n. 日程表，时间表 v. 安排
+backslide	v. 倒退，退步
+particle	n. 微粒，粒子
+menu	n. 菜单
+reward	n. 奖赏，报酬 v. 奖励
+reproduce	v. 复制，繁殖
+worsen	v. 恶化
+feedback	n. 反馈
+equivalent	adj. 相等的 n. 等价物
+resign	v. 辞职，放弃
+motivate	v. 激励，激发
+compel	v. 强迫
+revise	v. 修订，修改，复习
+dampen	v. 抑制
+prosperity	n. 繁荣，昌盛
+flow	n. 流动 v. 流动
+humanity	n. 人类，人性
+sideways	adv. 向侧面，斜着 adj. 侧身的
+pursue	v. 追求，从事，追赶
+innovate	v. 创新，革新
+mill	n. 工厂，磨坊 v. 碾磨
+promotional	adj. 促销的
+dump	v. 倾倒，倾销 n. 垃圾场
+resist	v. 抵抗，抵制
+source	n. 来源，根源
+legal	adj. 法律的，合法的
+picky	adj. 挑剔的
+steal	v. 偷窃
+despite	prep. 尽管，不管
+explosion	n. 爆炸，爆发
+gap	n. 差距，缺口
+relevant	adj. 有关的，切题的
+ignore	v. 忽视，不理
+complete	v. 完成 adj. 完整的
+sufficient	adj. 足够的，充分的
+switch	v. 转换，改变 n. 开关
+request	n. 请求，要求 v. 请求
+stereotype	n. 固定模式，陈规
+couple	n. 夫妇，情侣，一对
+honesty	n. 诚实，正直
+transportation	n. 运输，运送
+physical	adj. 身体的，物理的，物质的
+screen	n. 屏幕，银幕 v. 筛查，审查
+divine	adj. 神圣的
+guideline	n. 指导方针，准则
+revolution	n. 革命，旋转
+interruption	n. 中断，打扰
+dishwasher	n. 洗碗机
+promising	adj. 有希望的，有前途的
+vary	v. 变化，不同
+permanent	adj. 永久的，持久的
+manufacture	v. 制造，生产 n. 制造业
+fussy	adj. 爱挑剔的
+dictate	v. 命令，口授 n. 命令
+professional	adj. 专业的，职业的 n. 专业人员
+prosper	v. 繁荣
+exchange	n. 交换，交流 v. 兑换
+concentration	n. 集中，浓度，专注
+gesture	n. 手势，姿态 v. 做手势
+deliberate	adj. 故意的，慎重的 v. 仔细考虑
+contribution	n. 贡献，捐款
+bless	v. 保佑，祝福
+detective	n. 侦探
+evident	adj. 明显的，明白的
+retreat	v. 撤退，退却
+responsible	adj. 负责的，有责任的
+identity	n. 身份，特性
+statistics	n. 统计学，数据
+appreciate	v. 感激，欣赏，领会
+insult	v. 侮辱 n. 侮辱
+neglect	v. 忽视，疏忽 n. 疏忽
+primarily	adv. 主要地
+long	v. 渴望
+incline	v. 倾向于，倾斜 n. 斜坡
+asset	n. 资产，财产，优点
+overtake	v. 追上，超过
+extension	n. 延长，伸展，分机
+engine	n. 发动机，引擎
+emphasize	v. 强调
+genuine	adj. 真正的，真诚的
+fascination	n. 魅力，入迷
+lodge	v. 住宿 n. 乡间小屋
+cheat	v. 欺骗，作弊 n. 骗子
+security	n. 安全，保障，证券
+painful	adj. 痛苦的，疼痛的
+emerge	v. 出现，涌现
+instance	n. 例子，实例
+steep	adj. 陡峭的，急剧的
+rigorous	adj. 严格的
+persuade	v. 说服
+procedure	n. 程序，步骤
+signature	n. 签名，署名
+surpass	v. 超过
+campaign	n. 运动，战役 v. 参加竞选
+advance	n. 进展 v. 前进，提高
+charity	n. 慈善事业，慈善机构
+average	adj. 平均的，平常的 n. 平均数 v. 平均
+indispensable	adj. 必不可少的
+irrationally	adv. 不合理地
+accompany	v. 陪伴，伴随
+aviation	n. 航空，航空学
+distress	v. 使痛苦 n. 痛苦，忧虑
+invariably	adv. 不变地，一直
+invest	v. 投资，投入
+approximately	adv. 大约，近似地
+conservation	n. 保护，保存
+ease	n. 轻松，容易 v. 缓和
+extracurricular	adj. 课外的
+undoubtedly	adv. 无疑，肯定地
+excellent	adj. 优秀的，极好的
+investigate	v. 调查，研究
+judgement	n. 判断，意见

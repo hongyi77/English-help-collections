@@ -1,0 +1,150 @@
+﻿charge	v. 收费，控告，充电 n. 费用，管理，电荷
+behavior	n. 行为，举止
+provided	conj. 假如，倘若
+thus	adv. 因此，如此
+agreement	n. 协议，同意
+clothing	n. 衣服，衣物
+cube	n. 立方体，立方
+marriage	n. 婚姻，结婚
+kingdom	n. 王国，领域
+vessel	n. 船，容器
+overnight	adv. 整夜，突然 adj. 整夜的，突然的
+feather	n. 羽毛
+monday	n. 星期一
+export	v. 出口，输出 n. 出口，输出品
+badminton	n. 羽毛球
+arrival	n. 到达，到来
+knock	v. 敲，击 n. 敲，击
+fifteen	num. 十五
+aunt	n. 伯母，婶母，姑母
+motive	n. 动机，目的
+capture	v. 捕获，俘获
+handful	n. 一把，少数
+being	n. 存在，生物
+collective	adj. 集体的 n. 集体，团体
+building	n. 建筑物，大楼
+crew	n. 全体船员，机组人员
+postman	n. 邮递员
+corresponding	adj. 相应的
+restless	adj. 焦躁不安的，不安的
+tempt	v. 引诱，诱惑
+fix	v. 固定，修理，决定
+classroom	n. 教室，课堂
+corridor	n. 走廊，通道
+daughter	n. 女儿
+out	adv. 出，在外
+outdoors	adv. 在户外，在野外
+mark	n. 记号，标记 v. 标记，标明
+duration	n. 持续，期间
+consideration	n. 考虑，体贴
+mould	n. 模子，模具，霉 v. 浇铸，塑造
+already	adv. 已经
+tune	n. 曲调，调子 v. 调音，调整
+logical	adj. 符合逻辑的，逻辑的
+book	n. 书，书籍 v. 预订
+heavy	adj. 重的，大量的
+peach	n. 桃子，桃树
+danger	n. 危险
+horsepower	n. 马力
+punch	v. 猛击，穿孔 n. 猛击
+calculator	n. 计算器
+plate	n. 盘，盘子 v. 电镀
+disclose	v. 揭示，透露
+communication	n. 交流，通讯，交通
+slide	v. 滑动 n. 滑动，幻灯片
+mount	v. 登上，增加 n. 山，峰
+rat	n. 老鼠
+neighbour	n. 邻居
+plan	n. 计划 v. 计划，打算
+greek	adj. 希腊的 n. 希腊人
+party	n. 聚会，政党
+further	adv. 更远地，进一步地 adj. 更远的，进一步的
+radio	n. 收音机，无线电
+catalog	n. 目录 v. 编目
+coward	n. 懦夫
+throat	n. 喉咙，咽喉
+ice	n. 冰，冰块 v. 结冰
+piano	n. 钢琴
+discuss	v. 讨论
+neat	adj. 整洁的
+refresh	v. 使恢复精神，振作
+leader	n. 领袖，领导人
+fibre	n. 纤维
+trim	adj. 整齐的 v. 修剪，使整齐
+baby	n. 婴儿
+wooden	adj. 木制的
+clap	v. 拍手，轻拍 n. 拍手，鼓掌
+vibrate	v. 颤动，震动
+honest	adj. 诚实的
+necklace	n. 项链
+substance	n. 物质，实质，内容
+merry	adj. 欢乐的
+fountain	n. 喷泉，源泉
+surroundings	n. 环境
+chair	n. 椅子，主席
+procession	n. 队伍，行列
+back	adv. 回原处，向后
+jacket	n. 夹克，短上衣
+rifle	n. 步枪
+our	pron. 我们的
+low	adj. 低的，矮的
+pretend	v. 假装
+bathroom	n. 浴室
+champion	n. 冠军，拥护者
+jump	v. 跳，跳跃
+count	v. 数，计算
+vivid	adj. 生动的，鲜明的
+biscuit	n. 饼干
+orange	n. 橙子，橙树
+advantage	n. 优势，优点
+upper	adj. 上面的，较高的
+blossom	n. 花，花朵 v. 开花
+heading	n. 标题
+fridge	n. 电冰箱，冰箱
+commerce	n. 商业，贸易
+transmission	n. 传播，传送，发射
+german	adj. 德国的 n. 德国人
+elsewhere	adv. 在别处
+british	adj. 英国的，不列颠的
+series	n. 系列，连续
+personnel	n. 人员，员工
+faulty	adj. 有缺点的
+famous	adj. 著名的
+only	adv. 只，仅仅 adj. 唯一的
+gold	n. 金，黄金 adj. 金的，金制的
+breathe	v. 呼吸
+metre	n. 米
+rainbow	n. 彩虹
+furniture	n. 家具
+outer	adj. 外部的，外面的
+college	n. 学院，大学
+mother	n. 母亲，妈妈
+hour	n. 小时，时刻
+respective	adj. 各自的
+crop	n. 农作物，庄稼，收成
+feel	v. 感觉，触摸
+ounce	n. 盎司
+active	adj. 积极的，活跃的
+game	n. 游戏，比赛
+devil	n. 魔鬼，家伙
+imagination	n. 想象力，想象
+opinion	n. 意见，看法
+maid	n. 女仆，少女
+yard	n. 院子，场地
+doctor	n. 医生，博士
+dam	n. 水坝，堤坝 v. 筑坝
+ripe	adj. 成熟的
+soil	v. 弄脏
+earth	n. 地球，地面
+alphabet	n. 字母表
+lucky	adj. 幸运的，吉利的
+waggon	n. 四轮马车
+regret	v. 懊悔，遗憾 n. 懊悔
+rack	n. 架子，行李架 v. 折磨
+lace	n. 鞋带，花边
+jolly	adj. 快活的
+area	n. 地区，面积，领域
+oceania	n. 大洋洲
+ocean	n. 海洋
+lord	n. 贵族，君主
+loop	n. 圈，环，循环 v. 成环

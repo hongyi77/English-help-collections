@@ -1,0 +1,150 @@
+﻿arouse	v. 引起，唤起
+modify	v. 修改，更改，修饰
+express	v. 表达，表示 n. 快车
+imagine	v. 想象，设想
+barrier	n. 障碍，屏障，隔阂
+lane	n. 小路，跑道，航线
+notebook	n. 笔记本
+realm	n. 领域，王国，范围
+lever	n. 杠杆，控制杆
+midst	n. 中间，当中
+pilot	n. 飞行员，领航员 adj. 试验性的 v. 驾驶
+direct	adj. 直接的，直率的
+tour	n. 旅行，旅游 v. 旅游，游历
+get	v. 获得，到达，变成
+advertisement	n. 广告，公告
+ribbon	n. 缎带，丝带
+partner	n. 伙伴，搭档，配偶 v. 做搭档
+hamburger	n. 汉堡包
+climb	v. 攀登，爬
+differ	v. 不同，相异
+public	adj. 公众的 n. 公众
+palace	n. 宫殿
+pulse	n. 脉搏，脉冲 v. 搏动
+immediately	adv. 立即，马上
+cow	n. 母牛，奶牛
+toast	n. 烤面包，祝酒 v. 烘烤，干杯
+scenery	n. 风景
+fun	n. 乐趣，娱乐
+living	adj. 活的 n. 生活，生计
+mediterranean	n. 地中海 adj. 地中海的
+worth	adj. 值…的 n. 价值
+conquer	v. 征服，战胜，克服
+enthusiasm	n. 热情，热心
+brood	n. 同窝幼鸟 v. 孵蛋
+tip	v. 轻击，给小费
+execute	v. 处死，实施，执行
+conceal	v. 隐藏，掩盖，隐瞒
+certain	adj. 肯定的，确实的
+apparent	adj. 明显的，表面上的
+messenger	n. 信使
+youth	n. 青春，青年
+naval	adj. 海军的
+downward	adj. 向下的 adv. 向下地
+fact	n. 事实，实际
+hut	n. 小屋，棚屋
+monument	n. 纪念碑，历史遗迹
+cool	adj. 凉的，冷静的
+governor	n. 州长，主管
+program	n. 程序，节目
+illness	n. 疾病
+normal	adj. 正常的，普通的
+population	n. 人口，居民
+order	n. 次序，秩序 v. 命令
+learning	n. 学问，知识
+everywhere	adv. 到处
+stage	n. 阶段，舞台
+everyone	pron. 每人
+sting	v. 刺，蜇，叮 n. 刺伤处
+hatch	v. 孵化
+honey	n. 蜂蜜，甜蜜
+nest	n. 巢，窝 v. 筑巢
+calendar	n. 日历，历法
+manual	adj. 手工的，体力的 n. 手册
+cabinet	n. 内阁，橱柜
+more	adj. 更多的 adv. 更
+apple	n. 苹果
+never	adv. 永不，决不
+laughter	n. 笑声
+idiom	n. 习语，成语
+impressive	adj. 印象深刻的
+fourteen	num. 十四
+on	prep. 在…上
+stack	n. 堆 v. 堆积
+cast	v. 投，抛，浇铸 n. 演员表
+pump	n. 泵 v. 抽，泵送
+animal	n. 动物，野兽 adj. 动物的
+mend	v. 修理，修补
+dozen	n. 一打
+bathe	v. 洗澡，游泳
+emphasis	n. 强调，重点
+shortage	n. 短缺，不足
+contrary	adj. 相反的 n. 相反
+tunnel	n. 隧道，地道 v. 挖隧道
+minimum	n. 最低限度 adj. 最小的
+hedge	n. 树篱，障碍物 v. 规避
+bundle	n. 捆，包 v. 捆扎
+stretch	v. 伸展，拉长，延伸 n. 伸展，一段时间
+electrical	adj. 电的，电气的
+artificial	adj. 人造的，矫揉造作的
+grateful	adj. 感激的
+classmate	n. 同班同学
+personal	adj. 个人的
+shift	v. 转移，改变 n. 轮班，转变
+preceding	adj. 前面的，在前的
+board	n. 木板，委员会，董事会 v. 登上
+custom	n. 习惯，风俗，海关
+patch	n. 补丁，小块 v. 修补
+jar	n. 罐子，广口瓶 v. 震动
+defeat	v. 战胜，击败，挫败
+child	n. 儿童，孩子
+education	n. 教育
+stair	n. 楼梯
+ornament	n. 装饰品，装饰
+downstairs	adv. 在楼下 adj. 楼下的
+hare	n. 野兔
+brook	n. 小溪
+employ	v. 雇用，使用
+may	v. 可能，可以
+province	n. 省，领域
+freeze	v. 结冰，冻结
+artistic	adj. 艺术的，艺术性的
+ambulance	n. 救护车
+fee	n. 费用，酬金
+greeting	n. 问候，招呼
+sincere	adj. 真诚的，诚挚的
+steel	n. 钢铁
+guard	v. 守卫，看守 n. 卫兵
+worthy	adj. 值得的，有价值的
+breakfast	n. 早餐
+sympathize	v. 同情，赞同
+notice	v. 注意 n. 通知
+percentage	n. 百分比
+money	n. 金钱，货币
+best	adj. 最好的
+meet	v. 遇见
+crown	n. 王冠，花冠
+beginning	n. 开始，开端
+mathematical	adj. 数学的
+juice	n. 果汁，汁液
+meadow	n. 草地，牧场
+fish	n. 鱼，鱼肉 v. 钓鱼
+incorrect	adj. 错误的
+lose	v. 失去，迷失，输掉
+man	n. 男人，人类
+mere	adj. 仅仅的，纯粹的
+bell	n. 铃，钟
+mean	v. 意思是，意味着
+surrender	v. 交出，投降，放弃
+complicate	v. 使复杂
+english	n. 英语 adj. 英国人的
+gardener	n. 园丁
+call	v. 叫，喊，称呼
+pleasant	adj. 令人愉快的，舒适的
+conversion	n. 转变，转化
+adopt	v. 收养，采用
+master	n. 主人，硕士
+pipe	n. 管子，烟斗
+communicate	v. 交流，传达，传播
+bike	n. 自行车 v. 骑自行车
+trumpet	n. 喇叭，小号 v. 宣告，鼓吹

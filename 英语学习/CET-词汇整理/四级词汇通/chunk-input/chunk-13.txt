@@ -1,0 +1,150 @@
+﻿packet	n. 小包，小盒
+object	n. 物体，目标，对象 v. 反对
+american	adj. 美国的，美洲的 n. 美国人
+pull	v. 拉，拖 n. 拉，拉力
+mixture	n. 混合，混合物
+october	n. 十月
+pigeon	n. 鸽子
+conversely	adv. 相反地
+multiply	v. 乘，增加，繁殖
+divorce	n. 离婚 v. 离婚，分离
+tray	n. 托盘，盘
+mad	adj. 疯狂的，恼火的
+sacrifice	n. 牺牲，祭品 v. 牺牲
+various	adj. 各种各样的，不同的
+stuff	n. 东西，材料 v. 装满，塞满
+rely	v. 依赖，依靠，指望
+diameter	n. 直径
+boss	n. 老板，上司 v. 指挥
+dying	adj. 垂死的，临终的
+indeed	adv. 确实，真正地
+occasionally	adv. 偶尔，偶然
+human	adj. 人的，人类的 n. 人
+glitter	v. 闪闪发光 n. 闪光
+receipt	n. 收据，收到，发票
+adventure	n. 冒险，奇遇
+lover	n. 情人，爱好者
+infant	n. 婴儿 adj. 婴儿的
+muddy	adj. 泥泞的
+beast	n. 野兽，牲畜
+faint	adj. 微弱的，模糊的 v. 晕倒，昏厥
+alarm	n. 警报，惊恐 v. 使惊恐，使担心
+convention	n. 习俗，惯例，会议
+bed	n. 床，河床
+silent	adj. 寂静的，沉默的
+dislike	v. 不喜欢 n. 厌恶
+greatly	adv. 非常，大大地
+pity	n. 遗憾，怜悯 v. 同情
+border	n. 边界，边缘 v. 邻接，接壤
+panel	n. 专门小组，面板
+wrap	v. 裹，包，捆
+passage	n. 通道，通过
+waken	v. 醒来，弄醒
+care	v. 关心，介意 n. 小心
+organic	adj. 有机的
+easy	adj. 容易的，安逸的
+improve	v. 改善，提高
+hi	int. 嗨（表示问候等）
+tissue	n. 组织，薄纸
+vigorous	adj. 有力的，朝气蓬勃的
+income	n. 收入，收益
+knot	n. 结 v. 打结
+spark	n. 火花 v. 发出火花
+aside	adv. 在旁边
+stripe	n. 条纹
+meter	n. 计量器，仪表
+frequent	adj. 经常的，常见的 v. 常去
+pure	adj. 纯粹的，纯洁的
+beyond	prep. 在…那边，超出 adv. 在更远处
+eager	adj. 渴望的，热切的
+fox	n. 狐狸
+penny	n. 便士，分
+infer	v. 推断，推论
+steam	n. 蒸汽 v. 蒸
+file	n. 档案，文件 v. 归档
+midnight	n. 午夜
+scientific	adj. 科学的
+oil	n. 油，石油 v. 加油
+cancer	n. 癌症
+instantly	adv. 立即，即刻
+chinese	adj. 中国的 n. 中国人
+good	adj. 好的
+method	n. 方法
+monthly	adj. 每月的 adv. 每月
+dream	n. 梦，梦想 v. 做梦
+load	v. 装载 n. 负载
+fuel	n. 燃料 v. 加燃料
+modern	adj. 现代的，近代的
+common	adj. 普通的，共同的
+produce	v. 生产，产生
+castle	n. 城堡
+supreme	adj. 最高的，极度的
+ask	v. 问，要求，邀请
+dumb	adj. 哑的，说不出话的
+pin	n. 针 v. 别住
+attain	v. 达到，获得
+curtain	n. 窗帘，幕
+fog	n. 雾
+rotten	adj. 腐烂的，糟糕的
+mysterious	adj. 神秘的，难以理解的
+diary	n. 日记
+survive	v. 幸存，活下来
+bicycle	n. 自行车
+sausage	n. 香肠
+attack	v. 攻击，进攻 n. 攻击，发作
+saw	n. 锯子 v. 锯
+indication	n. 迹象，指示
+submarine	adj. 水下的 n. 潜水艇
+overseas	adv. 在海外 adj. 海外的
+oriental	adj. 东方的
+for	prep. 为，给，因为
+healthy	adj. 健康的，有益健康的
+multiple	adj. 多种的，多样的 n. 倍数
+cock	n. 公鸡
+actress	n. 女演员
+strap	n. 带子 v. 捆扎
+economic	adj. 经济的
+barrel	n. 桶，枪管
+hand	n. 手，指针
+partly	adv. 部分地
+paw	n. 爪子 v. 抓，扒
+upset	v. 弄翻，打翻 adj. 心烦的 n. 不安
+plunge	v. 投入，陷入，猛跌
+injury	n. 伤害，损害
+hopeless	adj. 绝望的，无望的
+escape	v. 逃跑，逃脱 n. 逃跑
+philosophy	n. 哲学，人生观
+thrive	v. 兴旺，繁荣
+fireman	n. 消防队员
+awfully	adv. 很，非常
+golden	adj. 金色的，极好的
+carrot	n. 胡萝卜
+concerning	prep. 关于
+lot	pron. 许多，大量 n. 抽签
+unlikely	adj. 不大可能的
+liar	n. 说谎者
+family	n. 家庭，家族
+hay	n. 干草
+many	adj. 许多的 pron. 许多人
+goal	n. 目标，球门
+indefinite	adj. 不明确的，不定的
+inner	adj. 内部的，内心的
+bear	n. 熊
+pretty	adj. 漂亮的
+therefore	adv. 因此，所以
+goose	n. 鹅
+pupil	n. 学生
+dairy	n. 牛奶场，乳制品 adj. 乳制的
+boundary	n. 分界线，边界
+afterward	adv. 后来，以后
+fan	n. 爱好者，迷
+election	n. 选举
+wheat	n. 小麦
+page	n. 页
+spite	n. 恶意，怨恨 v. 刁难
+relationship	n. 关系，联系
+grape	n. 葡萄
+restrain	v. 抑制，遏制
+dimension	n. 尺寸，方面，规模
+saucer	n. 碟子，茶托
+observer	n. 观察者

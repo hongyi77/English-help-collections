@@ -1,0 +1,120 @@
+﻿slam	v. 猛关，砰地放下 n. 砰的一声
+introduction	n. 介绍，引言
+goodness	n. 善良，美德 int. 天哪
+gunpowder	n. 火药
+pile	n. 堆 v. 堆积
+february	n. 二月
+completely	adv. 完全地，彻底地
+sympathetic	adj. 同情的，赞同的
+desperate	adj. 绝望的，不顾一切的
+initial	adj. 最初的，开始的 n. 首字母
+electron	n. 电子
+comfortable	adj. 舒适的
+association	n. 协会，联合，交往
+diagram	n. 图表，图解
+accustomed	adj. 习惯的
+assistant	n. 助手，助理 adj. 助理的，辅助的
+because	conj. 因为
+religious	adj. 宗教的，虔诚的
+improvement	n. 改进，改善
+efficient	adj. 效率高的，有能力的
+loudspeaker	n. 扬声器，喇叭
+underneath	adv. 在下面 prep. 在…下面 n. 底部
+contain	v. 包含，容纳
+delivery	n. 投递，交付，分娩
+landing	n. 登陆，着陆
+possess	v. 拥有，占有
+between	prep. 在…中间
+awkward	adj. 尴尬的，笨拙的
+generally	adv. 通常，一般地
+payment	n. 支付，付款
+important	adj. 重要的
+approximate	adj. 近似的 v. 近似，估计
+worthless	adj. 无价值的，无用的
+ultimate	adj. 最后的，最终的 n. 终极
+gasoline	n. 汽油
+cunning	adj. 狡猾的
+paragraph	n. 段落，段
+deceive	v. 欺骗，蒙蔽
+voltage	n. 电压
+circulate	v. 循环，流通，传播
+discovery	n. 发现
+forever	adv. 永远，总是
+altogether	adv. 完全，总而言之
+glimpse	v. 瞥见 n. 一瞥
+dialect	n. 方言
+vertical	adj. 垂直的
+romantic	adj. 浪漫的，多情的
+applicable	adj. 适用的，合适的
+apologize	v. 道歉，认错
+anxiety	n. 焦虑，忧虑
+drag	v. 拖，拉 n. 累赘
+government	n. 政府
+outwards	adv. 向外
+withstand	v. 抵挡，反抗
+forgive	v. 原谅，宽恕
+profession	n. 职业
+eighteen	num. 十八
+operational	adj. 可使用的，操作的
+arithmetic	n. 算术
+dangerous	adj. 危险的
+damp	adj. 潮湿的 n. 潮湿 v. 使潮湿
+vain	adj. 徒劳的，自负的
+gratitude	n. 感激，感谢
+accordingly	adv. 因此，所以
+comfort	n. 舒适，安慰 v. 安慰
+employee	n. 雇员
+typical	adj. 典型的，代表性的
+nucleus	n. 核，核心
+cottage	n. 村舍，小屋
+skilled	adj. 熟练的，有技能的
+portrait	n. 肖像，画像
+partial	adj. 部分的，偏袒的
+invasion	n. 入侵，侵略
+audience	n. 听众，观众
+compound	n. 化合物，复合物 adj. 复合的 v. 使合成，加重
+industrialize	v. 使工业化
+normally	adv. 通常，正常地
+ridiculous	adj. 荒谬的，可笑的
+furthermore	adv. 而且，此外
+criminal	n. 罪犯，犯人 adj. 犯罪的，刑事的
+christian	n. 基督教徒 adj. 基督教的
+plantation	n. 种植园
+gradual	adj. 逐渐的
+culture	n. 文化，文明，教养
+immigrant	n. 移民
+preparation	n. 准备，预备
+magnetic	adj. 磁的，有吸引力的
+november	n. 十一月
+clothes	n. 衣服，服装
+glow	n. 光辉，灼热 v. 发光，灼热
+tame	adj. 驯服的 v. 驯服，制服
+equation	n. 方程，等式
+accuracy	n. 准确，精确
+idle	adj. 空闲的，懒散的 v. 虚度
+environment	n. 环境
+extremely	adv. 极其，非常
+certainly	adv. 当然，必定
+tractor	n. 拖拉机
+century	n. 世纪
+gravity	n. 重力，引力，严重性
+northeast	n. 东北 adj. 东北的
+purpose	n. 目的，意图
+literary	adj. 文学的
+nursery	n. 托儿所，苗圃
+resolution	n. 决议，决心，解决
+disappoint	v. 使失望
+hesitate	v. 犹豫，不情愿
+transmit	v. 传送，发射，传播
+independence	n. 独立，自主
+proceed	v. 进行，前进
+expansion	n. 扩大，扩张，膨胀
+elimination	n. 消除，排除
+rod	n. 杆，棒
+mainland	n. 大陆
+scholar	n. 学者，奖学金获得者
+germany	n. 德国
+clearly	adv. 清楚地，明白地
+propose	v. 提议，建议，求婚
+economy	n. 经济，节约
+discussion	n. 讨论，论述

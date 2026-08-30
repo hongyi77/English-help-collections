@@ -1,14 +1,14 @@
 /* 打包脚本：把 4 个文件合并成单文件手机版
  * 用法：node build-single.js
- * 产出：四级词汇通_手机版.html（自包含，可发到手机直接打开）
+ * 产出：英语词汇通_手机版.html（自包含，可发到手机直接打开）
  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'index.html');
-const OUT = path.join(ROOT, '四级词汇通_手机版.html');
-const FILES = ['vocab-data.js', 'app.js', 'ui.js'];
+const OUT = path.join(ROOT, '英语词汇通_手机版.html');
+const FILES = ['vocab-data.js', 'vocab-libs.js', 'vocab-extra.js', 'app.js', 'ui.js'];
 
 let html = fs.readFileSync(SRC, 'utf8');
 
@@ -26,7 +26,7 @@ for (const f of FILES) {
 }
 
 // 顶部加个说明注释
-html = '<!-- 四级词汇通 手机单文件版：由 build-single.js 生成，发到手机用浏览器直接打开即可 -->\n' + html;
+html = '<!-- 英语词汇通 手机单文件版：由 build-single.js 生成，发到手机用浏览器直接打开即可 -->\n' + html;
 
 fs.writeFileSync(OUT, html, 'utf8');
 console.log('已生成: ' + OUT + ' (' + (fs.statSync(OUT).size / 1024).toFixed(0) + ' KB)');
