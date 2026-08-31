@@ -180,7 +180,7 @@ console.log('\n[6] 学习会话回归：出题→答对→提交');
   const idx = g('session.q.options.findIndex(o => o.isAnswer)');
   g(`recognizeAnswer(${idx}, null)`);
   ok(g(`curWords()['${w}'] && curWords()['${w}'].stage`) === 1, '答对后 learnWord 提交（stage=1）');
-  ok(g('state.learnedToday').includes(w), '计入今日已学');
+  ok(g('curDaily().learnedToday').includes(w), '计入今日已学（当前词库）');
 })();
 
 /* ================= 7. 设置缺省合并（autoSpeak） ================= */
@@ -257,7 +257,7 @@ console.log('\n[10] 首页复习进度条渲染');
   const bar = documentStub.getElementById('goalReviewBar');
   ok(typeof bar.style.width === 'string', 'goalReviewBar 存在且可设置宽度');
   ok(bar.style.width === '0%', '未复习时进度 0%');
-  g(`state.reviewedToday = ['a','b','c','d','e']; renderGoalCard()`);
+  g(`curDaily().reviewedToday = ['a','b','c','d','e']; renderGoalCard()`);
   ok(bar.style.width === '50%', '复习 5/10 后进度 50%');
 })();
 
@@ -888,6 +888,55 @@ console.log('\n[25] 发音引擎:声音优选/默认设置/降级链');
   ok(zhEdge.indexOf('艾莉雅') < 0, '普通话音色下拉不含英语音色');
   ok(enEdge.indexOf('selected') > 0, '当前音色处于选中态');
 
-  console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
+/* ================= 28. 每日目标按词库独立 ================= */
+console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
+(() => {
+  // 四级学满 2 个（目标调小方便测试）
+  g(`state = defaultState(); state.settings.dailyNew = 2; saveState();`);
+  g(`learnWord('hello'); learnWord('word');`);
+  ok(g('goalInfo().done') === true, '四级今日新学达标');
+  // 切到小学词库：额度全新，不继承四级的已学
+  g(`setLibrary('primary')`);
+  ok(g('goalInfo().learned') === 0, '小学词库今日已学为 0（不继承四级）');
+  ok(g('goalInfo().done') === false, '小学词库目标未达成（四级学满不阻断）');
+  // 小学词库学 1 个：两边计数各存各的
+  g(`learnWord('younger')`);
+  ok(g('goalInfo().learned') === 1 && g('goalInfo().remaining') === 1, '小学词库单独计数');
+  g(`setLibrary('cet4')`);
+  ok(g('goalInfo().learned') === 2, '切回四级已学仍是 2');
+  ok(g('state.learnedToday') === undefined, '顶层不再有全局每日计数');
+  // 复习计数同样按库隔离
+  g(`curWords()['hello'].due = Date.now() - 1; reviewCorrect('hello');`);
+  g(`setLibrary('primary'); reviewCorrect('younger');`);
+  ok(g('goalInfo().reviewedToday') === 1, '小学词库已复习 1（只算自己的）');
+  g(`setLibrary('cet4')`);
+  ok(g('goalInfo().reviewedToday') === 1, '四级已复习 1（互不串扰）');
+  // 目标阻断按库判断：四级完成页 vs 小学正常开会话
+  g(`setLibrary('primary')`);
+  g('startStudy()');
+  ok(g('session && session.queue.length') === 1, '四级学满后切小学仍可正常开新学会话');
+  g(`setLibrary('cet4')`);
+  g('startStudy()');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('今日新学目标已完成'), '四级显示目标完成页（按库阻断）');
+  // 旧档迁移：顶层每日计数 → 迁入当前词库
+  storage.set('cet4_study_state_v1', JSON.stringify({
+    settings: { dailyNew: 5, lib: 'senior' },
+    libs: { senior: { words: {} } },
+    today: new Date().toDateString(),
+    learnedToday: ['realistic'], reviewedToday: ['cancel'], history: {},
+  }));
+  g('state = loadState();');
+  ok(g('state.learnedToday') === undefined && g('state.reviewedToday') === undefined, '旧档顶层每日计数已删除');
+  ok(g(`state.libs.senior.learnedToday.includes('realistic')`) === true, '旧档已学迁入切换前所在词库（senior）');
+  ok(g(`state.libs.senior.reviewedToday.includes('cancel')`) === true, '旧档已复习迁入 senior');
+  ok(!g('state.libs.cet4') || g('state.libs.cet4.learnedToday') === undefined, '未错误迁入 cet4');
+  // 跨天重置：所有词库的每日计数一起清
+  g(`state.libs.senior.learnedToday = ['realistic']; state.today = 'Wed Jan 01 2025'; saveState(); state = loadState();`);
+  ok(g(`state.libs.senior.learnedToday.length`) === 0, '跨天后词库每日计数清零');
+  ok(g('state.today') === g('todayStr()'), 'today 更新为当天');
+})();
+
+console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
+
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('测试异常:', e); process.exit(1); });

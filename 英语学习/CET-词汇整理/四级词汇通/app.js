@@ -278,14 +278,12 @@ function memoOf(word) {
  *   inBook: 是否在生词本
  *   created: 首次学习时间戳
  * }
- * 每日目标/学习记录(history)是全局的，不随词库切换分开
+ * 学习进度与每日计数（今日已学/今日已复习）按词库隔离；学习记录(history)是全局的，条目带词库归属
  */
 const defaultState = () => ({
   settings: Object.assign({}, DEFAULT_SETTINGS),
-  libs: {},      // libs[libKey].words = { 单词: 学习记录 }
+  libs: {},      // libs[libKey] = { words: { 单词: 学习记录 }, learnedToday: [], reviewedToday: [] }
   today: todayStr(),
-  learnedToday: [],
-  reviewedToday: [],
   history: {},   // history['YYYY-MM-DD'] = { learned:[], reviewed:[], wrongs:[] }，条目为 [词库key, 单词]
 });
 
@@ -305,6 +303,16 @@ function curWords() {
   if (!state.libs[k].words) state.libs[k].words = {};
   return state.libs[k].words;
 }
+
+/* 词库的每日计数容器（今日已学/今日已复习，按词库隔离；懒创建） */
+function libDaily(k) {
+  if (!state.libs) state.libs = {};
+  if (!state.libs[k]) state.libs[k] = { words: {} };
+  if (!Array.isArray(state.libs[k].learnedToday)) state.libs[k].learnedToday = [];
+  if (!Array.isArray(state.libs[k].reviewedToday)) state.libs[k].reviewedToday = [];
+  return state.libs[k];
+}
+const curDaily = () => libDaily(libKey());
 
 /* 切换词库：仅切设置，进度天然隔离；调用方负责清掉进行中的会话 */
 function setLibrary(key) {
@@ -376,11 +384,15 @@ function loadState() {
     const raw = localStorage.getItem(STATE_KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      // 跨天重置当日计数
+      // 跨天重置当日计数（所有词库一起清——各库共用同一个日历日）
       if (s.today !== todayStr()) {
         s.today = todayStr();
         s.learnedToday = [];
         s.reviewedToday = [];
+        for (const k of Object.keys(s.libs || {})) {
+          if (s.libs[k] && Array.isArray(s.libs[k].learnedToday)) s.libs[k].learnedToday = [];
+          if (s.libs[k] && Array.isArray(s.libs[k].reviewedToday)) s.libs[k].reviewedToday = [];
+        }
       }
       // 设置项缺省合并（旧存档没有 autoSpeak/lib 及自由拼写/听写配置等新字段）
       const hadDictMode = s.settings && s.settings.dictMode != null;
@@ -406,6 +418,15 @@ function loadState() {
         delete s.words;
       }
       if (!s.libs) s.libs = {};
+      // 旧档每日计数在顶层（各词库共用）→ 迁入切换前所在词库，改为按词库独立（2026-08-31）
+      if (Array.isArray(s.learnedToday) || Array.isArray(s.reviewedToday)) {
+        if (!s.libs[s.settings.lib]) s.libs[s.settings.lib] = { words: {} };
+        const t = s.libs[s.settings.lib];
+        if (!Array.isArray(t.learnedToday)) t.learnedToday = s.learnedToday || [];
+        if (!Array.isArray(t.reviewedToday)) t.reviewedToday = s.reviewedToday || [];
+        delete s.learnedToday;
+        delete s.reviewedToday;
+      }
       return s;
     }
   } catch (e) { /* 损坏则重建 */ }
@@ -632,7 +653,8 @@ function learnWord(word) {
   r.stage = 1;
   r.due = Date.now() + INTERVALS[0] * DAY_MS;
   curWords()[word] = r;
-  if (!state.learnedToday.includes(word)) state.learnedToday.push(word);
+  const L = curDaily();
+  if (!L.learnedToday.includes(word)) L.learnedToday.push(word);
   recordLearned(word);
   saveState();
 }
@@ -649,7 +671,8 @@ function reviewCorrect(word) {
     r.due = Date.now() + INTERVALS[r.stage - 1] * DAY_MS;
   }
   curWords()[word] = r;
-  if (!state.reviewedToday.includes(word)) state.reviewedToday.push(word);
+  const L = curDaily();
+  if (!L.reviewedToday.includes(word)) L.reviewedToday.push(word);
   recordReviewed(word);
   saveState();
 }
@@ -663,7 +686,8 @@ function reviewWrong(word, addBook) {
   r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后重试
   if (addBook !== false) r.inBook = true;
   curWords()[word] = r;
-  if (!state.reviewedToday.includes(word)) state.reviewedToday.push(word);
+  const L = curDaily();
+  if (!L.reviewedToday.includes(word)) L.reviewedToday.push(word);
   recordReviewed(word);
   recordWrong(word);
   saveState();
@@ -767,13 +791,18 @@ function stats() {
   const inBook = bookWords().length;
   const due = dueWords().length;
   const unseen = total - seen;
-  return { total, seen, mastered, inBook, due, unseen, learning: classCount('learning'), learnedToday: state.learnedToday.length, reviewedToday: state.reviewedToday.length };
+  const L = curDaily();
+  return { total, seen, mastered, inBook, due, unseen, learning: classCount('learning'), learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
 }
 
-/* ---------------- 每日目标 ---------------- */
+/* ---------------- 每日目标 ----------------
+ * 每日新学/复习的计数与目标达成判定都按当前词库独立：
+ * 四级学满不影响其他词库，切换后各算各的（目标数值仍是全局一份设置）
+ */
 function goalInfo() {
   const target = state.settings.dailyNew;
-  const learned = state.learnedToday.length;
+  const L = curDaily();
+  const learned = L.learnedToday.length;
   const dueToday = dueWords().length;
   const allDone = learned >= target && unseenWords().length === 0;
   return {
@@ -783,7 +812,7 @@ function goalInfo() {
     done: learned >= target,
     allDone,
     dueToday,
-    reviewedToday: state.reviewedToday.length,
+    reviewedToday: L.reviewedToday.length,
   };
 }
 

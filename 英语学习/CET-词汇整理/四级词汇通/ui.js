@@ -240,7 +240,7 @@ function renderLibPicker() {
     </button>`;
   }).join('');
   const note = document.getElementById('libNote');
-  if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库学习进度独立保存，可随时切换。`;
+  if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库的学习进度与每日新学/复习目标都独立保存，可随时切换。`;
   // 题卡右上角角标跟随当前词库（CSS content 用 --lib-badge 变量）
   const root = document.documentElement;
   if (root && root.style) root.style.setProperty('--lib-badge', JSON.stringify(LIBS[cur].name));
@@ -566,7 +566,7 @@ function goalDoneHtml() {
     <div class="quiz-card session-done">
       <div class="icon">${icon("target")}</div>
       <h2>今日新学目标已完成！</h2>
-      <p>今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>坚持就是胜利，明天再来吧 🌙</p>
+      <p>「${escapeHtml(LIBS[libKey()].name)}」今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>各词库目标独立，切换词库可以继续学。<br>坚持就是胜利，明天再来吧 🌙</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
         <button class="next-btn" onclick="goHome()">回到首页</button>
         <button class="btn-ghost" onclick="go('screen-settings')">调整每日目标，继续学习</button>
