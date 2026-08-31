@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=19').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=20').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -22664,6 +22664,31 @@ function recordWrong(word) {
   saveState();
 }
 
+/* 每日计数对账：以当天 history 为权威，重建各词库的 learnedToday/reviewedToday。
+ * history 条目自带词库归属，且 learnWord/reviewCorrect/reviewWrong 写计数时必同步写 history
+ * （计数 ⊆ history，重建不丢数）。自愈旧版混库迁移造成的污染——2026-08-31 实测 bug：
+ * 首页「新学 20/20」vs 按日期「当天新学 3 词」，根因是旧档顶层混库计数被整体迁进了 cet4 */
+function reconcileDailyFromHistory(s) {
+  const libs = s.libs || (s.libs = {});
+  for (const k of Object.keys(libs)) {
+    libs[k].learnedToday = [];
+    libs[k].reviewedToday = [];
+  }
+  const rec = s.history && s.history[dateKey()];
+  if (!rec) return;
+  const fill = (list, field) => {
+    for (const e of (list || [])) {
+      const p = normHistEntry(e);
+      if (!p) continue;
+      if (!libs[p[0]]) libs[p[0]] = { words: {} };
+      if (!Array.isArray(libs[p[0]][field])) libs[p[0]][field] = [];
+      if (!libs[p[0]][field].includes(p[1])) libs[p[0]][field].push(p[1]);
+    }
+  };
+  fill(rec.learned, 'learnedToday');
+  fill(rec.reviewed, 'reviewedToday');
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STATE_KEY);
@@ -22703,15 +22728,11 @@ function loadState() {
         delete s.words;
       }
       if (!s.libs) s.libs = {};
-      // 旧档每日计数在顶层（各词库共用）→ 迁入切换前所在词库，改为按词库独立（2026-08-31）
-      if (Array.isArray(s.learnedToday) || Array.isArray(s.reviewedToday)) {
-        if (!s.libs[s.settings.lib]) s.libs[s.settings.lib] = { words: {} };
-        const t = s.libs[s.settings.lib];
-        if (!Array.isArray(t.learnedToday)) t.learnedToday = s.learnedToday || [];
-        if (!Array.isArray(t.reviewedToday)) t.reviewedToday = s.reviewedToday || [];
-        delete s.learnedToday;
-        delete s.reviewedToday;
-      }
+      // 旧档顶层每日计数（各词库混在一起）直接废弃：每日计数一律按当天 history 重建
+      // （history 条目自带词库归属，是权威数据源，见 reconcileDailyFromHistory）
+      delete s.learnedToday;
+      delete s.reviewedToday;
+      reconcileDailyFromHistory(s);
       return s;
     }
   } catch (e) { /* 损坏则重建 */ }

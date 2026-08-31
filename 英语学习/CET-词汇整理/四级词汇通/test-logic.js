@@ -957,21 +957,41 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
   g(`setLibrary('cet4')`);
   g('startStudy()');
   ok(documentStub.getElementById('studyQuiz').innerHTML.includes('今日新学目标已完成'), '四级显示目标完成页（按库阻断）');
-  // 旧档迁移：顶层每日计数 → 迁入当前词库
+  // 每日计数对账：一律按当天 history 重建（条目自带词库归属，混库的顶层计数废弃）
+  const todayK = new Date();
+  const p2 = n => String(n).padStart(2, '0');
+  const todayKey = todayK.getFullYear() + '-' + p2(todayK.getMonth()+1) + '-' + p2(todayK.getDate());
   storage.set('cet4_study_state_v1', JSON.stringify({
     settings: { dailyNew: 5, lib: 'senior' },
     libs: { senior: { words: {} } },
     today: new Date().toDateString(),
-    learnedToday: ['realistic'], reviewedToday: ['cancel'], history: {},
+    learnedToday: ['realistic'], reviewedToday: ['cancel'],   // 旧版混库顶层计数 → 废弃
+    history: { [todayKey]: { learned: [['senior','realistic'],['cet4','hello']], reviewed: [['cet6','cancel']], wrongs: [] } },
   }));
   g('state = loadState();');
   ok(g('state.learnedToday') === undefined && g('state.reviewedToday') === undefined, '旧档顶层每日计数已删除');
-  ok(g(`state.libs.senior.learnedToday.includes('realistic')`) === true, '旧档已学迁入切换前所在词库（senior）');
-  ok(g(`state.libs.senior.reviewedToday.includes('cancel')`) === true, '旧档已复习迁入 senior');
-  ok(!g('state.libs.cet4') || g('state.libs.cet4.learnedToday') === undefined, '未错误迁入 cet4');
-  // 跨天重置：所有词库的每日计数一起清
-  g(`state.libs.senior.learnedToday = ['realistic']; state.today = 'Wed Jan 01 2025'; saveState(); state = loadState();`);
-  ok(g(`state.libs.senior.learnedToday.length`) === 0, '跨天后词库每日计数清零');
+  ok(g(`state.libs.senior.learnedToday.join()`) === 'realistic', 'senior 计数按 history 归属重建');
+  ok(g(`state.libs.cet4.learnedToday.join()`) === 'hello', 'cet4 计数按 history 归属重建(不再吞别库的词)');
+  ok(g(`state.libs.cet6.reviewedToday.join()`) === 'cancel', 'cet6 复习计数按 history 归属重建');
+  // 污染自愈：库里预置的错误计数（history 里没有的词）在启动对账时被清掉
+  g(`state.libs.cet4.learnedToday.push('badword'); saveState();`);
+  g('state = loadState();');
+  ok(!g('state.libs.cet4.learnedToday').includes('badword'), '预置的污染计数被对账清除');
+  // 正常写入后重启：计数 ⊆ history，对账不丢数
+  g('state = defaultState(); saveState();');
+  g(`learnWord('hello'); learnWord(LIBS.cet4.words[0][0])`);
+  g('state = loadState();');
+  ok(g('curDaily().learnedToday.length') === 2, '正常学习后重启,对账重建计数不丢');
+  // 跨天重置：昨天有计数、今天还没学 → 启动对账后计数为 0
+  g(`state = defaultState(); saveState();`);
+  g(`
+    const ydC = dateKey(Date.now() - DAY_MS);
+    state.history[ydC] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
+    curDaily().learnedToday = ['hello'];
+    state.today = 'Wed Jan 01 2025';
+    saveState(); state = loadState();
+  `);
+  ok(g('curDaily().learnedToday.length') === 0, '跨天后每日计数清零(昨天的不再计入)');
   ok(g('state.today') === g('todayStr()'), 'today 更新为当天');
 })();
 
