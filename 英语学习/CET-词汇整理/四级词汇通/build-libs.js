@@ -2,6 +2,7 @@
  * 用法：node build-libs.js
  * 产出：const VOCAB_LIBS = { 词库key: { name, words: [[单词, 释义], ...] } }
  * 说明：音标(phone)当前应用不展示，暂不输出；源 JSON 保留，以后要用随时加
+ *       源也支持 tab 分隔 txt（单词<TAB>释义，一行一词，如蝶变单词.txt，无音标）
  * 注意：lib-sources 里不放「四级词汇(第二版本).json」——它和内置四级词库是同一份词表
  *      （4483/4544 重合，差异只是专有名词大小写），加进来只会造成重复词库
  */
@@ -18,13 +19,24 @@ const LIBS = [
   { key: 'junior',  file: '初中词汇.json', name: '初中词汇' },
   { key: 'senior',  file: '高中词汇.json', name: '高中词汇' },
   { key: 'cet6',    file: '六级词汇.json', name: '六级词汇' },
+  { key: 'diebian', file: '蝶变单词.txt',  name: '蝶变单词' },
 ];
 
 // 不同学段词库间允许大量同词（如 above 在小学和初中都有），进度各存各的，不做跨库去重
 
+// 读源文件为 [{en, cn}]：json（{en, phone, cn}，音标不输出）或 tab 分隔 txt（单词<TAB>释义）
+function readSource(file) {
+  const raw = fs.readFileSync(path.join(SRC, file), 'utf8').replace(/^\uFEFF/, '');
+  if (file.endsWith('.json')) return JSON.parse(raw);
+  return raw.split(/\r?\n/).filter((l) => l.trim()).map((l) => {
+    const i = l.indexOf('\t');
+    return i < 0 ? { en: l, cn: '' } : { en: l.slice(0, i), cn: l.slice(i + 1).trim() };
+  });
+}
+
 let body = '';
 for (const lib of LIBS) {
-  const raw = JSON.parse(fs.readFileSync(path.join(SRC, lib.file), 'utf8'));
+  const raw = readSource(lib.file);
   const words = [];
   const seen = new Set();
   let skipNoDef = 0, skipDup = 0;
