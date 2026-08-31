@@ -559,10 +559,13 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(cfgHtml.includes('高亮 = 学过词的日子'), '有学过/没学过的图例说明');
   ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
   ok(!cfgHtml.includes('>昨天<') && !cfgHtml.includes('>前天<'), '不再有昨天/前天快捷 chip');
-  // 近期学习标识条:14 天格子,学过词的带 has 标记,选中的带 sel
-  ok((cfgHtml.match(/cfg-day /g) || []).length === 14, '标识条渲染 14 天格子');
-  ok(cfgHtml.includes('cfg-day has'), '学过词的日子有高亮标记');
-  ok(cfgHtml.includes('cfg-day  has sel') || cfgHtml.includes('has sel'), '当前选中日期有区分标识');
+  // 可翻页月历:学过词的高亮、选中的红圈、‹›导航(前天必在当前月或上月,选前天让月历跟过去)
+  g(`setPracticeDate('spell', dateKey(Date.now() - 2 * DAY_MS))`);
+  const calHtml = documentStub.getElementById('spellQuiz').innerHTML;
+  ok((calHtml.match(/calShift/g) || []).length === 2, '月历带上/下月导航(可无限回翻)');
+  ok(calHtml.includes('年') && calHtml.includes('cfg-cal-wd'), '月历渲染年月标题与星期头');
+  ok(calHtml.includes('cfg-cal-day has'), '学过词的日子高亮底色');
+  ok(/cfg-cal-day[^"]*sel/.test(calHtml), '选中的日子有红圈标识');
 })();
 
 /* ================= 20. 功能3:听写 ================= */

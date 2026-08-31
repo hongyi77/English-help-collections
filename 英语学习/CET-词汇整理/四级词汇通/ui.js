@@ -1599,19 +1599,33 @@ function practicePool(kind) {
 
 function setPracticeCfg(key, val) {
   state.settings[key] = val;
-  // 切到「按日期」且还没选过日期：默认昨天
+  // 切到「按日期」且还没选过日期：默认昨天；月历回到今天所在月
   const dateKey2 = key.replace('Scope', 'Date');
-  if (val === 'date' && !state.settings[dateKey2]) {
-    state.settings[dateKey2] = dateKey(Date.now() - DAY_MS);
+  if (val === 'date') {
+    if (!state.settings[dateKey2]) state.settings[dateKey2] = dateKey(Date.now() - DAY_MS);
+    calY = null;
+    calM = null;
   }
   saveState();
   if (key.indexOf('spell') === 0) renderSpellConfig();
   else renderDictConfig();
 }
 
-/* 「按日期」范围：紧凑两行——
+/* 「按日期」范围：紧凑两块——
  * ① 日期按钮(中文日期+系统日历) + 锚点提示(当天第一个新学的词帮认日子)
- * ② 近期标识条：最近 14 天小格子，学过词的高亮+圆点，选中的红圈；格子可点即选中那天 */
+ * ② 可翻页月历：学过词的日子高亮底色，‹ › 无限回翻(history 永久保留)，点任意一天即选中。
+ *    原生日历无法做学过/没学过的标注，月历就是「查看哪天学过」的载体 */
+let calY = null, calM = null;   // 月历浏览的年月(null = 今天所在月)
+
+function calShift(kind, delta) {
+  const base = (calY === null) ? new Date() : new Date(calY, calM, 1);
+  const d = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+  calY = d.getFullYear();
+  calM = d.getMonth();
+  if (kind === 'spell') renderSpellConfig();
+  else renderDictConfig();
+}
+
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
   const words = wordsLearnedOn(cur);
@@ -1622,12 +1636,21 @@ function practiceDateHtml(kind) {
   const info = !cur ? '未选择日期'
     : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
     : '该日无新学记录';
-  const days = [];
-  for (let i = 13; i >= 0; i--) {
-    const ts = Date.now() - i * DAY_MS;
-    const dk = dateKey(ts);
-    days.push(`<button type="button" class="cfg-day ${wordsLearnedOn(dk).length ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${fmt(dk)}" onclick="setPracticeDate('${kind}','${dk}')">${new Date(ts).getDate()}<i></i></button>`);
+  if (calY === null) {
+    const t = new Date();
+    calY = t.getFullYear();
+    calM = t.getMonth();
   }
+  const firstWd = new Date(calY, calM, 1).getDay();          // 1 号是周几(0=日)
+  const daysInMonth = new Date(calY, calM + 1, 0).getDate();
+  let cells = '';
+  for (let i = 0; i < firstWd; i++) cells += '<span></span>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dk = dateKey(new Date(calY, calM, d));
+    const n = wordsLearnedOn(dk).length;
+    cells += `<button type="button" class="cfg-cal-day ${n ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${n ? n + ' 词' : '无记录'}" onclick="setPracticeDate('${kind}','${dk}')">${d}</button>`;
+  }
+  const wd = ['日', '一', '二', '三', '四', '五', '六'].map(w => `<span class="cfg-cal-wd">${w}</span>`).join('');
   return `
     <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 学过词的日子</span></div>
     <div class="cfg-date-row">
@@ -1637,14 +1660,25 @@ function practiceDateHtml(kind) {
       </span>
       <span class="cfg-date-info">${escapeHtml(info)}</span>
     </div>
-    <div class="cfg-day-strip">${days.join('')}</div>
+    <div class="cfg-cal">
+      <div class="cfg-cal-head">
+        <button type="button" class="cfg-cal-nav" aria-label="上个月" onclick="calShift('${kind}',-1)">${icon('chevron-left')}</button>
+        <span class="cfg-cal-title">${calY}年${calM + 1}月</span>
+        <button type="button" class="cfg-cal-nav next" aria-label="下个月" onclick="calShift('${kind}',1)">${icon('chevron-left')}</button>
+      </div>
+      <div class="cfg-cal-grid">${wd}${cells}</div>
+    </div>
   `;
 }
 
-/* 选日期：只接受 YYYY-MM-DD；清空/非法值忽略，保留原选择 */
+/* 选日期：只接受 YYYY-MM-DD；清空/非法值忽略，保留原选择。
+ * 选中后月历跟到该日期所在月(含原生日历跳到很早的日期的情况) */
 function setPracticeDate(kind, v) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
   state.settings[kind + 'Date'] = v;
+  const dt = new Date(v + 'T00:00:00');
+  calY = dt.getFullYear();
+  calM = dt.getMonth();
   saveState();
   if (kind === 'spell') renderSpellConfig();
   else renderDictConfig();
