@@ -19,7 +19,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SETTINGS = {
   dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
   spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
+  spellDate: '',                                          // 自由拼写:「按日期」范围选的日期(YYYY-MM-DD,空=未选)
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
+  dictDate: '',                                           // 听写:「按日期」范围选的日期
   dictWords: [],                                          // 听写自选词单
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
@@ -34,6 +36,7 @@ const SCOPES = [
   { key: 'learning', label: '学习中' },
   { key: 'mastered', label: '已掌握' },
   { key: 'book', label: '生词本' },
+  { key: 'date', label: '按日期' },
 ];
 
 /* ---------------- 词库注册 ----------------
@@ -606,11 +609,32 @@ function wordsByClass(cls) {
 function normScope(v) {
   return (v === 'custom' || SCOPES.some(s => s.key === v)) ? v : 'all';
 }
-function wordsInScope(scope) {
+
+/* 指定日期「新学」的单词（当前词库）。
+ * history 条目为 [词库key, 单词]，兼容旧版纯字符串条目（按词库归属） */
+function wordsLearnedOn(dk) {
+  const rec = state.history && state.history[dk];
+  if (!rec || !Array.isArray(rec.learned)) return [];
+  const set = LIB_WORD_SETS[libKey()];
+  const out = [];
+  for (const e of rec.learned) {
+    const pair = normHistEntry(e);
+    if (pair && pair[0] === libKey() && set.has(pair[1]) && !out.includes(pair[1])) out.push(pair[1]);
+  }
+  return out;
+}
+
+/* scope='date' 时按模式读各自选的日期（spellDate/dictDate） */
+function practiceDateOf(kind) {
+  return state.settings[(kind || 'spell') + 'Date'] || '';
+}
+
+function wordsInScope(scope, kind) {
   if (scope === 'unseen') return unseenWords();
   if (scope === 'learning') return learningWords();
   if (scope === 'mastered') return masteredWords();
   if (scope === 'book') return bookWords();
+  if (scope === 'date') return wordsLearnedOn(practiceDateOf(kind));
   return WORD_LIST.slice();
 }
 

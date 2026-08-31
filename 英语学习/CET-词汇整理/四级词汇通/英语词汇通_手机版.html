@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=16').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=17').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -442,6 +442,8 @@
   .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
   .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .cfg-chips .master-tab { margin: 0; }
+  /* 「按日期」范围的日期输入：外观对齐 chip，iOS/安卓弹原生日期选择器 */
+  input.cfg-date { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 13px; color: var(--ink); font-family: var(--mono); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
   /* 练习数量输入(自由拼写/听写) */
@@ -22279,7 +22281,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SETTINGS = {
   dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
   spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
+  spellDate: '',                                          // 自由拼写:「按日期」范围选的日期(YYYY-MM-DD,空=未选)
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
+  dictDate: '',                                           // 听写:「按日期」范围选的日期
   dictWords: [],                                          // 听写自选词单
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
@@ -22294,6 +22298,7 @@ const SCOPES = [
   { key: 'learning', label: '学习中' },
   { key: 'mastered', label: '已掌握' },
   { key: 'book', label: '生词本' },
+  { key: 'date', label: '按日期' },
 ];
 
 /* ---------------- 词库注册 ----------------
@@ -22866,11 +22871,32 @@ function wordsByClass(cls) {
 function normScope(v) {
   return (v === 'custom' || SCOPES.some(s => s.key === v)) ? v : 'all';
 }
-function wordsInScope(scope) {
+
+/* 指定日期「新学」的单词（当前词库）。
+ * history 条目为 [词库key, 单词]，兼容旧版纯字符串条目（按词库归属） */
+function wordsLearnedOn(dk) {
+  const rec = state.history && state.history[dk];
+  if (!rec || !Array.isArray(rec.learned)) return [];
+  const set = LIB_WORD_SETS[libKey()];
+  const out = [];
+  for (const e of rec.learned) {
+    const pair = normHistEntry(e);
+    if (pair && pair[0] === libKey() && set.has(pair[1]) && !out.includes(pair[1])) out.push(pair[1]);
+  }
+  return out;
+}
+
+/* scope='date' 时按模式读各自选的日期（spellDate/dictDate） */
+function practiceDateOf(kind) {
+  return state.settings[(kind || 'spell') + 'Date'] || '';
+}
+
+function wordsInScope(scope, kind) {
   if (scope === 'unseen') return unseenWords();
   if (scope === 'learning') return learningWords();
   if (scope === 'mastered') return masteredWords();
   if (scope === 'book') return bookWords();
+  if (scope === 'date') return wordsLearnedOn(practiceDateOf(kind));
   return WORD_LIST.slice();
 }
 
@@ -24628,11 +24654,12 @@ function spellCfgHtml(kind) {
   return `
     <div class="cfg-title">选择范围</div>
     <div class="cfg-chips">${SCOPES.map(s => {
-      const n = wordsInScope(s.key).length;
+      const n = wordsInScope(s.key, kind).length;
       return `<button class="master-tab ${s.key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${s.key}')">${s.label} <span class="mt-cnt">${n}</span></button>`;
     }).join('')}
       <button class="master-tab ${scope === 'custom' ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','custom')">自选 <span class="mt-cnt">${pickedN}</span></button>
     </div>
+    ${scope === 'date' ? practiceDateHtml(kind) : ''}
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
     <div class="cfg-title">数量 <span class="mt-cnt">（1 ~ ${WORD_LIST.length}，实际取词不足时按剩余数）</span></div>
     <div class="set-ctrl" style="justify-content:flex-start">
@@ -24678,21 +24705,58 @@ function practicePicked(kind) {
   return (Array.isArray(list) ? list : []).filter(w => set.has(w));
 }
 
-/* 某模式的实际取词池：自选范围用词单，其余按范围取 */
+/* 某模式的实际取词池：自选范围用词单，其余按范围取（date 范围按各模式自己的日期） */
 function practicePool(kind) {
   const scope = normScope(state.settings[kind + 'Scope']);
   if (scope === 'custom') {
     const picked = practicePicked(kind);
     return picked.length ? picked : [];
   }
-  return wordsInScope(scope);
+  return wordsInScope(scope, kind);
 }
 
 function setPracticeCfg(key, val) {
   state.settings[key] = val;
+  // 切到「按日期」且还没选过日期：默认昨天
+  const dateKey2 = key.replace('Scope', 'Date');
+  if (val === 'date' && !state.settings[dateKey2]) {
+    state.settings[dateKey2] = dateKey(Date.now() - DAY_MS);
+  }
   saveState();
   if (key.indexOf('spell') === 0) renderSpellConfig();
   else renderDictConfig();
+}
+
+/* 「按日期」范围的日期行：昨天/前天快捷键 + 任意日期（上限今天）；
+ * 统计的是当天「新学」的词（当前词库） */
+function practiceDateHtml(kind) {
+  const cur = state.settings[kind + 'Date'] || '';
+  const chip = (dk, label) => `<button class="master-tab ${cur === dk ? 'active' : ''}" onclick="setPracticeDate('${kind}','${dk}')">${label} <span class="mt-cnt">${wordsLearnedOn(dk).length}</span></button>`;
+  return `
+    <div class="cfg-title">选择日期 <span class="mt-cnt">（取当天新学的词，当前词库 ${wordsLearnedOn(cur).length} 个）</span></div>
+    <div class="cfg-chips">
+      ${chip(dateKey(Date.now() - DAY_MS), '昨天')}
+      ${chip(dateKey(Date.now() - 2 * DAY_MS), '前天')}
+      <input type="date" class="cfg-date" value="${escapeHtml(cur)}" max="${dateKey()}" onchange="setPracticeDate('${kind}', this.value)">
+    </div>
+  `;
+}
+
+/* 选日期：只接受 YYYY-MM-DD；清空/非法值忽略，保留原选择 */
+function setPracticeDate(kind, v) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
+  state.settings[kind + 'Date'] = v;
+  saveState();
+  if (kind === 'spell') renderSpellConfig();
+  else renderDictConfig();
+}
+
+/* 配置页空池提示：按范围给针对性文案 */
+function practiceEmptyHtml(kind) {
+  const scope = normScope(state.settings[kind + 'Scope']);
+  if (scope === 'custom') return '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>';
+  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有新学单词，换一天或换个范围试试</div>';
+  return '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>';
 }
 
 function renderSpellConfig() {
@@ -24706,7 +24770,7 @@ function renderSpellConfig() {
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
       <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
       ${spellCfgHtml('spell')}
-      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      ${pool.length ? '' : practiceEmptyHtml('spell')}
       <button class="next-btn" id="spellStartBtn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
     </div>
   `;
@@ -24896,7 +24960,7 @@ function openWordPicker(kind) {
 function pickerPool() {
   let words;
   if (pickerFilter === 'picked') words = practicePicked(pickerKind);
-  else if (pickerFilter !== 'all') words = wordsInScope(pickerFilter);
+  else if (pickerFilter !== 'all') words = wordsInScope(pickerFilter, pickerKind);
   else words = WORD_LIST.slice();
   const q = pickerSearch.toLowerCase();
   if (q) {
@@ -25115,7 +25179,7 @@ function renderDictConfig() {
       <div class="rate-row">
         <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
       </div>
-      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      ${pool.length ? '' : practiceEmptyHtml('dict')}
       <button class="next-btn" id="dictStartBtn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
     </div>
   `;

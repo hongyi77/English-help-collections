@@ -1536,11 +1536,12 @@ function spellCfgHtml(kind) {
   return `
     <div class="cfg-title">选择范围</div>
     <div class="cfg-chips">${SCOPES.map(s => {
-      const n = wordsInScope(s.key).length;
+      const n = wordsInScope(s.key, kind).length;
       return `<button class="master-tab ${s.key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${s.key}')">${s.label} <span class="mt-cnt">${n}</span></button>`;
     }).join('')}
       <button class="master-tab ${scope === 'custom' ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','custom')">自选 <span class="mt-cnt">${pickedN}</span></button>
     </div>
+    ${scope === 'date' ? practiceDateHtml(kind) : ''}
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
     <div class="cfg-title">数量 <span class="mt-cnt">（1 ~ ${WORD_LIST.length}，实际取词不足时按剩余数）</span></div>
     <div class="set-ctrl" style="justify-content:flex-start">
@@ -1586,21 +1587,58 @@ function practicePicked(kind) {
   return (Array.isArray(list) ? list : []).filter(w => set.has(w));
 }
 
-/* 某模式的实际取词池：自选范围用词单，其余按范围取 */
+/* 某模式的实际取词池：自选范围用词单，其余按范围取（date 范围按各模式自己的日期） */
 function practicePool(kind) {
   const scope = normScope(state.settings[kind + 'Scope']);
   if (scope === 'custom') {
     const picked = practicePicked(kind);
     return picked.length ? picked : [];
   }
-  return wordsInScope(scope);
+  return wordsInScope(scope, kind);
 }
 
 function setPracticeCfg(key, val) {
   state.settings[key] = val;
+  // 切到「按日期」且还没选过日期：默认昨天
+  const dateKey2 = key.replace('Scope', 'Date');
+  if (val === 'date' && !state.settings[dateKey2]) {
+    state.settings[dateKey2] = dateKey(Date.now() - DAY_MS);
+  }
   saveState();
   if (key.indexOf('spell') === 0) renderSpellConfig();
   else renderDictConfig();
+}
+
+/* 「按日期」范围的日期行：昨天/前天快捷键 + 任意日期（上限今天）；
+ * 统计的是当天「新学」的词（当前词库） */
+function practiceDateHtml(kind) {
+  const cur = state.settings[kind + 'Date'] || '';
+  const chip = (dk, label) => `<button class="master-tab ${cur === dk ? 'active' : ''}" onclick="setPracticeDate('${kind}','${dk}')">${label} <span class="mt-cnt">${wordsLearnedOn(dk).length}</span></button>`;
+  return `
+    <div class="cfg-title">选择日期 <span class="mt-cnt">（取当天新学的词，当前词库 ${wordsLearnedOn(cur).length} 个）</span></div>
+    <div class="cfg-chips">
+      ${chip(dateKey(Date.now() - DAY_MS), '昨天')}
+      ${chip(dateKey(Date.now() - 2 * DAY_MS), '前天')}
+      <input type="date" class="cfg-date" value="${escapeHtml(cur)}" max="${dateKey()}" onchange="setPracticeDate('${kind}', this.value)">
+    </div>
+  `;
+}
+
+/* 选日期：只接受 YYYY-MM-DD；清空/非法值忽略，保留原选择 */
+function setPracticeDate(kind, v) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
+  state.settings[kind + 'Date'] = v;
+  saveState();
+  if (kind === 'spell') renderSpellConfig();
+  else renderDictConfig();
+}
+
+/* 配置页空池提示：按范围给针对性文案 */
+function practiceEmptyHtml(kind) {
+  const scope = normScope(state.settings[kind + 'Scope']);
+  if (scope === 'custom') return '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>';
+  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有新学单词，换一天或换个范围试试</div>';
+  return '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>';
 }
 
 function renderSpellConfig() {
@@ -1614,7 +1652,7 @@ function renderSpellConfig() {
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
       <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
       ${spellCfgHtml('spell')}
-      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      ${pool.length ? '' : practiceEmptyHtml('spell')}
       <button class="next-btn" id="spellStartBtn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
     </div>
   `;
@@ -1804,7 +1842,7 @@ function openWordPicker(kind) {
 function pickerPool() {
   let words;
   if (pickerFilter === 'picked') words = practicePicked(pickerKind);
-  else if (pickerFilter !== 'all') words = wordsInScope(pickerFilter);
+  else if (pickerFilter !== 'all') words = wordsInScope(pickerFilter, pickerKind);
   else words = WORD_LIST.slice();
   const q = pickerSearch.toLowerCase();
   if (q) {
@@ -2023,7 +2061,7 @@ function renderDictConfig() {
       <div class="rate-row">
         <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
       </div>
-      ${pool.length ? '' : (custom ? '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>' : '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>')}
+      ${pool.length ? '' : practiceEmptyHtml('dict')}
       <button class="next-btn" id="dictStartBtn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
     </div>
   `;

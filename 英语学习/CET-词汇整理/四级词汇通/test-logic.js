@@ -532,6 +532,31 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   g(`const bl = wordsInScope('book')`);
   ok(g('bl.length') === 1 && g('bl[0]') === 'hello', 'book 范围只含生词本单词');
   ok(g('normScope("不存在的范围")') === 'all', '无效范围回落到全部');
+  // 「按日期」范围:取指定日期新学的词(当前词库,history 条目 [lib, word])
+  g(`state = defaultState(); saveState();`);
+  g(`
+    const yd = dateKey(Date.now() - DAY_MS), dby = dateKey(Date.now() - 2 * DAY_MS);
+    const w2 = LIBS.cet4.words[0][0];
+    state.history[yd] = { learned: [['cet4','hello'],['cet6','cancel']], reviewed: [], wrongs: [] };
+    state.history[dby] = { learned: [['cet4', w2]], reviewed: [], wrongs: [] };
+    saveState();
+  `);
+  g(`setPracticeCfg('spellScope','date')`);
+  ok(g('normScope(state.settings.spellScope)') === 'date', '范围切到「按日期」');
+  ok(g('state.settings.spellDate') === g("dateKey(Date.now() - DAY_MS)"), '未选过日期时默认昨天');
+  ok(g("wordsInScope('date','spell').join()") === 'hello', '按日期=昨天:只取当天当前词库新学的词(他库词过滤)');
+  ok(g("practicePool('spell').join()") === 'hello', '自由拼写取词池按日期取词');
+  g(`setPracticeDate('spell', dateKey(Date.now() - 2 * DAY_MS))`);
+  ok(g("practicePool('spell').join()") === g("LIBS.cet4.words[0][0]"), '改选前天后取词跟随');
+  g(`setPracticeCfg('dictScope','date'); setPracticeDate('dict', dateKey(Date.now() - DAY_MS))`);
+  ok(g('state.settings.dictDate') === g("dateKey(Date.now() - DAY_MS)") && g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '听写与自由拼写的日期各自独立记忆');
+  ok(g("practicePool('dict').join()") === 'hello', '听写取词池按自己的日期取词');
+  g(`setPracticeDate('spell','')`);
+  ok(g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '清空/非法日期被忽略,保留原选择');
+  g('renderSpellConfig()');
+  const cfgHtml = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(cfgHtml.includes('选择日期') && cfgHtml.includes('昨天') && cfgHtml.includes('type="date"'), '配置页渲染日期选择行');
+  ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
 })();
 
 /* ================= 20. 功能3:听写 ================= */
