@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=20').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=21').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -448,11 +448,11 @@
   .cfg-date-btn svg { width: 13px; height: 13px; color: var(--ink-soft); transform: rotate(-90deg); }
   .cfg-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
   .cfg-date-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
-  /* 近期学习标识条：最近 14 天，学过词=墨蓝字+圆点，选中=红圈；格子可点选 */
+  /* 近期学习标识条：最近 14 天，学过词=浅蓝底+墨蓝加粗+圆点，选中=红圈，没学=浅灰；格子可点选 */
   .cfg-day-strip { display: flex; gap: 5px; margin-top: 8px; overflow-x: auto; padding: 2px; }
   .cfg-day { min-width: 30px; height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 12px; font-family: var(--mono); color: var(--muted); cursor: pointer; padding: 0; }
   .cfg-day i { width: 4px; height: 4px; border-radius: 50%; background: transparent; display: block; }
-  .cfg-day.has { color: var(--ink-blue); }
+  .cfg-day.has { color: var(--ink-blue); background: var(--blue-soft); font-weight: 700; }
   .cfg-day.has i { background: var(--ink-blue); }
   .cfg-day.sel { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); }
   .cfg-day.sel i { background: var(--pen-red); }
@@ -24780,7 +24780,7 @@ function practiceDateHtml(kind) {
     days.push(`<button type="button" class="cfg-day ${wordsLearnedOn(dk).length ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${fmt(dk)}" onclick="setPracticeDate('${kind}','${dk}')">${new Date(ts).getDate()}<i></i></button>`);
   }
   return `
-    <div class="cfg-title">选择日期</div>
+    <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 学过词的日子</span></div>
     <div class="cfg-date-row">
       <span class="cfg-date-btn">
         <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${dateKey()}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">

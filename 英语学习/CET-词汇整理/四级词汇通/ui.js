@@ -1629,7 +1629,7 @@ function practiceDateHtml(kind) {
     days.push(`<button type="button" class="cfg-day ${wordsLearnedOn(dk).length ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${fmt(dk)}" onclick="setPracticeDate('${kind}','${dk}')">${new Date(ts).getDate()}<i></i></button>`);
   }
   return `
-    <div class="cfg-title">选择日期</div>
+    <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 学过词的日子</span></div>
     <div class="cfg-date-row">
       <span class="cfg-date-btn">
         <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${dateKey()}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">
