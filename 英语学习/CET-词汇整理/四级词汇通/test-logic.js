@@ -442,11 +442,19 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   ok(g("libKey()") === 'cet6', 'UI 确认后切换成功并持久化');
   g(`state = loadState();`);
   ok(g("state.settings.lib") === 'cet6', '刷新后词库选择保留');
-  // 设置页词库 chips 渲染（词库切换入口在设置 Tab）
-  g('refreshHome()');
+  // 设置页词库两级选择：系列分组行 + 展开后的词库 chips（手风琴，默认展开当前词库所在组）
+  g('libGroupOpen = undefined; refreshHome()');
   const libHtml = documentStub.getElementById('libList').innerHTML;
-  ok((libHtml.match(/confirmSwitchLib/g) || []).length >= 5, `设置页渲染 ${g('Object.keys(LIBS).length')} 个词库 chip`);
+  ok(libHtml.includes('四六级') && libHtml.includes('学段词汇') && libHtml.includes('蝶变系列'), '渲染 3 个系列分组行');
+  ok((libHtml.match(/confirmSwitchLib/g) || []).length === 2, `默认只展开当前分组（四六级 2 个 chip，共 ${g('Object.keys(LIBS).length')} 库）`);
   ok(libHtml.includes('master-tab active'), '当前词库 chip 高亮');
+  // 展开蝶变系列：小学版（原 diebian 改名）+ 初中版
+  ok(g("LIBS['diebian'].name").includes('小学版'), '原蝶变单词已改名（小学版），key 不变保进度');
+  ok(g("LIBS['diebian_junior'].words.length") === 1887, '蝶变初中版入库 1887 词（2018 行去同词重复）');
+  g("toggleLibGroup('蝶变系列')");
+  const dbHtml = documentStub.getElementById('libList').innerHTML;
+  ok(dbHtml.includes('蝶变单词（小学版）') && dbHtml.includes('蝶变单词·初中版'), '蝶变系列展开后含小学版+初中版');
+  ok((dbHtml.match(/confirmSwitchLib/g) || []).length === 2, '手风琴单开：蝶变系列展开时其余组收起');
   ok(documentStub.getElementById('libNote').textContent.includes('六级'), '词库说明显示当前词库');
   // 切回四级，说明跟随更新
   g(`setLibrary('cet4')`);

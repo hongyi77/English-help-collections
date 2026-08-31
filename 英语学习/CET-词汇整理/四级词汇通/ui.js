@@ -226,18 +226,38 @@ function previewVoice(kind) {
   else speakWord('vocabulary');
 }
 
-/* 词库选择器（设置页）：chip 列表，当前词库高亮；点击弹确认后切换 */
+/* 词库选择器（设置页）：两级结构——先展示系列分组行，点开分组再选具体词库。
+ * libGroupOpen：当前展开的分组；undefined=自动（展开当前词库所在组），''=用户手动全部收起 */
+let libGroupOpen;
+
+function toggleLibGroup(label) {
+  libGroupOpen = (libGroupOpen === label) ? '' : label;
+  renderLibPicker();
+}
+
 function renderLibPicker() {
   const el = document.getElementById('libList');
   if (!el) return;
   const cur = libKey();
-  el.innerHTML = Object.keys(LIBS).map(k => {
-    const lib = LIBS[k];
-    const act = k === cur ? 'active' : '';
-    const n = LIB_WORD_SETS[k].size;
-    return `<button class="master-tab ${act}" data-lib="${k}" onclick="confirmSwitchLib('${k}')">
-      ${escapeHtml(lib.name)} <span class="mt-cnt">${n}</span>
-    </button>`;
+  const groupOf = {};
+  LIB_GROUPS.forEach(g => g.libs.forEach(k => { groupOf[k] = g.label; }));
+  const curGroup = groupOf[cur];
+  const open = (libGroupOpen === undefined) ? curGroup : libGroupOpen;
+  el.innerHTML = LIB_GROUPS.filter(g => g.libs.some(k => LIBS[k])).map(g => {
+    const isCurGroup = g.label === curGroup;
+    const isOpen = g.label === open;
+    const chips = g.libs.filter(k => LIBS[k]).map(k => `
+      <button class="master-tab ${k === cur ? 'active' : ''}" data-lib="${k}" onclick="confirmSwitchLib('${k}')">
+        ${escapeHtml(LIBS[k].name)} <span class="mt-cnt">${LIB_WORD_SETS[k].size}</span>
+      </button>`).join('');
+    return `<div class="lib-group">
+      <button class="lib-group-head ${isCurGroup ? 'current' : ''}" onclick="toggleLibGroup('${g.label}')">
+        <span class="lib-group-name">${escapeHtml(g.label)}</span>
+        ${isCurGroup ? `<span class="lib-group-cur">${escapeHtml(LIBS[cur].name)}</span>` : ''}
+        <span class="lib-group-arrow ${isOpen ? 'open' : ''}">${icon('chevron-left')}</span>
+      </button>
+      ${isOpen ? `<div class="lib-group-chips">${chips}</div>` : ''}
+    </div>`;
   }).join('');
   const note = document.getElementById('libNote');
   if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库的学习进度与每日新学/复习目标都独立保存，可随时切换。`;

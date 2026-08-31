@@ -14,12 +14,14 @@ const SRC = path.join(ROOT, 'lib-sources');
 const OUT = path.join(ROOT, 'vocab-libs.js');
 
 // key 顺序即设置页展示顺序；cet4 是内置词库（vocab-data.js），不在此列
+// group：设置页词库 chips 的分组标签，与 app.js 的 LIB_GROUPS 对应
 const LIBS = [
-  { key: 'primary', file: '小学词汇.json', name: '小学词汇' },
-  { key: 'junior',  file: '初中词汇.json', name: '初中词汇' },
-  { key: 'senior',  file: '高中词汇.json', name: '高中词汇' },
-  { key: 'cet6',    file: '六级词汇.json', name: '六级词汇' },
-  { key: 'diebian', file: '蝶变单词.txt',  name: '蝶变单词' },
+  { key: 'primary',        file: '小学词汇.json',      name: '小学词汇',       group: '学段词汇' },
+  { key: 'junior',         file: '初中词汇.json',      name: '初中词汇',       group: '学段词汇' },
+  { key: 'senior',         file: '高中词汇.json',      name: '高中词汇',       group: '学段词汇' },
+  { key: 'cet6',           file: '六级词汇.json',      name: '六级词汇',       group: '四六级' },
+  { key: 'diebian',        file: '蝶变单词.txt',       name: '蝶变单词（小学版）', group: '蝶变系列' },
+  { key: 'diebian_junior', file: '蝶变单词(初中版).txt', name: '蝶变单词·初中版', group: '蝶变系列' },
 ];
 
 // 不同学段词库间允许大量同词（如 above 在小学和初中都有），进度各存各的，不做跨库去重

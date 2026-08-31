@@ -59,6 +59,14 @@ for (const k of Object.keys(LIBS)) {
   LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
 }
 
+/* 词库分组（设置页两级选择 UI：先选系列，再选具体词库）。
+ * 只影响展示布局，词库本身互不合并；分组里没列到的词库不显示 */
+const LIB_GROUPS = [
+  { label: '四六级',   libs: ['cet4', 'cet6'] },
+  { label: '学段词汇', libs: ['primary', 'junior', 'senior'] },
+  { label: '蝶变系列', libs: ['diebian', 'diebian_junior'] },
+];
+
 /* 在指定词库里查单词释义 */
 function defInLib(lib, word) {
   const m = LIB_DEF_MAPS[lib];
