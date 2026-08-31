@@ -450,7 +450,8 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   ok(libHtml.includes('master-tab active'), '当前词库 chip 高亮');
   // 展开蝶变系列：小学版（原 diebian 改名）+ 初中版
   ok(g("LIBS['diebian'].name").includes('小学版'), '原蝶变单词已改名（小学版），key 不变保进度');
-  ok(g("LIBS['diebian_junior'].words.length") === 1887, '蝶变初中版入库 1887 词（2018 行去同词重复）');
+  ok(g("LIBS['diebian_junior'].words.length") === 1887, '蝶变初中版入库 1887 词（2018 行同词合并释义）');
+  ok(g("defInLib('diebian_junior','match')").includes('比赛') && g("defInLib('diebian_junior','match')").includes('般配'), '同词多义合并为一条释义（match）');
   g("toggleLibGroup('蝶变系列')");
   const dbHtml = documentStub.getElementById('libList').innerHTML;
   ok(dbHtml.includes('蝶变单词（小学版）') && dbHtml.includes('蝶变单词·初中版'), '蝶变系列展开后含小学版+初中版');

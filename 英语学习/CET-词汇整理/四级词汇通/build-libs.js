@@ -40,17 +40,23 @@ let body = '';
 for (const lib of LIBS) {
   const raw = readSource(lib.file);
   const words = [];
-  const seen = new Set();
-  let skipNoDef = 0, skipDup = 0;
+  const idx = new Map();   // 单词 → words 下标
+  let skipNoDef = 0, merged = 0;
   for (const item of raw) {
     const en = (item.en || '').trim();
     let cn = (item.cn || '').replace(/\s+/g, ' ').trim();
     if (!en || !cn) { skipNoDef++; continue; }
-    if (seen.has(en)) { skipDup++; continue; }
-    seen.add(en);
+    if (idx.has(en)) {
+      // 同词多次出现（教材按单元编排，新单元带新词义）→ 合并释义为一条，用「；」连接；
+      // 与已有释义完全相同的出现只算重复，不重复追加
+      const w = words[idx.get(en)];
+      if (!w[1].includes(cn)) { w[1] = w[1] + '；' + cn; merged++; }
+      continue;
+    }
+    idx.set(en, words.length);
     words.push([en, cn]);
   }
-  console.log(`${lib.name}: ${raw.length} 条 → ${words.length} 条（缺释义 ${skipNoDef}，词内重复 ${skipDup}）`);
+  console.log(`${lib.name}: ${raw.length} 条 → ${words.length} 条（缺释义 ${skipNoDef}，同词多义合并 ${merged} 处）`);
   body += `  ${lib.key}: {\n    name: ${JSON.stringify(lib.name)},\n    words: [\n`;
   body += words.map(([w, m]) => `      [${JSON.stringify(w)},${JSON.stringify(m)}]`).join(',\n');
   body += '\n    ],\n  },\n';
