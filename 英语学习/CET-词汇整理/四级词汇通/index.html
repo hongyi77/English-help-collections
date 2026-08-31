@@ -423,6 +423,14 @@
   .cfg-date-btn svg { width: 13px; height: 13px; color: var(--ink-soft); transform: rotate(-90deg); }
   .cfg-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
   .cfg-date-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  /* 近期学习标识条：最近 14 天，学过词=墨蓝字+圆点，选中=红圈；格子可点选 */
+  .cfg-day-strip { display: flex; gap: 5px; margin-top: 8px; overflow-x: auto; padding: 2px; }
+  .cfg-day { min-width: 30px; height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 12px; font-family: var(--mono); color: var(--muted); cursor: pointer; padding: 0; }
+  .cfg-day i { width: 4px; height: 4px; border-radius: 50%; background: transparent; display: block; }
+  .cfg-day.has { color: var(--ink-blue); }
+  .cfg-day.has i { background: var(--ink-blue); }
+  .cfg-day.sel { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); }
+  .cfg-day.sel i { background: var(--pen-red); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
   /* 练习数量输入(自由拼写/听写) */

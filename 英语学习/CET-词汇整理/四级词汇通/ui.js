@@ -1609,8 +1609,9 @@ function setPracticeCfg(key, val) {
   else renderDictConfig();
 }
 
-/* 「按日期」范围：紧凑单行——点日期按钮弹系统日历(手机原生选择器)，
- * 旁边用 当天词数+锚点词(当天第一个新学的词) 帮用户认出那一天 */
+/* 「按日期」范围：紧凑两行——
+ * ① 日期按钮(中文日期+系统日历) + 锚点提示(当天第一个新学的词帮认日子)
+ * ② 近期标识条：最近 14 天小格子，学过词的高亮+圆点，选中的红圈；格子可点即选中那天 */
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
   const words = wordsLearnedOn(cur);
@@ -1621,6 +1622,12 @@ function practiceDateHtml(kind) {
   const info = !cur ? '未选择日期'
     : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
     : '该日无新学记录';
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const ts = Date.now() - i * DAY_MS;
+    const dk = dateKey(ts);
+    days.push(`<button type="button" class="cfg-day ${wordsLearnedOn(dk).length ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${fmt(dk)}" onclick="setPracticeDate('${kind}','${dk}')">${new Date(ts).getDate()}<i></i></button>`);
+  }
   return `
     <div class="cfg-title">选择日期</div>
     <div class="cfg-date-row">
@@ -1630,6 +1637,7 @@ function practiceDateHtml(kind) {
       </span>
       <span class="cfg-date-info">${escapeHtml(info)}</span>
     </div>
+    <div class="cfg-day-strip">${days.join('')}</div>
   `;
 }
 

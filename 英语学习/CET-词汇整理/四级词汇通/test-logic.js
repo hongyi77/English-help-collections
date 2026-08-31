@@ -558,6 +558,10 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(cfgHtml.includes('选择日期') && cfgHtml.includes('type="date"') && cfgHtml.includes('月'), '配置页渲染紧凑日期选择(中文日期+原生日历输入)');
   ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
   ok(!cfgHtml.includes('>昨天<') && !cfgHtml.includes('>前天<'), '不再有昨天/前天快捷 chip');
+  // 近期学习标识条:14 天格子,学过词的带 has 标记,选中的带 sel
+  ok((cfgHtml.match(/cfg-day /g) || []).length === 14, '标识条渲染 14 天格子');
+  ok(cfgHtml.includes('cfg-day has'), '学过词的日子有高亮标记');
+  ok(cfgHtml.includes('cfg-day  has sel') || cfgHtml.includes('has sel'), '当前选中日期有区分标识');
 })();
 
 /* ================= 20. 功能3:听写 ================= */

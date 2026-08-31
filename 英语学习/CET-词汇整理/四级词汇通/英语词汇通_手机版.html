@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=18').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=19').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -448,6 +448,14 @@
   .cfg-date-btn svg { width: 13px; height: 13px; color: var(--ink-soft); transform: rotate(-90deg); }
   .cfg-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
   .cfg-date-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  /* 近期学习标识条：最近 14 天，学过词=墨蓝字+圆点，选中=红圈；格子可点选 */
+  .cfg-day-strip { display: flex; gap: 5px; margin-top: 8px; overflow-x: auto; padding: 2px; }
+  .cfg-day { min-width: 30px; height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 12px; font-family: var(--mono); color: var(--muted); cursor: pointer; padding: 0; }
+  .cfg-day i { width: 4px; height: 4px; border-radius: 50%; background: transparent; display: block; }
+  .cfg-day.has { color: var(--ink-blue); }
+  .cfg-day.has i { background: var(--ink-blue); }
+  .cfg-day.sel { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); }
+  .cfg-day.sel i { background: var(--pen-red); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
   /* 练习数量输入(自由拼写/听写) */
@@ -24731,8 +24739,9 @@ function setPracticeCfg(key, val) {
   else renderDictConfig();
 }
 
-/* 「按日期」范围：紧凑单行——点日期按钮弹系统日历(手机原生选择器)，
- * 旁边用 当天词数+锚点词(当天第一个新学的词) 帮用户认出那一天 */
+/* 「按日期」范围：紧凑两行——
+ * ① 日期按钮(中文日期+系统日历) + 锚点提示(当天第一个新学的词帮认日子)
+ * ② 近期标识条：最近 14 天小格子，学过词的高亮+圆点，选中的红圈；格子可点即选中那天 */
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
   const words = wordsLearnedOn(cur);
@@ -24743,6 +24752,12 @@ function practiceDateHtml(kind) {
   const info = !cur ? '未选择日期'
     : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
     : '该日无新学记录';
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const ts = Date.now() - i * DAY_MS;
+    const dk = dateKey(ts);
+    days.push(`<button type="button" class="cfg-day ${wordsLearnedOn(dk).length ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${fmt(dk)}" onclick="setPracticeDate('${kind}','${dk}')">${new Date(ts).getDate()}<i></i></button>`);
+  }
   return `
     <div class="cfg-title">选择日期</div>
     <div class="cfg-date-row">
@@ -24752,6 +24767,7 @@ function practiceDateHtml(kind) {
       </span>
       <span class="cfg-date-info">${escapeHtml(info)}</span>
     </div>
+    <div class="cfg-day-strip">${days.join('')}</div>
   `;
 }
 
