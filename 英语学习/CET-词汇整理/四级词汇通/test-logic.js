@@ -555,8 +555,9 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '清空/非法日期被忽略,保留原选择');
   g('renderSpellConfig()');
   const cfgHtml = documentStub.getElementById('spellQuiz').innerHTML;
-  ok(cfgHtml.includes('选择日期') && cfgHtml.includes('昨天') && cfgHtml.includes('type="date"'), '配置页渲染日期选择行');
+  ok(cfgHtml.includes('选择日期') && cfgHtml.includes('type="date"') && cfgHtml.includes('月'), '配置页渲染紧凑日期选择(中文日期+原生日历输入)');
   ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
+  ok(!cfgHtml.includes('>昨天<') && !cfgHtml.includes('>前天<'), '不再有昨天/前天快捷 chip');
 })();
 
 /* ================= 20. 功能3:听写 ================= */

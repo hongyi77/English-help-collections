@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=17').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=18').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -442,8 +442,12 @@
   .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
   .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .cfg-chips .master-tab { margin: 0; }
-  /* 「按日期」范围的日期输入：外观对齐 chip，iOS/安卓弹原生日期选择器 */
-  input.cfg-date { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 13px; color: var(--ink); font-family: var(--mono); }
+  /* 「按日期」：紧凑单行——原生日期输入透明覆盖在中文日期标签上(点按即弹系统日历,手机友好) */
+  .cfg-date-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .cfg-date-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 14px; color: var(--ink); }
+  .cfg-date-btn svg { width: 13px; height: 13px; color: var(--ink-soft); transform: rotate(-90deg); }
+  .cfg-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
+  .cfg-date-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
   /* 练习数量输入(自由拼写/听写) */
@@ -24727,17 +24731,26 @@ function setPracticeCfg(key, val) {
   else renderDictConfig();
 }
 
-/* 「按日期」范围的日期行：昨天/前天快捷键 + 任意日期（上限今天）；
- * 统计的是当天「新学」的词（当前词库） */
+/* 「按日期」范围：紧凑单行——点日期按钮弹系统日历(手机原生选择器)，
+ * 旁边用 当天词数+锚点词(当天第一个新学的词) 帮用户认出那一天 */
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
-  const chip = (dk, label) => `<button class="master-tab ${cur === dk ? 'active' : ''}" onclick="setPracticeDate('${kind}','${dk}')">${label} <span class="mt-cnt">${wordsLearnedOn(dk).length}</span></button>`;
+  const words = wordsLearnedOn(cur);
+  const fmt = (dk) => {
+    const p = (dk || '').split('-');
+    return p.length === 3 ? `${+p[1]}月${+p[2]}日` : '选择日期';
+  };
+  const info = !cur ? '未选择日期'
+    : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
+    : '该日无新学记录';
   return `
-    <div class="cfg-title">选择日期 <span class="mt-cnt">（取当天新学的词，当前词库 ${wordsLearnedOn(cur).length} 个）</span></div>
-    <div class="cfg-chips">
-      ${chip(dateKey(Date.now() - DAY_MS), '昨天')}
-      ${chip(dateKey(Date.now() - 2 * DAY_MS), '前天')}
-      <input type="date" class="cfg-date" value="${escapeHtml(cur)}" max="${dateKey()}" onchange="setPracticeDate('${kind}', this.value)">
+    <div class="cfg-title">选择日期</div>
+    <div class="cfg-date-row">
+      <span class="cfg-date-btn">
+        <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${dateKey()}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">
+        <span class="cfg-date-label">${fmt(cur)} ${icon('chevron-left')}</span>
+      </span>
+      <span class="cfg-date-info">${escapeHtml(info)}</span>
     </div>
   `;
 }

@@ -1609,17 +1609,26 @@ function setPracticeCfg(key, val) {
   else renderDictConfig();
 }
 
-/* 「按日期」范围的日期行：昨天/前天快捷键 + 任意日期（上限今天）；
- * 统计的是当天「新学」的词（当前词库） */
+/* 「按日期」范围：紧凑单行——点日期按钮弹系统日历(手机原生选择器)，
+ * 旁边用 当天词数+锚点词(当天第一个新学的词) 帮用户认出那一天 */
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
-  const chip = (dk, label) => `<button class="master-tab ${cur === dk ? 'active' : ''}" onclick="setPracticeDate('${kind}','${dk}')">${label} <span class="mt-cnt">${wordsLearnedOn(dk).length}</span></button>`;
+  const words = wordsLearnedOn(cur);
+  const fmt = (dk) => {
+    const p = (dk || '').split('-');
+    return p.length === 3 ? `${+p[1]}月${+p[2]}日` : '选择日期';
+  };
+  const info = !cur ? '未选择日期'
+    : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
+    : '该日无新学记录';
   return `
-    <div class="cfg-title">选择日期 <span class="mt-cnt">（取当天新学的词，当前词库 ${wordsLearnedOn(cur).length} 个）</span></div>
-    <div class="cfg-chips">
-      ${chip(dateKey(Date.now() - DAY_MS), '昨天')}
-      ${chip(dateKey(Date.now() - 2 * DAY_MS), '前天')}
-      <input type="date" class="cfg-date" value="${escapeHtml(cur)}" max="${dateKey()}" onchange="setPracticeDate('${kind}', this.value)">
+    <div class="cfg-title">选择日期</div>
+    <div class="cfg-date-row">
+      <span class="cfg-date-btn">
+        <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${dateKey()}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">
+        <span class="cfg-date-label">${fmt(cur)} ${icon('chevron-left')}</span>
+      </span>
+      <span class="cfg-date-info">${escapeHtml(info)}</span>
     </div>
   `;
 }
