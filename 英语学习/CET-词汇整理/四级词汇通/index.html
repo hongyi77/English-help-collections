@@ -804,6 +804,12 @@
         数据保存在浏览器本地，换设备用「导入进度」同步。
       </p>
     </div>
+    <div class="settings-card">
+      <h3>数据诊断</h3>
+      <div id="diagBody" style="font-size:13px;color:var(--muted);line-height:1.9">读取中…</div>
+      <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
+    </div>
     <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
   </div>
 </div>

@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=32').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=33').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -828,6 +828,12 @@
         达到最高级后不再出现，即"完全记住"。<br>
         数据保存在浏览器本地，换设备用「导入进度」同步。
       </p>
+    </div>
+    <div class="settings-card">
+      <h3>数据诊断</h3>
+      <div id="diagBody" style="font-size:13px;color:var(--muted);line-height:1.9">读取中…</div>
+      <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
     </div>
     <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
   </div>
@@ -23581,6 +23587,7 @@ function refreshSettings() {
   renderAlgoSettings();
   renderVoiceSettings();
   renderLibPicker();
+  renderDiag();
 }
 
 /* 复习算法卡片:算法高亮 + 说明文案 + FSRS 保持率行显隐 */
@@ -26600,6 +26607,77 @@ document.addEventListener('keydown', e => {
 renderIcons();
 refreshHome();
 refreshSettings();
+
+/* ---------------- 数据诊断面板(2026-10-02 清档事故排查工具) ----------------
+ * 展示:SW 缓存版本 / 原始存档大小与解析状态 / 词记录数 / 历史天数 / 备份键。
+ * 只读不改,用于远程判断"进度为空"是代码没更新还是存档真丢了 */
+function renderDiag() {
+  const el = document.getElementById('diagBody');
+  if (!el) return;
+  let raw = null;
+  try { raw = localStorage.getItem(STATE_KEY); } catch (e) { /* 忽略 */ }
+  const rawLen = raw ? raw.length : 0;
+  let words = 0, days = 0, lib = '-', parseOk = !!raw;
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      lib = (s.settings && s.settings.lib) || '-';
+      const lw = (s.libs && s.libs[lib] && s.libs[lib].words) || {};
+      words = Object.keys(lw).length;
+      days = Object.keys(s.history || {}).length;
+    } catch (e) { parseOk = false; }
+  }
+  const hasBackup = !!localStorage.getItem(STATE_KEY + '_backup');
+  const hasSnap = !!localStorage.getItem('cet4_session_snapshot_v1');
+  const swc = (typeof navigator !== 'undefined' && navigator.serviceWorker) ? navigator.serviceWorker.controller : null;
+  const swName = swc ? (swc.scriptURL.split('/').pop() || '?') : '未注册';
+  el.innerHTML =
+    'SW：<b>' + escapeHtml(swName) + '</b>　（这是手机当前实际运行的版本）<br>' +
+    '存档：' + (raw ? rawLen + ' 字符 · 解析' + (parseOk ? '正常' : '<b style="color:var(--pen-red)">失败</b>') : '<b style="color:var(--pen-red)">不存在</b>') + '<br>' +
+    '词记录（' + escapeHtml(lib) + '）：<b>' + words + '</b> 个　历史：<b>' + days + '</b> 天<br>' +
+    '损坏备份键：' + (hasBackup ? '有' : '无') + '　会话快照：' + (hasSnap ? '有' : '无');
+  if (window.caches && caches.keys) {
+    caches.keys().then(ks => {
+      const tag = document.getElementById('diagBody');
+      if (!tag) return;
+      const hit = ks.find(k => k.indexOf('cet4-vocab-') === 0);
+      if (hit) tag.innerHTML = '缓存：<b>' + escapeHtml(hit.replace('cet4-vocab-', 'v')) + '</b><br>' + tag.innerHTML;
+    }).catch(() => {});
+  }
+}
+
+/* 强制更新:注销 SW+清代码缓存后重载。只碰程序缓存,localStorage 学习数据不受影响 */
+function forceSwUpdate() {
+  if (!confirm('将注销缓存并重新拉取最新版代码，学习数据不受影响。继续？')) return;
+  const done = () => location.reload();
+  const sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
+  if (sw) {
+    sw.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => (window.caches && caches.keys ? caches.keys() : Promise.resolve([])))
+      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(done)
+      .catch(done);
+  } else {
+    done();
+  }
+}
+
+/* 强制更新:注销 SW+清代码缓存后重载。只碰程序缓存,localStorage 学习数据不受影响 */
+function forceSwUpdate() {
+  if (!confirm('将注销缓存并重新拉取最新版代码，学习数据不受影响。继续？')) return;
+  const done = () => location.reload();
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => (window.caches && caches.keys ? caches.keys() : Promise.resolve([])))
+      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(done)
+      .catch(done);
+  } else {
+    done();
+  }
+}
 
 </script>
 </body>

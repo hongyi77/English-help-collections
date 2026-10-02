@@ -122,6 +122,7 @@ function refreshSettings() {
   renderAlgoSettings();
   renderVoiceSettings();
   renderLibPicker();
+  renderDiag();
 }
 
 /* 复习算法卡片:算法高亮 + 说明文案 + FSRS 保持率行显隐 */
@@ -3141,3 +3142,74 @@ document.addEventListener('keydown', e => {
 renderIcons();
 refreshHome();
 refreshSettings();
+
+/* ---------------- 数据诊断面板(2026-10-02 清档事故排查工具) ----------------
+ * 展示:SW 缓存版本 / 原始存档大小与解析状态 / 词记录数 / 历史天数 / 备份键。
+ * 只读不改,用于远程判断"进度为空"是代码没更新还是存档真丢了 */
+function renderDiag() {
+  const el = document.getElementById('diagBody');
+  if (!el) return;
+  let raw = null;
+  try { raw = localStorage.getItem(STATE_KEY); } catch (e) { /* 忽略 */ }
+  const rawLen = raw ? raw.length : 0;
+  let words = 0, days = 0, lib = '-', parseOk = !!raw;
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      lib = (s.settings && s.settings.lib) || '-';
+      const lw = (s.libs && s.libs[lib] && s.libs[lib].words) || {};
+      words = Object.keys(lw).length;
+      days = Object.keys(s.history || {}).length;
+    } catch (e) { parseOk = false; }
+  }
+  const hasBackup = !!localStorage.getItem(STATE_KEY + '_backup');
+  const hasSnap = !!localStorage.getItem('cet4_session_snapshot_v1');
+  const swc = (typeof navigator !== 'undefined' && navigator.serviceWorker) ? navigator.serviceWorker.controller : null;
+  const swName = swc ? (swc.scriptURL.split('/').pop() || '?') : '未注册';
+  el.innerHTML =
+    'SW：<b>' + escapeHtml(swName) + '</b>　（这是手机当前实际运行的版本）<br>' +
+    '存档：' + (raw ? rawLen + ' 字符 · 解析' + (parseOk ? '正常' : '<b style="color:var(--pen-red)">失败</b>') : '<b style="color:var(--pen-red)">不存在</b>') + '<br>' +
+    '词记录（' + escapeHtml(lib) + '）：<b>' + words + '</b> 个　历史：<b>' + days + '</b> 天<br>' +
+    '损坏备份键：' + (hasBackup ? '有' : '无') + '　会话快照：' + (hasSnap ? '有' : '无');
+  if (window.caches && caches.keys) {
+    caches.keys().then(ks => {
+      const tag = document.getElementById('diagBody');
+      if (!tag) return;
+      const hit = ks.find(k => k.indexOf('cet4-vocab-') === 0);
+      if (hit) tag.innerHTML = '缓存：<b>' + escapeHtml(hit.replace('cet4-vocab-', 'v')) + '</b><br>' + tag.innerHTML;
+    }).catch(() => {});
+  }
+}
+
+/* 强制更新:注销 SW+清代码缓存后重载。只碰程序缓存,localStorage 学习数据不受影响 */
+function forceSwUpdate() {
+  if (!confirm('将注销缓存并重新拉取最新版代码，学习数据不受影响。继续？')) return;
+  const done = () => location.reload();
+  const sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
+  if (sw) {
+    sw.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => (window.caches && caches.keys ? caches.keys() : Promise.resolve([])))
+      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(done)
+      .catch(done);
+  } else {
+    done();
+  }
+}
+
+/* 强制更新:注销 SW+清代码缓存后重载。只碰程序缓存,localStorage 学习数据不受影响 */
+function forceSwUpdate() {
+  if (!confirm('将注销缓存并重新拉取最新版代码，学习数据不受影响。继续？')) return;
+  const done = () => location.reload();
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => Promise.all(rs.map(r => r.unregister())))
+      .then(() => (window.caches && caches.keys ? caches.keys() : Promise.resolve([])))
+      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(done)
+      .catch(done);
+  } else {
+    done();
+  }
+}
