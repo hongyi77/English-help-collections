@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=31').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=32').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -22865,64 +22865,75 @@ function reconcileDailyFromHistory(s) {
 }
 
 function loadState() {
+  let raw = null;
+  try { raw = localStorage.getItem(STATE_KEY); } catch (e) { /* 存储不可用 */ }
+  if (!raw) return defaultState();
+  let s;
+  try { s = JSON.parse(raw); } catch (e) {
+    // JSON 真损坏才重建;把损坏原文留一份备份,给手工抢救留余地
+    try { localStorage.setItem(STATE_KEY + '_backup', raw); } catch (e2) { /* 忽略 */ }
+    return defaultState();
+  }
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return defaultState();
+  // 迁移失败时保留原始数据——绝不能用空档覆盖用户进度!
+  // (2026-10-02 教训:迁移代码曾引用文件后段才初始化的 const,老用户冷启动触发 TDZ 异常,
+  //  旧写法整体 catch 后回退 defaultState,表现为"学习进度被清空")
   try {
-    const raw = localStorage.getItem(STATE_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
-      // 跨天重置当日计数（所有词库一起清——各库共用同一个日历日）
-      if (s.today !== todayStr()) {
-        s.today = todayStr();
-        s.learnedToday = [];
-        s.reviewedToday = [];
-        for (const k of Object.keys(s.libs || {})) {
-          if (s.libs[k] && Array.isArray(s.libs[k].learnedToday)) s.libs[k].learnedToday = [];
-          if (s.libs[k] && Array.isArray(s.libs[k].reviewedToday)) s.libs[k].reviewedToday = [];
-        }
+    // 跨天重置当日计数（所有词库一起清——各库共用同一个日历日）
+    if (s.today !== todayStr()) {
+      s.today = todayStr();
+      s.learnedToday = [];
+      s.reviewedToday = [];
+      for (const k of Object.keys(s.libs || {})) {
+        if (s.libs[k] && Array.isArray(s.libs[k].learnedToday)) s.libs[k].learnedToday = [];
+        if (s.libs[k] && Array.isArray(s.libs[k].reviewedToday)) s.libs[k].reviewedToday = [];
       }
-      // 设置项缺省合并（旧存档没有 autoSpeak/lib 及自由拼写/听写配置等新字段）
-      const hadDictMode = s.settings && s.settings.dictMode != null;
-      const legacyJudge = s.settings ? s.settings.dictJudge : undefined;
-      const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
-      const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
-      s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
-      if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
-      // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
-      if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
-        s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
-      }
-      // 旧存档 onlineVoice(bool)/voiceSrc 三态 → voiceSrc 二态(edge/tts,在线真人已移除)
-      if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'edge';
-      delete s.settings.onlineVoice;
-      delete s.settings.audioAcc;
-      // 听音辨义并入听力练习(dictKind),独立 listen* 配置字段废弃(两类共用 dict*)
-      delete s.settings.listenScope;
-      delete s.settings.listenCount;
-      delete s.settings.listenWords;
-      delete s.settings.listenDate;
-      if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
-      // 复习算法与 FSRS 保持率缺省校验
-      if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
-      if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
-      // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')
-      s.settings.spellDateCat = normDateCat(s.settings.spellDateCat);
-      s.settings.dictDateCat = normDateCat(s.settings.dictDateCat);
-      if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
-      if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
-      // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
-      if (s.words && !s.libs) {
-        s.libs = { cet4: { words: s.words } };
-        delete s.words;
-      }
-      if (!s.libs) s.libs = {};
-      // 旧档顶层每日计数（各词库混在一起）直接废弃：每日计数一律按当天 history 重建
-      // （history 条目自带词库归属，是权威数据源，见 reconcileDailyFromHistory）
-      delete s.learnedToday;
-      delete s.reviewedToday;
-      reconcileDailyFromHistory(s);
-      return s;
     }
-  } catch (e) { /* 损坏则重建 */ }
-  return defaultState();
+    // 设置项缺省合并（旧存档没有 autoSpeak/lib 及自由拼写/听写配置等新字段）
+    const hadDictMode = s.settings && s.settings.dictMode != null;
+    const legacyJudge = s.settings ? s.settings.dictJudge : undefined;
+    const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
+    const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
+    s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
+    if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
+    // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
+    if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
+      s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
+    }
+    // 旧存档 onlineVoice(bool)/voiceSrc 三态 → voiceSrc 二态(edge/tts,在线真人已移除)
+    if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'edge';
+    delete s.settings.onlineVoice;
+    delete s.settings.audioAcc;
+    // 听音辨义并入听力练习(dictKind),独立 listen* 配置字段废弃(两类共用 dict*)
+    delete s.settings.listenScope;
+    delete s.settings.listenCount;
+    delete s.settings.listenWords;
+    delete s.settings.listenDate;
+    if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
+    // 复习算法与 FSRS 保持率缺省校验
+    if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
+    if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
+    // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')。
+    // 注意:这里必须用字面量数组,不能引用文件后段(line ~770)的 DATE_CATS——
+    // 冷启动时它还没初始化,引用即 TDZ 异常,而本函数在带存档时必然执行
+    const DATE_CAT_KEYS = ['all', 'learn', 'review', 'wrong'];
+    s.settings.spellDateCat = DATE_CAT_KEYS.includes(s.settings.spellDateCat) ? s.settings.spellDateCat : 'all';
+    s.settings.dictDateCat = DATE_CAT_KEYS.includes(s.settings.dictDateCat) ? s.settings.dictDateCat : 'all';
+    if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
+    if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
+    // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
+    if (s.words && !s.libs) {
+      s.libs = { cet4: { words: s.words } };
+      delete s.words;
+    }
+    if (!s.libs) s.libs = {};
+    // 旧档顶层每日计数（各词库混在一起）直接废弃：每日计数一律按当天 history 重建
+    // （history 条目自带词库归属，是权威数据源，见 reconcileDailyFromHistory）
+    delete s.learnedToday;
+    delete s.reviewedToday;
+    reconcileDailyFromHistory(s);
+  } catch (e) { /* 迁移失败:保留原始数据继续,宁可带病运行也不清档 */ }
+  return s;
 }
 
 function saveState() {

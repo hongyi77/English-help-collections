@@ -1428,6 +1428,50 @@ console.log('\n[35] 按日期内容分类 + 范围分组层级');
   g('state = defaultState(); saveState();');
 })();
 
+/* ================= 36. 带进度存档冷启动回归(防迁移异常清档) =================
+ * 主框架装载 app.js 时 localStorage 是空的,走"无存档"分支——带存档冷启动的迁移路径
+ * 从未被测过。v31 曾因迁移代码引用文件后段的 const(TDZ)导致老用户清档,此节防回归。
+ */
+console.log('\n[36] 带进度存档冷启动回归');
+(() => {
+  const storage2 = new Map();
+  const doc2 = { getElementById: id => doc2._els[id] || (doc2._els[id] = dummyEl(id)), _els: {}, querySelectorAll: () => [], querySelector: () => null, createElement: t => dummyEl('_' + t), addEventListener() {}, body: dummyEl('body2') };
+  const sandbox2 = {
+    console, Math, Date, JSON, Object, Array, Map, Set, Infinity, parseInt, String, Number,
+    document: doc2,
+    localStorage: {
+      getItem: k => (storage2.has(k) ? storage2.get(k) : null),
+      setItem: (k, v) => storage2.set(k, String(v)),
+      removeItem: k => storage2.delete(k),
+    },
+    window: {}, setTimeout: () => 0, SpeechSynthesisUtterance: function (t) { this.text = t; },
+  };
+  sandbox2.window.speechSynthesis = { speak() {}, cancel() {} };
+  sandbox2.globalThis = sandbox2;
+  vm.createContext(sandbox2);
+  // 预置一份带进度的老存档(跨天日期触发跨天重置分支)
+  const w36 = 'intention';
+  const archive = {
+    today: 'Mon Sep 28 2026',
+    settings: { dailyNew: 15, dailyReview: 25, lib: 'cet4' },
+    libs: { cet4: { words: { [w36]: { stage: 3, due: 1, right: 7, wrong: 1, inBook: true, created: 1, lapses: 2 } }, learnedToday: [], reviewedToday: [] } },
+    history: { '2026-09-28': { learned: [['cet4', w36]], reviewed: [], wrongs: [] } },
+  };
+  storage2.set('cet4_study_state_v1', JSON.stringify(archive));
+  vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-data.js'), 'utf8'), sandbox2);
+  try { vm.runInContext(fs.readFileSync(path.join(dir, 'fsrs.js'), 'utf8'), sandbox2); } catch (e) { /* 可缺省 */ }
+  vm.runInContext(fs.readFileSync(path.join(dir, 'app.js'), 'utf8'), sandbox2);
+  vm.runInContext(fs.readFileSync(path.join(dir, 'ui.js'), 'utf8'), sandbox2);
+  const g2 = code => vm.runInContext(code, sandbox2);
+  const kept = g2(`state.libs.cet4.words['${w36}']`);
+  ok(!!kept && kept.stage === 3 && kept.inBook === true, '带进度存档冷启动:学习进度原样保留');
+  ok(g2(`Object.keys(state.libs.cet4.words).length`) === 1, '词记录数量不变');
+  ok(g2('state.settings.dailyNew') === 15 && g2('state.settings.dailyReview') === 25, '用户设置保留');
+  ok(g2('state.settings.spellDateCat') === 'all' && g2('state.settings.dictDateCat') === 'all', '新设置字段冷启动时正常归一化');
+  ok(g2('state.today') === g2('todayStr()'), '跨天重置正常执行');
+  ok(g2(`state.libs.cet4.words['${w36}'].lapses`) === 2, '顽固词计数等可选字段保留');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);
