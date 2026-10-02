@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=35').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=36').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -187,6 +187,7 @@
   /* ---------- 设置 ---------- */
   .settings-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
   .settings-card h3 { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin-bottom: 12px; letter-spacing: .5px; }
+  .set-div { height: 1px; background: var(--hairline); margin: 14px 0; }
   .set-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .set-row:last-child { margin-bottom: 0; }
   .set-row label { font-size: 15px; }
@@ -397,6 +398,18 @@
   .ba-txt { flex: 1; display: flex; flex-direction: column; }
   .ba-txt b { font-size: 17px; color: var(--ink); }
   .ba-txt i { font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  /* 小节标题(主页练习工具/设置分组共用) */
+  .sec-cap { font-size: 12px; color: var(--muted); margin: 6px 2px 10px; letter-spacing: .5px; }
+  /* 主页练习工具两列小卡 */
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tool-card { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer; text-align: left; }
+  .tool-card:active { background: var(--paper); }
+  .tool-ico { width: 36px; height: 36px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--blue-soft); }
+  .tool-card.grn .tool-ico { background: var(--green-soft); }
+  .tool-ico svg { width: 19px; height: 19px; }
+  .tool-txt { display: flex; flex-direction: column; }
+  .tool-txt b { font-size: 14px; color: var(--ink); }
+  .tool-txt i { font-style: normal; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 
   /* ---------- 词汇页 · 分段控制 ---------- */
   .seg-tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; padding: 4px; margin-bottom: 14px; box-shadow: var(--shadow); }
@@ -620,21 +633,21 @@
         <span class="ba-txt"><b>复习单词</b><i>到期单词按记忆曲线重现</i></span>
         <span class="badge rev" id="badgeReview">0</span>
       </button>
-      <button class="big-action grn" onclick="go('screen-spell')">
-        <span class="ba-ico" data-icon="pencil-line"></span>
-        <span class="ba-txt"><b>自由拼写</b><i>自选范围和数量，看释义拼单词</i></span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="big-action" id="dictationEntry" onclick="go('screen-dictate')">
-        <span class="ba-ico" data-icon="ear"></span>
-        <span class="ba-txt"><b>听力练习</b><i>听音写词 · 听音辨义，判分/自查/自动轮播</i></span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="big-action grn" onclick="openQuickPractice()">
-        <span class="ba-ico" data-icon="sparkles"></span>
-        <span class="ba-txt"><b>快速复习</b><i>快扫词库自测，纯练习不改进度</i></span>
-        <span class="arrow">›</span>
-      </button>
+      <div class="sec-cap">练习工具 · 纯练习不改进度</div>
+      <div class="tool-grid">
+      <button class="tool-card grn" onclick="go('screen-spell')">
+          <span class="tool-ico" data-icon="pencil-line"></span>
+          <span class="tool-txt"><b>自由拼写</b><i>看释义拼单词</i></span>
+        </button>
+        <button class="tool-card" id="dictationEntry" onclick="go('screen-dictate')">
+          <span class="tool-ico" data-icon="ear"></span>
+          <span class="tool-txt"><b>听力练习</b><i>听音写词/辨义</i></span>
+        </button>
+        <button class="tool-card grn" onclick="openQuickPractice()">
+          <span class="tool-ico" data-icon="sparkles"></span>
+          <span class="tool-txt"><b>快速复习</b><i>快扫自测</i></span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -742,8 +755,9 @@
       <div id="libList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:2px"></div>
       <p id="libNote" style="font-size:13px;color:var(--muted);margin-top:10px;line-height:1.7"></p>
     </div>
+    <div class="sec-cap">学习偏好</div>
     <div class="settings-card">
-      <h3>每日计划</h3>
+      <div class="cfg-title" style="margin:0 0 8px">每日计划</div>
       <div class="set-row">
         <label>每日新学单词</label>
         <div class="set-ctrl">
@@ -766,9 +780,8 @@
           <button id="setSpeak" onclick="toggleAutoSpeak()">开</button>
         </div>
       </div>
-    </div>
-    <div class="settings-card">
-      <h3>复习算法</h3>
+      <div class="set-div"></div>
+      <div class="cfg-title" style="margin:0 0 8px">复习算法</div>
       <div class="set-ctrl" id="algoChips" style="gap:8px">
         <button class="master-tab" data-algo="ebbinghaus" onclick="setReviewAlgo('ebbinghaus')">经典间隔</button>
         <button class="master-tab" data-algo="fsrs" onclick="setReviewAlgo('fsrs')">FSRS 自适应</button>
@@ -785,8 +798,8 @@
         </div>
       </div>
     </div>
+    <div class="sec-cap">发音</div>
     <div class="settings-card">
-      <h3>发音</h3>
       <div class="set-row">
         <label>音源</label>
         <div class="set-ctrl" id="voiceSrcChips" style="gap:8px">
@@ -819,8 +832,9 @@
         <select id="setTtsZhVoice" class="voice-select" onchange="onTTSVoiceChange('zh', this.value)"></select>
       </div>
     </div>
+    <div class="sec-cap">数据</div>
     <div class="settings-card">
-      <h3>数据管理（跨设备同步）</h3>
+      <div class="cfg-title" style="margin:0 0 8px">跨设备同步</div>
       <p style="font-size:13px;color:var(--ink-soft);line-height:1.8;margin-bottom:12px">
         电脑上学完，手机想接着学？<br>
         在电脑上「导出进度」→ 把文件发到手机 → 手机上「导入进度」，学习记录、生词本、掌握情况就同步过来了。
@@ -831,12 +845,18 @@
         <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="handleImport(event)">
       </div>
       <p id="importMsg" style="font-size:13px;margin-top:10px;min-height:18px"></p>
+      <div class="set-div"></div>
+      <div class="cfg-title" style="margin:0 0 8px">数据诊断</div>
+      <div id="diagBody" style="font-size:13px;color:var(--muted);line-height:1.9">读取中…</div>
+      <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
+      <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
     </div>
     <div class="settings-card">
       <h3>进度快速重建</h3>
       <p style="font-size:13px;color:var(--muted);line-height:1.7;margin:0 0 10px">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</p>
       <button class="btn-ghost" style="padding:10px 16px;border-radius:10px" onclick="openQuickRebuild()">去重建进度（预选重建模式）</button>
     </div>
+    <div class="sec-cap">关于</div>
     <div class="settings-card">
       <h3>关于</h3>
       <p style="font-size:14px;color:var(--muted);line-height:1.8">
@@ -845,14 +865,9 @@
         达到最高级后不再出现，即"完全记住"。<br>
         数据保存在浏览器本地，换设备用「导入进度」同步。
       </p>
+      <div class="set-div"></div>
+      <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
     </div>
-    <div class="settings-card">
-      <h3>数据诊断</h3>
-      <div id="diagBody" style="font-size:13px;color:var(--muted);line-height:1.9">读取中…</div>
-      <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
-      <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
-    </div>
-    <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
   </div>
 </div>
 
