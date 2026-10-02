@@ -2,7 +2,7 @@
  * 策略:缓存优先(cache-first),版本号 CACHE_VER 变更后旧缓存整体清除
  * 注意:只在 https(GitHub Pages 等)或 localhost 下生效;http 局域网 IP 浏览器不注册 SW
  */
-const CACHE_VER = 'cet4-vocab-v25';
+const CACHE_VER = 'cet4-vocab-v26';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const ASSETS = [
   './app.js',
   './ui.js',
   './icons.js',
+  './fsrs.js',
   './pwa-register.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

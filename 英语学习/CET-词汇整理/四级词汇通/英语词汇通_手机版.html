@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=25').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=26').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -728,6 +728,24 @@
         <label>自动发音（出题朗读单词）</label>
         <div class="set-ctrl">
           <button id="setSpeak" onclick="toggleAutoSpeak()">开</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>复习算法</h3>
+      <div class="set-ctrl" id="algoChips" style="gap:8px">
+        <button class="master-tab" data-algo="ebbinghaus" onclick="setReviewAlgo('ebbinghaus')">经典间隔</button>
+        <button class="master-tab" data-algo="fsrs" onclick="setReviewAlgo('fsrs')">FSRS 自适应</button>
+      </div>
+      <p id="algoNote" style="font-size:12px;color:var(--muted);line-height:1.7;margin:10px 0 0"></p>
+      <div id="fsrsRetentionRow" style="display:none;margin-top:12px">
+        <div class="set-row">
+          <label>目标记忆保持率<br><span style="font-size:12px;color:var(--muted)">越高记得越牢，复习也越频繁</span></label>
+          <div class="set-ctrl" id="retentionChips" style="gap:8px">
+            <button class="master-tab" data-ret="0.85" onclick="setFsrsRetention(0.85)">85%</button>
+            <button class="master-tab" data-ret="0.9" onclick="setFsrsRetention(0.9)">90%</button>
+            <button class="master-tab" data-ret="0.95" onclick="setFsrsRetention(0.95)">95%</button>
+          </div>
         </div>
       </div>
     </div>
@@ -22299,6 +22317,89 @@ const ICONS = {
 
 </script>
 <script>
+/* FSRS-6 自适应记忆调度引擎（单文件、零依赖）
+ * 移植自 open-spaced-repetition/py-fsrs 官方实现（MIT），公式与默认权重与其 main 分支一致
+ * 三变量模型：S 稳定性(天)、D 难度(1~10)、R 可提取性(回忆概率)
+ * 评分映射（本应用为二值作答）：答对=Good(3)，答错=Again(1)
+ */
+const FSRS_W = [0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796,
+  1.4835, 0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, 0.1542];
+const FSRS_STABILITY_MIN = 0.001;
+const FSRS_MAX_INTERVAL = 36500;
+const FSRS_DAY = 24 * 60 * 60 * 1000;
+
+function fsrsDecay() { return -FSRS_W[20]; }
+/* FACTOR = 0.9^(1/DECAY) - 1；r=0.9 时间隔恰等于稳定性 */
+function fsrsFactor() { return Math.pow(0.9, 1 / fsrsDecay()) - 1; }
+function fsrsClampS(s) { return Math.max(s, FSRS_STABILITY_MIN); }
+function fsrsClampD(d) { return Math.min(Math.max(d, 1), 10); }
+
+/* 距上次复习 elapsed 天后的回忆概率 */
+function fsrsRetrievability(s, last, now) {
+  const elapsed = Math.max(0, Math.floor((now - last) / FSRS_DAY));
+  return Math.pow(1 + fsrsFactor() * elapsed / s, fsrsDecay());
+}
+
+/* 稳定性 s 在目标保持率 r 下的复习间隔（天） */
+function fsrsInterval(s, retention) {
+  const r = retention || 0.9;
+  return Math.max(1, Math.min(FSRS_MAX_INTERVAL, Math.round((s / fsrsFactor()) * (Math.pow(r, 1 / fsrsDecay()) - 1))));
+}
+
+/* 首学初值：S0=w[G-1]，D0=w4-e^(w5*(G-1))+1 */
+function fsrsInit(rating) {
+  return {
+    s: fsrsClampS(FSRS_W[rating - 1]),
+    d: fsrsClampD(FSRS_W[4] - Math.exp(FSRS_W[5] * (rating - 1)) + 1),
+  };
+}
+
+/* 复习后难度：线性阻尼 delta/(9/(10-d)) 防止 D 逼近 10 时爆炸 + 向初值均值回归 */
+function fsrsNextD(d, rating) {
+  const delta = -(FSRS_W[6] * (rating - 3));
+  const arg2 = d + (10 - d) * delta / 9;
+  const arg1 = FSRS_W[4] - Math.exp(FSRS_W[5] * 3) + 1; /* initial_difficulty(Easy, 不截断) */
+  return fsrsClampD(FSRS_W[7] * arg1 + (1 - FSRS_W[7]) * arg2);
+}
+
+/* 答对后的新稳定性（hard_penalty/easy_bonus 供 Hard/Easy 评分用，二值映射不触发） */
+function fsrsRecallS(d, s, r, rating) {
+  const hardPenalty = rating === 2 ? FSRS_W[15] : 1;
+  const easyBonus = rating === 4 ? FSRS_W[16] : 1;
+  return fsrsClampS(s * (1 + Math.exp(FSRS_W[8]) * (11 - d) * Math.pow(s, -FSRS_W[9]) *
+    (Math.exp((1 - r) * FSRS_W[10]) - 1) * hardPenalty * easyBonus));
+}
+
+/* 答错后的新稳定性：长期遗忘项与短期项取小 */
+function fsrsForgetS(d, s, r) {
+  const longTerm = FSRS_W[11] * Math.pow(d, -FSRS_W[12]) * (Math.pow(s + 1, FSRS_W[13]) - 1) * Math.exp((1 - r) * FSRS_W[14]);
+  const shortTerm = s / Math.exp(FSRS_W[17] * FSRS_W[18]);
+  return fsrsClampS(Math.min(longTerm, shortTerm));
+}
+
+/* 同日重评（间隔不足 1 天，如答错 10 分钟后的重试） */
+function fsrsShortS(s, rating) {
+  let inc = Math.exp(FSRS_W[17] * (rating - 3 + FSRS_W[18])) * Math.pow(s, -FSRS_W[19]);
+  if (rating >= 3) inc = Math.max(inc, 1.0);
+  return fsrsClampS(s * inc);
+}
+
+/* 一次复习 → 新 {s,d}。rating: 3=答对 1=答错；last/now 为时间戳 */
+function fsrsReview(f, rating, last, now) {
+  const sameDay = (now - last) < FSRS_DAY;
+  let s;
+  const d = fsrsNextD(f.d, rating);
+  if (sameDay) {
+    s = fsrsShortS(f.s, rating);
+  } else {
+    const r = fsrsRetrievability(f.s, last, now);
+    s = rating === 1 ? fsrsForgetS(f.d, f.s, r) : fsrsRecallS(f.d, f.s, r, rating);
+  }
+  return { s, d };
+}
+
+</script>
+<script>
 /* ============================================================
  * 英语词汇通 - 核心学习逻辑
  * 功能：新学 / 复习(艾宾浩斯) / 生词本 / 统计
@@ -22330,6 +22431,8 @@ const DEFAULT_SETTINGS = {
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
+  reviewAlgo: 'ebbinghaus',                               // 复习调度算法:'ebbinghaus'固定间隔 / 'fsrs'自适应
+  fsrsRetention: 0.9,                                     // FSRS 目标记忆保持率(0.85/0.9/0.95)
 };
 
 /* 自定义拼写/听写/听音辨义的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
@@ -22773,6 +22876,9 @@ function loadState() {
       delete s.settings.listenWords;
       delete s.settings.listenDate;
       if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
+      // 复习算法与 FSRS 保持率缺省校验
+      if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
+      if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
@@ -22815,7 +22921,7 @@ function sanitizeWordRecord(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
   const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
   const stage = Math.max(0, Math.min(STAGE_MASTERED, Math.floor(num(r.stage))));
-  return {
+  const out = {
     stage,
     // 已掌握词 due 恒为 Infinity(JSON 序列化成 null),其余用数值
     due: stage >= STAGE_MASTERED ? Infinity : num(r.due),
@@ -22827,6 +22933,14 @@ function sanitizeWordRecord(r) {
     lapses: num(r.lapses),
     leech: r.leech === true,
   };
+  // FSRS 记忆状态(可选,s 为正数、d 为数值才保留,防止导入档注入畸形状态)
+  const fs = r.fsrs;
+  if (fs && typeof fs === 'object' && !Array.isArray(fs)
+      && typeof fs.s === 'number' && isFinite(fs.s) && fs.s > 0
+      && typeof fs.d === 'number' && isFinite(fs.d)) {
+    out.fsrs = { s: fs.s, d: fs.d, last: num(fs.last), due: num(fs.due) };
+  }
+  return out;
 }
 
 // 合并导入的数据；返回本次实际导入的单词数
@@ -22921,11 +23035,45 @@ function unseenWords() {
   return WORD_LIST.filter(w => !curWords()[w] || curWords()[w].stage === 0);
 }
 
+/* ---------------- FSRS 自适应复习 ----------------
+ * 开关 settings.reviewAlgo='fsrs' 时调度交给 fsrs.js(记忆模型 S/D/R)，
+ * stage 仍按经典规则升降，只作为「掌握判定/进度展示」；到期时间由 FSRS 给出。
+ * 旧进度不批量迁移：首次在 FSRS 下复习到某词时惰性换算(migrateFsrs)。
+ */
+function useFsrs() {
+  return state.settings.reviewAlgo === 'fsrs';
+}
+
+/* 生效的下次复习时间：FSRS 模式且已有 fsrs 状态用 fsrs.due，否则用经典 r.due */
+function effectiveDue(r) {
+  if (useFsrs() && r.fsrs && isFinite(r.fsrs.due)) return r.fsrs.due;
+  return r.due;
+}
+
+/* 经典进度 → FSRS 初值(粗略换算，复习一次后即被真实模型接管)：
+ * 稳定性取当前间隔天数，难度按答对/答错比例估计，last 假定为完整间隔前(到期才来复习) */
+function migrateFsrs(r) {
+  const stage = Math.min(Math.max(r.stage || 1, 1), STAGE_MASTERED - 1);
+  const s = Math.max(0.1, INTERVALS[stage - 1]);
+  const d = Math.min(10, Math.max(1, 5 + (r.wrong || 0) * 1.2 - (r.right || 0) * 0.4));
+  return { s, d, last: Date.now() - INTERVALS[stage - 1] * DAY_MS, due: Date.now() };
+}
+
+/* FSRS 模式下一次复习(答对 rating=3 / 答错 rating=1)后的状态与到期时间 */
+function fsrsApply(r, rating, now) {
+  const f = r.fsrs || migrateFsrs(r);
+  const nf = fsrsReview(f, rating, f.last, now);
+  nf.last = now;
+  nf.due = now + fsrsInterval(nf.s, state.settings.fsrsRetention) * DAY_MS;
+  r.fsrs = nf;
+  return nf;
+}
+
 function dueWords() {
   const now = Date.now();
   return WORD_LIST.filter(w => {
     const r = curWords()[w];
-    return r && r.stage >= 1 && r.stage < STAGE_MASTERED && r.due <= now;
+    return r && r.stage >= 1 && r.stage < STAGE_MASTERED && effectiveDue(r) <= now;
   });
 }
 
@@ -23012,7 +23160,7 @@ function wordStatus(word) {
   if (r.stage >= STAGE_MASTERED) {
     return { cls: 'mastered', label: '已掌握', stage: r.stage, right: r.right, wrong: r.wrong, due: null };
   }
-  const dueNow = r.due <= Date.now();
+  const dueNow = effectiveDue(r) <= Date.now();
   return {
     cls: dueNow ? 'due' : 'learning',
     label: dueNow ? '待复习' : '学习中',
@@ -23045,6 +23193,14 @@ function learnWord(word) {
   r.right++;
   r.stage = 1;
   r.due = Date.now() + INTERVALS[0] * DAY_MS;
+  if (useFsrs()) {
+    // FSRS：首学按 Good 评级初始化记忆状态，间隔由保持率推出(替代经典 1 天)
+    const f = fsrsInit(3);
+    f.last = Date.now();
+    f.due = f.last + fsrsInterval(f.s, state.settings.fsrsRetention) * DAY_MS;
+    r.fsrs = f;
+    r.due = f.due;
+  }
   curWords()[word] = r;
   const L = curDaily();
   if (!L.learnedToday.includes(word)) L.learnedToday.push(word);
@@ -23052,7 +23208,7 @@ function learnWord(word) {
   saveState();
 }
 
-// 复习答对：按艾宾浩斯升级
+// 复习答对：经典=艾宾浩斯升级 / FSRS=更新记忆状态并按模型排期
 function reviewCorrect(word) {
   const r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.right++;
@@ -23062,6 +23218,7 @@ function reviewCorrect(word) {
     r.due = Infinity;
   } else {
     r.due = Date.now() + INTERVALS[r.stage - 1] * DAY_MS;
+    if (useFsrs()) r.due = fsrsApply(r, 3, Date.now()).due;
   }
   curWords()[word] = r;
   const L = curDaily();
@@ -23077,6 +23234,11 @@ function reviewWrong(word, addBook) {
   // 最低降到 1 级：stage 0 会被 dueWords 排除，导致「10 分钟后再复习」永远不出现
   r.stage = Math.max(1, r.stage - 2);
   r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后重试
+  if (useFsrs()) {
+    // FSRS：答错更新记忆状态；到期仍是 10 分钟后当天重试(同日走短评公式)
+    const nf = fsrsApply(r, 1, Date.now());
+    nf.due = r.due;
+  }
   if (addBook !== false) r.inBook = true;
   // 顽固词计数：只统计复习答错(lapse)，拼写/识别答错不污染(拼写是纯练习不写状态)
   r.lapses = (r.lapses || 0) + 1;
@@ -23337,8 +23499,44 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  renderAlgoSettings();
   renderVoiceSettings();
   renderLibPicker();
+}
+
+/* 复习算法卡片:算法高亮 + 说明文案 + FSRS 保持率行显隐 */
+function renderAlgoSettings() {
+  const fsrs = state.settings.reviewAlgo === 'fsrs';
+  document.querySelectorAll('#algoChips button[data-algo]').forEach(b => {
+    b.classList.toggle('active', b.dataset.algo === state.settings.reviewAlgo);
+  });
+  const note = document.getElementById('algoNote');
+  if (note) {
+    note.textContent = fsrs
+      ? '按每个词的记忆强度自动安排：记得牢的词间隔拉长，容易忘的词早点回来，总复习量更少；切回经典间隔随时恢复原节奏。'
+      : '固定节奏：答对按 1/2/4/7/15 天逐级拉长，答错降级重学。';
+  }
+  const row = document.getElementById('fsrsRetentionRow');
+  if (row) row.style.display = fsrs ? '' : 'none';
+  const ret = state.settings.fsrsRetention;
+  document.querySelectorAll('#retentionChips button[data-ret]').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.ret) === ret);
+  });
+}
+
+function setReviewAlgo(v) {
+  if (!['ebbinghaus', 'fsrs'].includes(v)) return;
+  state.settings.reviewAlgo = v;
+  saveState();
+  refreshSettings();
+  refreshHome();   // 到期队列随算法立即变化
+}
+
+function setFsrsRetention(v) {
+  if (![0.85, 0.9, 0.95].includes(v)) return;
+  state.settings.fsrsRetention = v;
+  saveState();
+  refreshSettings();
 }
 
 /* ---------------- 发音设置（音源/试听/Edge音色/设备TTS声音选择器） ---------------- */

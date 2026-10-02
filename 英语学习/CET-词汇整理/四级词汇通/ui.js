@@ -117,8 +117,44 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  renderAlgoSettings();
   renderVoiceSettings();
   renderLibPicker();
+}
+
+/* 复习算法卡片:算法高亮 + 说明文案 + FSRS 保持率行显隐 */
+function renderAlgoSettings() {
+  const fsrs = state.settings.reviewAlgo === 'fsrs';
+  document.querySelectorAll('#algoChips button[data-algo]').forEach(b => {
+    b.classList.toggle('active', b.dataset.algo === state.settings.reviewAlgo);
+  });
+  const note = document.getElementById('algoNote');
+  if (note) {
+    note.textContent = fsrs
+      ? '按每个词的记忆强度自动安排：记得牢的词间隔拉长，容易忘的词早点回来，总复习量更少；切回经典间隔随时恢复原节奏。'
+      : '固定节奏：答对按 1/2/4/7/15 天逐级拉长，答错降级重学。';
+  }
+  const row = document.getElementById('fsrsRetentionRow');
+  if (row) row.style.display = fsrs ? '' : 'none';
+  const ret = state.settings.fsrsRetention;
+  document.querySelectorAll('#retentionChips button[data-ret]').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.ret) === ret);
+  });
+}
+
+function setReviewAlgo(v) {
+  if (!['ebbinghaus', 'fsrs'].includes(v)) return;
+  state.settings.reviewAlgo = v;
+  saveState();
+  refreshSettings();
+  refreshHome();   // 到期队列随算法立即变化
+}
+
+function setFsrsRetention(v) {
+  if (![0.85, 0.9, 0.95].includes(v)) return;
+  state.settings.fsrsRetention = v;
+  saveState();
+  refreshSettings();
 }
 
 /* ---------------- 发音设置（音源/试听/Edge音色/设备TTS声音选择器） ---------------- */

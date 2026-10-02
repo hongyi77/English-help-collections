@@ -60,6 +60,7 @@ vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-data.js'), 'utf8'), sandbo
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-libs.js'), 'utf8'), sandbox); } catch (e) { /* 扩展词库缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-extra.js'), 'utf8'), sandbox); } catch (e) { /* 巧记数据缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'icons.js'), 'utf8'), sandbox); } catch (e) { /* 图标数据缺失不阻塞基础测试 */ }
+try { vm.runInContext(fs.readFileSync(path.join(dir, 'fsrs.js'), 'utf8'), sandbox); } catch (e) { /* FSRS 引擎缺失不阻塞基础测试 */ }
 vm.runInContext(fs.readFileSync(path.join(dir, 'app.js'), 'utf8'), sandbox);
 vm.runInContext(fs.readFileSync(path.join(dir, 'ui.js'), 'utf8'), sandbox);
 
@@ -1177,6 +1178,87 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   g(`session.queue.forEach(w => { const r = session.records.get(w); r.done = true; }); renderListenWord();`);
   ok(documentStub.getElementById('dictQuiz').innerHTML.includes('听音辨义完成'), '完成页渲染');
   ok(g('practiceMode') === 'dict', '完成页 practiceMode 指向听力练习配置页');
+})();
+
+/* ================= 31. FSRS 自适应复习算法 ================= */
+console.log('\n[31] FSRS 自适应复习算法');
+(() => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const W = g('FSRS_W');
+  // ---- 引擎锚点(与 py-fsrs 官方 FSRS-6 实现对齐) ----
+  ok(W.length === 21 && Math.abs(W[20] - 0.1542) < 1e-9, '21 个官方权重，衰减参数 w20=0.1542');
+  ok(Math.abs(g('fsrsFactor()') - (Math.pow(0.9, 1 / -0.1542) - 1)) < 1e-12, 'FACTOR = 0.9^(1/DECAY)-1');
+  ok(g('fsrsInterval(7.3, 0.9)') === 7, 'r=0.9 时间隔恰等于稳定性(S=7.3 → 7 天)');
+  const init = g('fsrsInit(3)');
+  ok(Math.abs(init.s - W[2]) < 1e-9, 'S0(Good)=w[2]');
+  ok(Math.abs(init.d - (W[4] - Math.exp(W[5] * 2) + 1)) < 1e-9, 'D0(Good)=w4-e^(w5*2)+1');
+  ok(init.d >= 1 && init.d <= 10, '难度落在 [1,10]');
+  const i85 = g('fsrsInterval(10, 0.85)'), i9 = g('fsrsInterval(10, 0.9)'), i95 = g('fsrsInterval(10, 0.95)');
+  ok(i85 > i9 && i9 > i95, `目标保持率越高间隔越短(要记得更牢就得更早复习:${i85} > ${i9} > ${i95})`);
+  // 复习更新方向
+  const fsrsInit = g('fsrsInit'), fsrsReview = g('fsrsReview');
+  const up = fsrsReview(init, 3, Date.now() - 2 * DAY, Date.now());
+  ok(up.s > init.s, '答对后稳定性增长');
+  ok(Math.abs(up.d - init.d) < 0.05, 'Good 几乎不改难度(仅均值回归微扰)');
+  const down = fsrsReview(init, 1, Date.now() - 2 * DAY, Date.now());
+  ok(down.s < init.s && down.d > init.d, '答错后稳定性下降、难度上升');
+  // 同日短评:答错后 10 分钟重试,S 先降后回升(不会一天内暴涨)
+  const now = Date.now();
+  const fw = fsrsReview(init, 1, now - 3600e3, now);
+  ok(fw.s < init.s && fw.d > init.d, '同日答错走短评公式(S 降 D 升)');
+  const retry = fsrsReview(fw, 3, now, now + 10 * 60e3);
+  ok(retry.s > fw.s, '同日重试答对 S 回升(inc≥1)');
+  // ---- 接入:经典为缺省,FSRS 分支调度 ----
+  g('state = defaultState(); saveState();');
+  ok(g('state.settings.reviewAlgo') === 'ebbinghaus' && g('state.settings.fsrsRetention') === 0.9, '缺省:经典算法+90% 保持率');
+  const w31 = g('WORD_LIST[0]');
+  g(`learnWord('${w31}')`);
+  const rClassic = g(`curWords()['${w31}']`);
+  ok(!rClassic.fsrs && rClassic.due - Date.now() <= DAY + 50, '经典模式首学:1 天后复习,不产生 fsrs 状态');
+  g(`setReviewAlgo('fsrs')`);
+  ok(g('state.settings.reviewAlgo') === 'fsrs', '切换到 FSRS 自适应');
+  const w31b = g('WORD_LIST[1]');
+  g(`learnWord('${w31b}')`);
+  const rb = g(`curWords()['${w31b}']`);
+  ok(rb.fsrs && Math.abs(rb.fsrs.s - W[2]) < 1e-9, 'FSRS 首学:S0=w[2]');
+  ok(rb.fsrs.due - rb.fsrs.last === g('fsrsInterval')(W[2], 0.9) * DAY, 'FSRS 首学间隔=fsrsInterval(S0,保持率)');
+  ok(rb.due === rb.fsrs.due, 'r.due 与 fsrs.due 同步');
+  ok(!g('dueWords()').includes(w31b), '未到期不进复习队列');
+  g(`curWords()['${w31b}'].fsrs.due = Date.now() - 1000;`);
+  ok(g('dueWords()').includes(w31b), 'fsrs.due 过期即待复习');
+  const sBefore = rb.fsrs.s;
+  g(`reviewCorrect('${w31b}')`);
+  const ra = g(`curWords()['${w31b}']`);
+  ok(ra.fsrs.s >= sBefore && ra.fsrs.due > Date.now(), 'FSRS 复习答对:S 不降(同日短评钳 inc≥1),到期时间后移');
+  ok(ra.stage === 2, 'stage 仍按经典规则升级(展示/掌握判定用)');
+  // 惰性迁移:经典老词在 FSRS 下首次复习即获得记忆状态
+  const w31c = g('WORD_LIST[2]');
+  g(`curWords()['${w31c}'] = { stage: 3, right: 5, wrong: 1, inBook: false, created: Date.now(), due: Date.now() - DAY_MS };`);
+  g(`reviewCorrect('${w31c}')`);
+  const rc = g(`curWords()['${w31c}']`);
+  ok(rc.fsrs && isFinite(rc.fsrs.s) && rc.fsrs.s > 0 && rc.due === rc.fsrs.due, '经典老词惰性迁移:首复习获得 fsrs 状态');
+  ok(rc.stage === 4, '迁移词 stage 照常升级');
+  const dBeforeWrong = rc.fsrs.d;   // 数值快照:记录对象在答错后会被复用,引用比较会变成自己比自己
+  g(`reviewWrong('${w31c}', false)`);
+  const rw = g(`curWords()['${w31c}']`);
+  ok(rw.fsrs.d > dBeforeWrong && rw.due - Date.now() <= 10 * 60 * 1000 + 50, '答错:难度上升,仍 10 分钟后当天重试');
+  // 切回经典:恢复艾宾浩斯排期
+  g(`setReviewAlgo('ebbinghaus')`);
+  const w31d = g('WORD_LIST[3]');
+  g(`curWords()['${w31d}'] = { stage: 2, right: 3, wrong: 0, inBook: false, created: Date.now(), due: Date.now() };`);
+  g(`reviewCorrect('${w31d}')`);
+  const rd = g(`curWords()['${w31d}']`);
+  ok(!rd.fsrs && Math.abs(rd.due - (Date.now() + g('INTERVALS')[2] * DAY)) < 2000, '切回经典:按 4 天间隔排期,不再写 fsrs');
+  // 导入消毒:fsrs 状态合法保留 / 非法丢弃
+  const keep = g(`sanitizeWordRecord({ stage: 2, due: 1, right: 1, wrong: 0, inBook: false, created: 1, fsrs: { s: 5.5, d: 4.2, last: 111, due: 222 } })`);
+  ok(keep.fsrs && keep.fsrs.s === 5.5 && keep.fsrs.due === 222, '导入消毒:合法 fsrs 状态保留');
+  const drop = g(`sanitizeWordRecord({ stage: 2, due: 1, fsrs: { s: 'x', d: 4 } })`);
+  ok(!drop.fsrs, '导入消毒:非法 fsrs 状态丢弃');
+  // 存档读回与非法值回落
+  g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { reviewAlgo: 'fsrs', fsrsRetention: 0.95 } })); state = loadState();`);
+  ok(g('state.settings.reviewAlgo') === 'fsrs' && g('state.settings.fsrsRetention') === 0.95, '存档合并:算法/保持率正确读回');
+  g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { reviewAlgo: 'bogus', fsrsRetention: 0.7 } })); state = loadState();`);
+  ok(g('state.settings.reviewAlgo') === 'ebbinghaus' && g('state.settings.fsrsRetention') === 0.9, '非法算法/保持率回落缺省');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);

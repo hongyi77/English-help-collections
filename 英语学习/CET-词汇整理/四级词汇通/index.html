@@ -707,6 +707,24 @@
       </div>
     </div>
     <div class="settings-card">
+      <h3>复习算法</h3>
+      <div class="set-ctrl" id="algoChips" style="gap:8px">
+        <button class="master-tab" data-algo="ebbinghaus" onclick="setReviewAlgo('ebbinghaus')">经典间隔</button>
+        <button class="master-tab" data-algo="fsrs" onclick="setReviewAlgo('fsrs')">FSRS 自适应</button>
+      </div>
+      <p id="algoNote" style="font-size:12px;color:var(--muted);line-height:1.7;margin:10px 0 0"></p>
+      <div id="fsrsRetentionRow" style="display:none;margin-top:12px">
+        <div class="set-row">
+          <label>目标记忆保持率<br><span style="font-size:12px;color:var(--muted)">越高记得越牢，复习也越频繁</span></label>
+          <div class="set-ctrl" id="retentionChips" style="gap:8px">
+            <button class="master-tab" data-ret="0.85" onclick="setFsrsRetention(0.85)">85%</button>
+            <button class="master-tab" data-ret="0.9" onclick="setFsrsRetention(0.9)">90%</button>
+            <button class="master-tab" data-ret="0.95" onclick="setFsrsRetention(0.95)">95%</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
       <h3>发音</h3>
       <div class="set-row">
         <label>音源</label>
@@ -814,6 +832,7 @@
 <script src="vocab-libs.js"></script>
 <script src="vocab-extra.js"></script>
 <script src="icons.js"></script>
+<script src="fsrs.js"></script>
 <script src="app.js"></script>
 <script src="ui.js"></script>
 </body>

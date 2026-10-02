@@ -29,6 +29,8 @@ const DEFAULT_SETTINGS = {
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
+  reviewAlgo: 'ebbinghaus',                               // 复习调度算法:'ebbinghaus'固定间隔 / 'fsrs'自适应
+  fsrsRetention: 0.9,                                     // FSRS 目标记忆保持率(0.85/0.9/0.95)
 };
 
 /* 自定义拼写/听写/听音辨义的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
@@ -472,6 +474,9 @@ function loadState() {
       delete s.settings.listenWords;
       delete s.settings.listenDate;
       if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
+      // 复习算法与 FSRS 保持率缺省校验
+      if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
+      if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
@@ -514,7 +519,7 @@ function sanitizeWordRecord(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
   const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
   const stage = Math.max(0, Math.min(STAGE_MASTERED, Math.floor(num(r.stage))));
-  return {
+  const out = {
     stage,
     // 已掌握词 due 恒为 Infinity(JSON 序列化成 null),其余用数值
     due: stage >= STAGE_MASTERED ? Infinity : num(r.due),
@@ -526,6 +531,14 @@ function sanitizeWordRecord(r) {
     lapses: num(r.lapses),
     leech: r.leech === true,
   };
+  // FSRS 记忆状态(可选,s 为正数、d 为数值才保留,防止导入档注入畸形状态)
+  const fs = r.fsrs;
+  if (fs && typeof fs === 'object' && !Array.isArray(fs)
+      && typeof fs.s === 'number' && isFinite(fs.s) && fs.s > 0
+      && typeof fs.d === 'number' && isFinite(fs.d)) {
+    out.fsrs = { s: fs.s, d: fs.d, last: num(fs.last), due: num(fs.due) };
+  }
+  return out;
 }
 
 // 合并导入的数据；返回本次实际导入的单词数
@@ -620,11 +633,45 @@ function unseenWords() {
   return WORD_LIST.filter(w => !curWords()[w] || curWords()[w].stage === 0);
 }
 
+/* ---------------- FSRS 自适应复习 ----------------
+ * 开关 settings.reviewAlgo='fsrs' 时调度交给 fsrs.js(记忆模型 S/D/R)，
+ * stage 仍按经典规则升降，只作为「掌握判定/进度展示」；到期时间由 FSRS 给出。
+ * 旧进度不批量迁移：首次在 FSRS 下复习到某词时惰性换算(migrateFsrs)。
+ */
+function useFsrs() {
+  return state.settings.reviewAlgo === 'fsrs';
+}
+
+/* 生效的下次复习时间：FSRS 模式且已有 fsrs 状态用 fsrs.due，否则用经典 r.due */
+function effectiveDue(r) {
+  if (useFsrs() && r.fsrs && isFinite(r.fsrs.due)) return r.fsrs.due;
+  return r.due;
+}
+
+/* 经典进度 → FSRS 初值(粗略换算，复习一次后即被真实模型接管)：
+ * 稳定性取当前间隔天数，难度按答对/答错比例估计，last 假定为完整间隔前(到期才来复习) */
+function migrateFsrs(r) {
+  const stage = Math.min(Math.max(r.stage || 1, 1), STAGE_MASTERED - 1);
+  const s = Math.max(0.1, INTERVALS[stage - 1]);
+  const d = Math.min(10, Math.max(1, 5 + (r.wrong || 0) * 1.2 - (r.right || 0) * 0.4));
+  return { s, d, last: Date.now() - INTERVALS[stage - 1] * DAY_MS, due: Date.now() };
+}
+
+/* FSRS 模式下一次复习(答对 rating=3 / 答错 rating=1)后的状态与到期时间 */
+function fsrsApply(r, rating, now) {
+  const f = r.fsrs || migrateFsrs(r);
+  const nf = fsrsReview(f, rating, f.last, now);
+  nf.last = now;
+  nf.due = now + fsrsInterval(nf.s, state.settings.fsrsRetention) * DAY_MS;
+  r.fsrs = nf;
+  return nf;
+}
+
 function dueWords() {
   const now = Date.now();
   return WORD_LIST.filter(w => {
     const r = curWords()[w];
-    return r && r.stage >= 1 && r.stage < STAGE_MASTERED && r.due <= now;
+    return r && r.stage >= 1 && r.stage < STAGE_MASTERED && effectiveDue(r) <= now;
   });
 }
 
@@ -711,7 +758,7 @@ function wordStatus(word) {
   if (r.stage >= STAGE_MASTERED) {
     return { cls: 'mastered', label: '已掌握', stage: r.stage, right: r.right, wrong: r.wrong, due: null };
   }
-  const dueNow = r.due <= Date.now();
+  const dueNow = effectiveDue(r) <= Date.now();
   return {
     cls: dueNow ? 'due' : 'learning',
     label: dueNow ? '待复习' : '学习中',
@@ -744,6 +791,14 @@ function learnWord(word) {
   r.right++;
   r.stage = 1;
   r.due = Date.now() + INTERVALS[0] * DAY_MS;
+  if (useFsrs()) {
+    // FSRS：首学按 Good 评级初始化记忆状态，间隔由保持率推出(替代经典 1 天)
+    const f = fsrsInit(3);
+    f.last = Date.now();
+    f.due = f.last + fsrsInterval(f.s, state.settings.fsrsRetention) * DAY_MS;
+    r.fsrs = f;
+    r.due = f.due;
+  }
   curWords()[word] = r;
   const L = curDaily();
   if (!L.learnedToday.includes(word)) L.learnedToday.push(word);
@@ -751,7 +806,7 @@ function learnWord(word) {
   saveState();
 }
 
-// 复习答对：按艾宾浩斯升级
+// 复习答对：经典=艾宾浩斯升级 / FSRS=更新记忆状态并按模型排期
 function reviewCorrect(word) {
   const r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.right++;
@@ -761,6 +816,7 @@ function reviewCorrect(word) {
     r.due = Infinity;
   } else {
     r.due = Date.now() + INTERVALS[r.stage - 1] * DAY_MS;
+    if (useFsrs()) r.due = fsrsApply(r, 3, Date.now()).due;
   }
   curWords()[word] = r;
   const L = curDaily();
@@ -776,6 +832,11 @@ function reviewWrong(word, addBook) {
   // 最低降到 1 级：stage 0 会被 dueWords 排除，导致「10 分钟后再复习」永远不出现
   r.stage = Math.max(1, r.stage - 2);
   r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后重试
+  if (useFsrs()) {
+    // FSRS：答错更新记忆状态；到期仍是 10 分钟后当天重试(同日走短评公式)
+    const nf = fsrsApply(r, 1, Date.now());
+    nf.due = r.due;
+  }
   if (addBook !== false) r.inBook = true;
   // 顽固词计数：只统计复习答错(lapse)，拼写/识别答错不污染(拼写是纯练习不写状态)
   r.lapses = (r.lapses || 0) + 1;
