@@ -999,6 +999,91 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
   ok(g('state.today') === g('todayStr()'), 'today 更新为当天');
 })();
 
+/* ================= 29. 拼写/听写答题发音 + 生词本发音按钮 + 学习记录类型筛选 ================= */
+console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音按钮/学习记录筛选');
+(() => {
+  g('state = defaultState(); saveState();');
+  g("window.__spoke = []; speakWord = function(w){ window.__spoke.push(w); };");
+  const w0 = g(`LIBS.cet4.words[0][0]`);
+  const setSpellInput = v => g(`document.getElementById('spellInput').value = '${v}'; session.answered = false; window.__spoke = [];`);
+  // 学习会话拼写阶段:第一次拼对 → 发音
+  g(`
+    session = { mode:'study', phase:'spell', queue:['${w0}'], spellRetries:[], sinceSpellRetry:0, idx:0, correct:0, wrong:0, records:new Map([['${w0}', makeRecord()]]) };
+    session.word = '${w0}';
+  `);
+  setSpellInput(w0);
+  g('checkSpell()');
+  ok(g(`window.__spoke.join()`) === w0, '拼写第一次拼对即发音');
+  // 第二次拼对(达标) → 再次发音
+  setSpellInput(w0);
+  g('checkSpell()');
+  ok(g(`window.__spoke.join()`) === w0, '拼写第二次拼对(达标)发音');
+  ok(g(`session.records.get('${w0}').done`) === true, '两次拼对后该词完成');
+  // 拼错 → 朗读正确发音
+  setSpellInput('zzz');
+  g('checkSpell()');
+  ok(g(`window.__spoke.join()`) === w0, '拼写答错朗读正确发音');
+  // autoSpeak 关闭 → 自动发音一并关闭
+  g(`state.settings.autoSpeak = false; saveState();`);
+  setSpellInput('zzz');
+  g('checkSpell()');
+  ok(g('window.__spoke.length') === 0, 'autoSpeak 关闭时拼错不自动发音');
+  g('state.settings.autoSpeak = true; saveState();');
+  // 自由拼写拼错 → 发音(拼对路径既有行为回归)
+  g(`
+    session = { mode:'spell', phase:'cspell', queue:['${w0}'], spellRetries:[], sinceSpellRetry:0, idx:0, correct:0, wrong:0, records:new Map([['${w0}', makeRecord()]]) };
+    session.word = '${w0}';
+  `);
+  setSpellInput('zzz');
+  g('customSpellCheck()');
+  ok(g(`window.__spoke.join()`) === w0, '自由拼写拼错朗读正确发音');
+  setSpellInput(w0);
+  g('customSpellCheck()');
+  ok(g(`window.__spoke.join()`) === w0, '自由拼写拼对发音(既有行为回归)');
+  // 听写判分拼错 → 发音
+  g(`
+    session = { mode:'dict', phase:'dictate', judge:true, auto:false, queue:['${w0}'], spellRetries:[], sinceSpellRetry:0, idx:0, correct:0, wrong:0, loopN:1, gen:0, records:new Map([['${w0}', makeRecord()]]) };
+    session.word = '${w0}';
+  `);
+  setSpellInput('zzz');
+  g('dictCheck()');
+  ok(g(`window.__spoke.join()`) === w0, '听写判分拼错也朗读正确发音');
+  // 生词本行发音按钮
+  g(`curWords()['${w0}'] = { stage:1, due:Date.now()+DAY_MS, right:1, wrong:0, inBook:true, created:Date.now() }; saveState();`);
+  g('renderBook();');
+  const bookHtml = documentStub.getElementById('bookList').innerHTML;
+  ok(bookHtml.includes(`speakWord('${w0}')`) && bookHtml.includes('list-speak') && bookHtml.includes('<svg'), '生词本行有发音按钮(点击播报)');
+  // 学习记录类型筛选:全部/新学/复习/答错
+  g('state = defaultState(); saveState();');
+  g(`
+    const tK29 = dateKey();
+    state.history[tK29] = { learned: [['cet4','hello']], reviewed: [['cet4','${w0}']], wrongs: [['cet4','${w0}']] };
+    saveState();
+  `);
+  g('historyDay = null; historyFilter = "all"; renderHistory();');
+  const detAll = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detAll.includes('setHistoryFilter'), '学习记录有类型筛选 chips');
+  ok(detAll.includes('新学（1）') && detAll.includes('复习（1）') && detAll.includes('答错（1）'), '全部视图新学/复习/答错三组都在');
+  g(`setHistoryFilter('reviewed');`);
+  const detRev = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detRev.includes('复习（1）') && !detRev.includes('新学（'), '筛选「复习」只显示复习组');
+  g(`setHistoryFilter('learned');`);
+  const detLearn = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detLearn.includes('新学（1）') && !detLearn.includes('复习（') && detLearn.includes('hello'), '筛选「新学」只显示新学组');
+  // 筛选跨日期保留:带着「复习」筛选翻到昨天(昨天没复习) → 针对性空提示
+  g(`setHistoryFilter('reviewed');`);
+  g(`
+    const yd29 = dateKey(Date.now() - DAY_MS);
+    state.history[yd29] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
+    saveState(); setHistoryDay(yd29);
+  `);
+  const detEmpty = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detEmpty.includes('没有「复习」记录'), '筛选组为空时显示针对性空提示(筛选跨日期保留)');
+  g(`setHistoryFilter('all');`);
+  const detAll2 = documentStub.getElementById('historyDetail').innerHTML;
+  ok(detAll2.includes('新学（1）') && !detAll2.includes('复习（1）'), '全部视图空组自动隐藏(既有行为回归)');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

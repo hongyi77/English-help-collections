@@ -27,7 +27,7 @@
   window.addEventListener('load', () => {
     // URL 带 SW 版本参数:升级时与 sw.js 的 CACHE_VER 同步改,强制绕过 HTTP 缓存的旧脚本
     // (GitHub Pages 给 sw.js 的 HTTP 缓存 max-age=600,不改 URL 的话 10 分钟内换不了版)
-    navigator.serviceWorker.register('sw.js?v=22').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=23').catch(() => {});
   });
   // 新 SW 接管页面后自动重载一次,立即切到新版资源;否则要手动再刷新才能看到更新
   let refreshing = false;
@@ -24553,6 +24553,7 @@ function checkSpell() {
         <button class="next-btn" onclick="nextSpell()">下一个 →</button>
       `;
     } else {
+      if (state.settings.autoSpeak) speakWord(word);   // 第一次拼对也朗读，音形同步加深记忆
       const card = fbEl.closest('.quiz-card');
       if (card) card.classList.add('with-ans');
       saveSessionSnapshot();
@@ -24574,6 +24575,7 @@ function checkSpell() {
     if (!session.spellRetries) session.spellRetries = [];
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;  // 答错后重新计数，避免错词紧跟重现
+    if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音，对照反馈听音纠错
     saveSessionSnapshot();
     const inBook = curWords()[word] && curWords()[word].inBook;
     const card = fbEl.closest('.quiz-card');
@@ -24966,6 +24968,7 @@ function customSpellCheck() {
     if (!session.spellRetries) session.spellRetries = [];
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
+    if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音
     fbEl.innerHTML = `
       <div class="feedback bad">
         <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
@@ -25546,6 +25549,7 @@ function dictCheck() {
     session.records.set(word, rec);
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
+    if (state.settings.autoSpeak) speakWord(word);   // 判分拼错时补听一遍正确发音
     fbEl.innerHTML = `
       <div class="feedback bad">
         <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
@@ -25600,6 +25604,7 @@ function renderBook() {
     `<div class="list-card"><div class="list-item">
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
+      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
       ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
       <button class="list-del" title="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
     </div></div>`
@@ -25739,6 +25744,7 @@ function doResetClass() {
  * 学习记录
  * ============================================================ */
 let historyDay = null;   // 当前查看的日期 key
+let historyFilter = 'all';   // 记录类型筛选:all/learned/reviewed/wrongs(切日期保留,方便逐天看同类)
 
 function renderHistory() {
   // 默认选今天
@@ -25770,9 +25776,26 @@ function setHistoryDay(day) {
   renderHistory();
 }
 
+const HISTORY_FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'learned', label: '新学' },
+  { key: 'reviewed', label: '复习' },
+  { key: 'wrongs', label: '答错' },
+];
+
+function setHistoryFilter(f) {
+  historyFilter = f;
+  renderHistory();
+}
+
 function renderHistoryDetail(rec) {
   const el = document.getElementById('historyDetail');
   const dayLabel = historyDay === dateKey() ? '今天' : historyDay;
+  const total = rec.learned.length + rec.reviewed.length + rec.wrongs.length;
+  // 类型筛选 chips:新学/复习/答错分开看
+  const chips = `<div class="cfg-chips" style="margin:14px 0 2px">${HISTORY_FILTERS.map(f =>
+    `<button class="master-tab ${historyFilter === f.key ? 'active' : ''}" onclick="setHistoryFilter('${f.key}')">${f.label} <span class="mt-cnt">${f.key === 'all' ? total : rec[f.key].length}</span></button>`
+  ).join('')}</div>`;
   const section = (title, list, cls) => {
     if (!list.length) return '';
     const rows = list.map(e => {
@@ -25791,11 +25814,16 @@ function renderHistoryDetail(rec) {
     }).join('');
     return `<h3 style="font-family:var(--serif);font-size:15px;color:var(--ink-blue);margin:16px 0 8px">${title}（${list.length}）</h3>${rows}`;
   };
-  el.innerHTML = section('新学', rec.learned, 'ms-learning')
-    + section('复习', rec.reviewed, 'ms-mastered')
-    + section('答错', rec.wrongs, 'ms-due')
-    + (rec.learned.length + rec.reviewed.length + rec.wrongs.length === 0
-        ? `<div class="empty-tip">${dayLabel}没有学习活动</div>` : '');
+  const picked = HISTORY_FILTERS.find(f => f.key === historyFilter) || HISTORY_FILTERS[0];
+  const body = picked.key === 'all'
+    ? section('新学', rec.learned, 'ms-learning')
+      + section('复习', rec.reviewed, 'ms-mastered')
+      + section('答错', rec.wrongs, 'ms-due')
+    : section(picked.label, rec[picked.key], picked.key === 'learned' ? 'ms-learning' : (picked.key === 'reviewed' ? 'ms-mastered' : 'ms-due'));
+  const emptyTip = total === 0
+    ? `<div class="empty-tip">${dayLabel}没有学习活动</div>`
+    : (!body ? `<div class="empty-tip">${dayLabel}没有「${picked.label}」记录</div>` : '');
+  el.innerHTML = chips + body + emptyTip;
 }
 
 /* ---------------- 图标 ----------------
