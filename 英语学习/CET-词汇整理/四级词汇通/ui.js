@@ -9,8 +9,7 @@ const SCREEN_TITLES = {
   'screen-study': '学习新词',
   'screen-review': '复习单词',
   'screen-spell': '自由拼写',
-  'screen-dictate': '听写',
-  'screen-listen': '听音辨义',
+  'screen-dictate': '听力练习',
   'screen-vocab': '词汇',
   'screen-dict': '词典',
   'screen-settings': '设置',
@@ -37,7 +36,6 @@ function go(id) {
   if (id === 'screen-settings') refreshSettings();
   if (id === 'screen-spell') renderSpellConfig();
   if (id === 'screen-dictate') renderDictConfig();
-  if (id === 'screen-listen') renderListenConfig();
 }
 
 function goHome() { go('screen-home'); }
@@ -54,11 +52,9 @@ function refreshHome() {
   // tab 徽章:待复习数 / 生词本数
   setTabBadge('tabBadgeStudy', s.due);
   setTabBadge('tabBadgeBook', s.inBook);
-  // 听写依赖发音能力:Edge朗读/在线音源(音频元素)/系统 TTS 任一即可;微信/QQ 内置等无 TTS 仍可用在线音源
+  // 听力练习(听写+听音辨义)依赖发音能力:Edge朗读/在线音源(音频元素)/系统 TTS 任一即可;微信/QQ 内置等无 TTS 仍可用在线音源
   const dictEntry = document.getElementById('dictationEntry');
   if (dictEntry) dictEntry.style.display = canSpeakHere() ? 'flex' : 'none';
-  const listenEntry = document.getElementById('listenEntry');
-  if (listenEntry) listenEntry.style.display = canSpeakHere() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
 }
@@ -1580,14 +1576,17 @@ function adjPracticeCount(kind, delta) {
 }
 
 /* 数量变化时就地更新开始按钮文案(不重渲染配置页,避免输入框失焦) */
-const PRACTICE_START_LABELS = { spell: '开始拼写（', dict: '开始听写（', listen: '开始听音辨义（' };
+const PRACTICE_START_LABELS = { spell: '开始拼写（', dict: '开始听写（' };
 function updatePracticeStartLabel(kind) {
   const btn = document.getElementById(kind + 'StartBtn');
   if (!btn) return;
   const pool = practicePool(kind);
   const custom = normScope(state.settings[kind + 'Scope']) === 'custom';
   const n = custom ? pool.length : Math.min(state.settings[kind + 'Count'] || 1, pool.length);
-  btn.textContent = (PRACTICE_START_LABELS[kind] || '开始（') + n + ' 词）';
+  const label = (kind === 'dict' && normDictKind(state.settings.dictKind) === 'pick')
+    ? '开始听音辨义（'
+    : (PRACTICE_START_LABELS[kind] || '开始（');
+  btn.textContent = label + n + ' 词）';
   btn.disabled = !pool.length;
 }
 
@@ -1608,6 +1607,13 @@ function practicePool(kind) {
   return wordsInScope(scope, kind);
 }
 
+/* 按练习模式把配置页渲染回各自容器(spell/dict 共用配置组件的调度中枢)。
+ * 注意:key 缺省落 dict——拼写/听力之外的配置键都是听写专属(dictMode/dictPause 等) */
+function renderPracticeConfig(kind) {
+  if (kind === 'dict') renderDictConfig();
+  else renderSpellConfig();
+}
+
 function setPracticeCfg(key, val) {
   state.settings[key] = val;
   // 切到「按日期」且还没选过日期：默认昨天；月历回到今天所在月
@@ -1618,8 +1624,7 @@ function setPracticeCfg(key, val) {
     calM = null;
   }
   saveState();
-  if (key.indexOf('spell') === 0) renderSpellConfig();
-  else renderDictConfig();
+  renderPracticeConfig(key.endsWith('Scope') ? key.slice(0, -'Scope'.length) : 'dict');
 }
 
 /* 「按日期」范围：紧凑两块——
@@ -1633,8 +1638,7 @@ function calShift(kind, delta) {
   const d = new Date(base.getFullYear(), base.getMonth() + delta, 1);
   calY = d.getFullYear();
   calM = d.getMonth();
-  if (kind === 'spell') renderSpellConfig();
-  else renderDictConfig();
+  renderPracticeConfig(kind);
 }
 
 function practiceDateHtml(kind) {
@@ -1691,8 +1695,7 @@ function setPracticeDate(kind, v) {
   calY = dt.getFullYear();
   calM = dt.getMonth();
   saveState();
-  if (kind === 'spell') renderSpellConfig();
-  else renderDictConfig();
+  renderPracticeConfig(kind);
 }
 
 /* 配置页空池提示：按范围给针对性文案 */
@@ -1850,7 +1853,7 @@ function customSpellNext() {
 
 /* 练习完成页（自由拼写 / 听写共用；纯练习不写学习状态） */
 function practiceDoneHtml(title, typeName) {
-  practiceMode = session.mode === 'dict' ? 'dict' : (session.mode === 'listen' ? 'listen' : 'spell');
+  practiceMode = session.mode === 'spell' ? 'spell' : 'dict';
   const total = session.queue.length;
   const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const list = session.queue.map(w => {
@@ -1880,9 +1883,9 @@ function practiceDoneHtml(title, typeName) {
   `;
 }
 
-/* 练习完成页「再来一组」：回到本次练习模式（spell/dict/listen）的配置页 */
+/* 练习完成页「再来一组」：回到本次练习模式（spell/dict）的配置页(听音辨义也归听力练习页) */
 let practiceMode = 'spell';
-const PRACTICE_SCREENS = { spell: 'screen-spell', dict: 'screen-dictate', listen: 'screen-listen' };
+const PRACTICE_SCREENS = { spell: 'screen-spell', dict: 'screen-dictate' };
 function practiceAgain() {
   go(PRACTICE_SCREENS[practiceMode] || 'screen-spell');
 }
@@ -1916,7 +1919,7 @@ function pickerPool() {
 }
 
 function renderWordPicker() {
-  const el = document.getElementById(pickerKind === 'dict' ? 'dictQuiz' : 'spellQuiz');
+  const el = document.getElementById(pickerKind + 'Quiz');
   if (!el || !pickerKind) return;
   const picked = practicePicked(pickerKind);
   const pickedSet = new Set(picked);
@@ -2066,8 +2069,7 @@ function pickerSelectAll() {
 }
 
 function pickerDone() {
-  if (pickerKind === 'dict') renderDictConfig();
-  else renderSpellConfig();
+  renderPracticeConfig(pickerKind);
 }
 
 /* ============================================================
@@ -2083,12 +2085,13 @@ function normDictMode(v) {
 function renderDictConfig() {
   const el = document.getElementById('dictQuiz');
   if (!el) return;
-  // Edge朗读/在线音源(音频元素)与设备TTS任一即可听写;微信/QQ 无 speechSynthesis 但仍可用在线音源
+  // Edge朗读/设备TTS 任一即可;微信/QQ 无 speechSynthesis 的环境靠 Edge 兜着,两者皆无才拦
   if (!canSpeakHere()) {
     el.innerHTML = `<div class="quiz-card session-done"><div class="icon">${icon('ear')}</div>
-      <h2>当前浏览器不支持语音</h2><p>听写需要在线音源（需联网）或系统语音合成（speechSynthesis）支持。<br>当前环境两者皆无，请改用系统浏览器打开。</p></div>`;
+      <h2>当前浏览器不支持语音</h2><p>听力练习需要在线音源（需联网）或系统语音合成（speechSynthesis）支持。<br>当前环境两者皆无，请改用系统浏览器打开。</p></div>`;
     return;
   }
+  const kind = normDictKind(state.settings.dictKind);   // write 听音写词 | pick 听音辨义
   const mode = normDictMode(state.settings.dictMode);
   const pool = practicePool('dict');
   const custom = normScope(state.settings.dictScope) === 'custom';
@@ -2098,37 +2101,54 @@ function renderDictConfig() {
   const pause = s.dictPause == null ? 1 : s.dictPause;
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left">
-      <span class="quiz-type">${icon('ear')} 听写</span>
-      <p class="cfg-note">每个词播两轮（单词读 2 遍 + 汉译 1 遍），听完输入或自查。纯练习，不影响学习进度。<br>自动轮播：播完自动公布答案并切下一个词，戴耳机走路时免手持。<br>发音用在线真人音源（单词=有道词典，汉译=普通话合成），熄屏/切后台可继续播；首次需联网，之后离线可用。</p>
-      <div class="cfg-title">作答方式</div>
+      <span class="quiz-type">${icon('ear')} 听力练习</span>
+      <p class="cfg-note">两种练法共用下面的范围/数量/自选词单，错词都会穿插重现；纯练习，不影响学习进度。<br><b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。发音用 Edge 朗读/设备 TTS，熄屏/切后台可继续播；首次需联网，之后离线可用。</p>
+      <div class="cfg-title">练习类型</div>
       <div class="cfg-chips">
-        <button class="master-tab ${mode === 'judge' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','judge')">输入判分</button>
-        <button class="master-tab ${mode === 'listen' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','listen')">只听自查</button>
-        <button class="master-tab ${mode === 'auto' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','auto')">自动轮播</button>
+        <button class="master-tab ${kind === 'write' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','write')">${icon('pencil-line')} 听音写词</button>
+        <button class="master-tab ${kind === 'pick' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','pick')">${icon('volume-2')} 听音辨义</button>
       </div>
       ${spellCfgHtml('dict')}
-      <div class="cfg-title">两轮之间停顿</div>
-      <div class="cfg-chips">${[0.5, 1, 2, 3].map(v =>
-        `<button class="master-tab ${Math.abs(pause - v) < 0.01 ? 'active' : ''}" onclick="setPracticeCfg('dictPause',${v})">${v} 秒</button>`
-      ).join('')}</div>
-      <div class="cfg-title">播放顺序</div>
-      <div class="cfg-chips">
-        <button class="master-tab ${s.dictOrder === 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','seq')">${icon('list-ordered')} 顺序</button>
-        <button class="master-tab ${s.dictOrder !== 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','random')">${icon('shuffle')} 随机</button>
-      </div>
-      <div class="cfg-title">循环播放</div>
-      <div class="cfg-chips">
-        <button class="master-tab ${s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',true)">开</button>
-        <button class="master-tab ${!s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',false)">关</button>
-      </div>
-      <div class="cfg-title">语速 <span class="mt-cnt" id="rateLabel">${rate.toFixed(1)}x</span></div>
-      <div class="rate-row">
-        <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
-      </div>
+      ${kind === 'write' ? `
+        <div class="cfg-title">作答方式</div>
+        <div class="cfg-chips">
+          <button class="master-tab ${mode === 'judge' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','judge')">输入判分</button>
+          <button class="master-tab ${mode === 'listen' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','listen')">只听自查</button>
+          <button class="master-tab ${mode === 'auto' ? 'active' : ''}" onclick="setPracticeCfg('dictMode','auto')">自动轮播</button>
+        </div>
+        <div class="cfg-title">两轮之间停顿</div>
+        <div class="cfg-chips">${[0.5, 1, 2, 3].map(v =>
+          `<button class="master-tab ${Math.abs(pause - v) < 0.01 ? 'active' : ''}" onclick="setPracticeCfg('dictPause',${v})">${v} 秒</button>`
+        ).join('')}</div>
+        <div class="cfg-title">播放顺序</div>
+        <div class="cfg-chips">
+          <button class="master-tab ${s.dictOrder === 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','seq')">${icon('list-ordered')} 顺序</button>
+          <button class="master-tab ${s.dictOrder !== 'seq' ? 'active' : ''}" onclick="setPracticeCfg('dictOrder','random')">${icon('shuffle')} 随机</button>
+        </div>
+        <div class="cfg-title">循环播放</div>
+        <div class="cfg-chips">
+          <button class="master-tab ${s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',true)">开</button>
+          <button class="master-tab ${!s.dictLoop ? 'active' : ''}" onclick="setPracticeCfg('dictLoop',false)">关</button>
+        </div>
+        <div class="cfg-title">语速 <span class="mt-cnt" id="rateLabel">${rate.toFixed(1)}x</span></div>
+        <div class="rate-row">
+          <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
+        </div>` : `<p class="cfg-note">听音辨义不显示单词拼写，堵住「靠字形认词」；自动轮播等免手持选项仅听音写词需要。</p>`}
       ${pool.length ? '' : practiceEmptyHtml('dict')}
-      <button class="next-btn" id="dictStartBtn" onclick="startDictation()" ${pool.length ? '' : 'disabled'}>开始听写（${count} 词）</button>
+      <button class="next-btn" id="dictStartBtn" onclick="startDictPractice()" ${pool.length ? '' : 'disabled'}>开始${kind === 'pick' ? '听音辨义' : '听写'}（${count} 词）</button>
     </div>
   `;
+}
+
+/* 听力练习类型归一:write 听音写词 / pick 听音辨义(旧档缺省 write) */
+function normDictKind(v) {
+  return v === 'pick' ? 'pick' : 'write';
+}
+
+/* 听力练习开始入口:按类型分发到听写会话/听音辨义会话 */
+function startDictPractice() {
+  if (normDictKind(state.settings.dictKind) === 'pick') startListen();
+  else startDictation();
 }
 
 function onDictRate(v) {
@@ -2446,37 +2466,17 @@ function finishDictation() {
 }
 
 /* ============================================================
- * 听音辨义（只听发音四选一中文释义，纯练习不改动学习进度）
- * 出题复用 makeQuestion/pickDistractors；取词复用 spellCfgHtml 框架(kind='listen')；
+ * 听音辨义（听力练习的类型之一，dictKind='pick'）
+ * 只听发音四选一中文释义，纯练习不改动学习进度；与听写共用 screen-dictate
+ * 出题复用 makeQuestion/pickDistractors；取词复用听写的 dictScope/Count/Words；
  * 错词穿插/答对即过规则与自由拼写一致；题干是音频，出词自动播报 + 可重听
  * ============================================================ */
-function renderListenConfig() {
-  const el = document.getElementById('listenQuiz');
-  if (!el) return;
-  if (!canSpeakHere()) {
-    el.innerHTML = `<div class="quiz-card session-done"><div class="icon">${icon('ear')}</div>
-      <h2>当前浏览器不支持语音</h2><p>听音辨义需要发音能力（Edge 朗读或系统语音合成）。<br>当前环境两者皆无，请改用系统浏览器打开。</p></div>`;
-    return;
-  }
-  const pool = practicePool('listen');
-  const custom = normScope(state.settings.listenScope) === 'custom';
-  const count = custom ? pool.length : Math.min(state.settings.listenCount || 10, pool.length);
-  el.innerHTML = `
-    <div class="quiz-card" style="text-align:left">
-      <span class="quiz-type">${icon('volume-2')} 听音辨义</span>
-      <p class="cfg-note">只听发音、不看拼写，四选一中文释义；答错不卡住、稍后穿插重现。纯练习，不影响学习进度。</p>
-      ${spellCfgHtml('listen')}
-      ${pool.length ? '' : practiceEmptyHtml('listen')}
-      <button class="next-btn" id="listenStartBtn" onclick="startListen()" ${pool.length ? '' : 'disabled'}>开始听音辨义（${count} 词）</button>
-    </div>
-  `;
-}
-
 function startListen() {
-  const pool = practicePool('listen');
+  const pool = practicePool('dict');
   if (!pool.length) return;
-  const custom = normScope(state.settings.listenScope) === 'custom';
-  const picked = custom ? shuffle(pool) : pickRandom(pool, Math.min(state.settings.listenCount || 10, pool.length));
+  const custom = normScope(state.settings.dictScope) === 'custom';
+  const n = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
+  const picked = shuffle(pool).slice(0, n);   // 听音为主，顺序随机
   session = {
     mode: 'listen',
     phase: 'clist',           // 避开全局快捷键对识别阶段的接管
@@ -2491,7 +2491,7 @@ function startListen() {
 }
 
 function renderListenWord() {
-  const el = document.getElementById('listenQuiz');
+  const el = document.getElementById('dictQuiz');
   const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
   if (!remaining.length) {
     el.innerHTML = practiceDoneHtml('听音辨义', '听音辨义');
@@ -2545,7 +2545,7 @@ function listenAnswer(idx, btnEl) {
   const fbEl = document.getElementById('listenFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  document.querySelectorAll('#listenQuiz .opt').forEach(b => {
+  document.querySelectorAll('#dictQuiz .opt').forEach(b => {
     if (b.dataset.ans === 'true') b.classList.add('correct');
   });
   if (!isCorrect && btnEl) btnEl.classList.add('wrong');
@@ -2767,17 +2767,29 @@ function renderHistory() {
   const days = Object.keys(state.history || {}).sort().reverse().slice(0, 30);   // 只显示最近 30 天，避免 tab 无限增长
   // 若当前查看的日期被截掉，回退到最近一天
   if (historyDay && !days.includes(historyDay)) historyDay = days[0] || dateKey();
-  // 日期 tab
+  // 日期 tab:横向滑动条,短中文标签(今天/昨天/9月28日),选中项自动滚到可视区中间
+  const fmtDay = (dk) => {
+    if (dk === dateKey()) return '今天';
+    if (dk === dateKey(Date.now() - DAY_MS)) return '昨天';
+    const p = dk.split('-');
+    return p.length === 3 ? `${+p[1]}月${+p[2]}日` : dk;
+  };
   const tabsHtml = (days.length ? days : [dateKey()]).map(d => {
     const rec = (state.history && state.history[d]) || { learned: [], reviewed: [], wrongs: [] };
-    const label = d === dateKey() ? '今天' : d;
     const act = d === historyDay ? 'active' : '';
     const n = rec.learned.length + rec.reviewed.length;
-    return `<button class="master-tab ${act}" onclick="setHistoryDay('${d}')">${label}<span class="mt-cnt">${n}</span></button>`;
+    return `<button class="master-tab ${act}" onclick="setHistoryDay('${d}')">${fmtDay(d)}<span class="mt-cnt">${n}</span></button>`;
   }).join('');
   document.getElementById('historyDates').innerHTML = days.length
-    ? tabsHtml
+    ? `<div class="hist-dates">${tabsHtml}</div>`
     : '<p style="font-size:14px;color:var(--ink-soft)">还没有学习记录，开始学习吧</p>';
+  const strip = document.querySelector('.hist-dates');
+  if (strip && strip.querySelector) {
+    const act = strip.querySelector('.master-tab.active');
+    if (act && act.scrollIntoView) {
+      try { act.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) { /* 旧浏览器忽略 */ }
+    }
+  }
 
   const rec = (state.history && state.history[historyDay]) || { learned: [], reviewed: [], wrongs: [] };
   document.getElementById('hLearned').textContent = rec.learned.length;
@@ -2937,7 +2949,7 @@ document.addEventListener('keydown', e => {
     if (!session.answered && !inInput) {
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 4) {
-        const opts = document.querySelectorAll('#screen-listen .opt');
+        const opts = document.querySelectorAll('#screen-dictate .opt');
         if (opts[n - 1]) opts[n - 1].click();
       }
     } else if (session.answered && e.key === 'Enter' && !inInput) {

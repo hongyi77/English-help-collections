@@ -451,6 +451,9 @@
   .hm-2 { fill: rgba(31, 78, 121, .45); }
   .hm-3 { fill: rgba(31, 78, 121, .7); }
   .hm-4 { fill: var(--ink-blue); }
+  /* 学习记录:日期横向滑动条(单行不换行,选中项滚到中间) */
+  .hist-dates { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; -webkit-overflow-scrolling: touch; }
+  .hist-dates .master-tab { flex: 0 0 auto; margin: 0; white-space: nowrap; }
   /* 练习数量输入(自由拼写/听写) */
   .count-input {
     width: 84px; padding: 9px 6px; border: 1px solid var(--hairline); border-radius: 9px;
@@ -575,12 +578,7 @@
       </button>
       <button class="big-action" id="dictationEntry" onclick="go('screen-dictate')">
         <span class="ba-ico" data-icon="ear"></span>
-        <span class="ba-txt"><b>听写</b><i>听音拼词，支持判分/自查、循环与语速</i></span>
-        <span class="arrow">›</span>
-      </button>
-      <button class="big-action" id="listenEntry" onclick="go('screen-listen')">
-        <span class="ba-ico" data-icon="volume-2"></span>
-        <span class="ba-txt"><b>听音辨义</b><i>只听发音选释义，堵住「看字形认词」</i></span>
+        <span class="ba-txt"><b>听力练习</b><i>听音写词 · 听音辨义，判分/自查/自动轮播</i></span>
         <span class="arrow">›</span>
       </button>
     </div>
@@ -608,17 +606,10 @@
   </div>
 </div>
 
-<!-- ==================== 听写 ==================== -->
+<!-- ==================== 听力练习（听音写词 / 听音辨义） ==================== -->
 <div class="screen" id="screen-dictate">
   <div class="wrap">
     <div id="dictQuiz"></div>
-  </div>
-</div>
-
-<!-- ==================== 听音辨义 ==================== -->
-<div class="screen" id="screen-listen">
-  <div class="wrap">
-    <div id="listenQuiz"></div>
   </div>
 </div>
 

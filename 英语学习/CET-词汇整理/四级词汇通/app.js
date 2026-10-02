@@ -21,11 +21,10 @@ const DEFAULT_SETTINGS = {
   dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
   spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
   spellDate: '',                                          // 自由拼写:「按日期」范围选的日期(YYYY-MM-DD,空=未选)
-  dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
+  dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听力练习:范围 + 数量 + 听音写词的作答方式(judge判分/listen自查/auto自动轮播)
   dictDate: '',                                           // 听写:「按日期」范围选的日期
   dictWords: [],                                          // 听写自选词单
-  listenScope: 'all', listenCount: 10, listenWords: [],   // 听音辨义:范围 + 数量 + 自选词单(共用取词框架)
-  listenDate: '',                                         // 听音辨义:「按日期」范围选的日期
+  dictKind: 'write',                                      // 听力练习类型:write 听音写词 / pick 听音辨义(两类共用范围/数量/自选词单)
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
@@ -467,6 +466,11 @@ function loadState() {
       if (!hadVoiceSrc) s.settings.voiceSrc = legacyOnlineVoice === false ? 'tts' : 'edge';
       delete s.settings.onlineVoice;
       delete s.settings.audioAcc;
+      // 听音辨义并入听力练习(dictKind),独立 listen* 配置字段废弃(两类共用 dict*)
+      delete s.settings.listenScope;
+      delete s.settings.listenCount;
+      delete s.settings.listenWords;
+      delete s.settings.listenDate;
       if (!['edge', 'tts'].includes(s.settings.voiceSrc)) s.settings.voiceSrc = 'edge';
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];

@@ -1134,18 +1134,29 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   ok(documentStub.getElementById('streakLine').textContent.includes('连续学习'), 'streak 文案渲染');
   g(`heatmapClick({ target: { dataset: { dk: '${dkY2}' } } })`);
   ok(g('historyDay') === dkY2, '点热力格子跳到对应日期记录');
-  // ---- 听音辨义 ----
+  // ---- 听力练习(听写+听音辨义合并,dictKind 切换) ----
   g(`speakWord = function(w){ window.__spoke.push(w); }; window.__spoke = [];`);
   g('state = defaultState(); saveState();');
-  ok(g('state.settings.listenScope') === 'all' && g('state.settings.listenCount') === 10, '听音辨义配置字段有缺省值');
-  g('state.settings.listenCount = 2; saveState();');
-  g("go('screen-listen')");
-  const lcfg = documentStub.getElementById('listenQuiz').innerHTML;
-  ok(lcfg.includes('开始听音辨义') && lcfg.includes('顽固词'), '听音辨义配置页渲染(取词框架含顽固词范围)');
-  g('startListen()');
+  ok(g('state.settings.dictKind') === 'write', '听力练习类型缺省为听音写词');
+  ok(g('state.settings.listenScope') === undefined, '听音辨义独立配置字段已移除(并入 dict*)');
+  g('state.settings.dictCount = 2; saveState();');
+  g("go('screen-dictate')");
+  let dcfg = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(dcfg.includes('练习类型') && dcfg.includes('听音写词') && dcfg.includes('听音辨义'), '听力练习配置页含类型切换');
+  ok(dcfg.includes('开始听写') && dcfg.includes('作答方式'), '缺省类型为听音写词(含写词专属配置)');
+  // 类型切到听音辨义:写词专属配置收起,开始按钮换文案
+  g(`setPracticeCfg('dictKind','pick')`);
+  dcfg = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(dcfg.includes('开始听音辨义') && !dcfg.includes('作答方式'), '切听音辨义后隐藏写词专属配置');
+  // 回归:配置调度曾写死「非 spell 即渲染听写页」,独立页点击范围像卡死;现在必重渲染本页
+  g(`setPracticeCfg('dictScope','book')`);
+  ok(documentStub.getElementById('dictQuiz').innerHTML.includes('开始听音辨义'), '范围切换后配置页正确重渲染(卡死回归)');
+  // 会话流程:两类共用 dictScope/dictCount
+  g(`setPracticeCfg('dictScope','all')`);
+  g('startDictPractice()');
   ok(g('session.mode') === 'listen' && g('session.phase') === 'clist', '听音辨义会话创建(mode/phase 正确)');
   ok(g('session.queue.length') === 2, '按数量取词');
-  ok(documentStub.getElementById('listenQuiz').innerHTML.includes('听发音，选释义'), '题干不显示拼写,只有听音提示');
+  ok(documentStub.getElementById('dictQuiz').innerHTML.includes('听发音，选释义'), '题干不显示拼写,只有听音提示');
   // 答对路径
   g('const liAns = session.q.options.findIndex(o => o.isAnswer); listenAnswer(liAns, null)');
   ok(g('session.correct') === 1, '听音辨义答对计 1');
@@ -1162,6 +1173,10 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   // 纯练习:不写学习状态
   const listened = g('session.word');
   ok(!g(`curWords()['${listened}']`), '听音辨义纯练习不写学习状态');
+  // 完成页与「再来一组」去向(归回听力练习配置页)
+  g(`session.queue.forEach(w => { const r = session.records.get(w); r.done = true; }); renderListenWord();`);
+  ok(documentStub.getElementById('dictQuiz').innerHTML.includes('听音辨义完成'), '完成页渲染');
+  ok(g('practiceMode') === 'dict', '完成页 practiceMode 指向听力练习配置页');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
