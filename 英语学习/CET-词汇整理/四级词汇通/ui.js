@@ -123,6 +123,13 @@ function refreshSettings() {
   renderVoiceSettings();
   renderLibPicker();
   renderDiag();
+  renderQuickEntry();
+}
+
+/* 快速重建入口的剩余词数 */
+function renderQuickEntry() {
+  const el = document.getElementById('quickEntryCount');
+  if (el) el.textContent = quickRemaining();
 }
 
 /* 复习算法卡片:算法高亮 + 说明文案 + FSRS 保持率行显隐 */
@@ -3138,6 +3145,78 @@ document.addEventListener('keydown', e => {
   }
 });
 
+/* ---------------- 进度快速重建(清档补救) ----------------
+ * 快扫当前词库的全部未学词:认识的按第2级排期,不认识的明天再来。
+ * 即标即存,随时退出、随时继续(继续=重新进入,扫的总是还没标的词)。 */
+let quickRebuild = null;
+
+function quickRemaining() {
+  return unseenWords().length;
+}
+
+function startQuickRebuild() {
+  quickRebuild = { list: unseenWords(), i: 0, known: 0, unknown: 0 };
+  go('screen-study');
+  renderQuickRebuild();
+}
+
+function renderQuickRebuild() {
+  const el = document.getElementById('studyQuiz');
+  if (!el) return;
+  const q = quickRebuild;
+  if (!q) return;
+  if (q.i >= q.list.length) {
+    el.innerHTML = `
+      <div class="quiz-card session-done">
+        <div class="icon">${icon('circle-check')}</div>
+        <h2>这一轮扫完了</h2>
+        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词<br>不认识的词明天会出现在复习里,反复过几轮就补回来了。</p>
+        <button class="next-btn" onclick="startQuickRebuild()">再扫一轮（还有 ${quickRemaining()} 词没记录）</button>
+        <button class="btn-ghost" style="width:100%;margin-top:10px;padding:12px;border-radius:12px" onclick="quickExit()">完成，回主页</button>
+      </div>`;
+    return;
+  }
+  const w = q.list[q.i];
+  const def = WORD_MAP.get(w) || '';
+  el.innerHTML = `
+    <div class="quiz-card">
+      <span class="quiz-type">${icon('rotate-ccw')} 进度重建 ${q.i + 1} / ${q.list.length}</span>
+      <p class="quiz-prompt">${escapeHtml(w)}</p>
+      <p style="text-align:center;color:var(--muted);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
+      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来</p>
+      <div class="wrong-actions">
+        <button class="next-btn" style="background:var(--amber)" onclick="quickAnswer(false)">不认识</button>
+        <button class="next-btn" style="background:var(--green)" onclick="quickAnswer(true)">认识</button>
+      </div>
+      <div class="wrong-actions" style="margin-top:0">
+        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickSkip()">跳过</button>
+        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束重建</button>
+      </div>
+    </div>`;
+}
+
+function quickAnswer(known) {
+  const q = quickRebuild;
+  if (!q) return;
+  const w = q.list[q.i];
+  quickMark(w, known);
+  if (known) q.known++; else q.unknown++;
+  q.i++;
+  renderQuickRebuild();
+}
+
+function quickSkip() {
+  const q = quickRebuild;
+  if (!q) return;
+  q.i++;
+  renderQuickRebuild();
+}
+
+function quickExit() {
+  quickRebuild = null;
+  goHome();
+}
+
 /* ---------------- 初始化 ---------------- */
 renderIcons();
 refreshHome();
@@ -3176,7 +3255,7 @@ function renderDiag() {
       const tag = document.getElementById('diagBody');
       if (!tag) return;
       const hit = ks.find(k => k.indexOf('cet4-vocab-') === 0);
-      if (hit) tag.innerHTML = '缓存：<b>' + escapeHtml(hit.replace('cet4-vocab-', 'v')) + '</b><br>' + tag.innerHTML;
+      if (hit) tag.innerHTML = '缓存：<b>' + escapeHtml(hit.replace('cet4-vocab-', '')) + '</b><br>' + tag.innerHTML;
     }).catch(() => {});
   }
 }

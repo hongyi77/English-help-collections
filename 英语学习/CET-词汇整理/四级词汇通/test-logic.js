@@ -1472,6 +1472,34 @@ console.log('\n[36] 带进度存档冷启动回归');
   ok(g2(`state.libs.cet4.words['${w36}'].lapses`) === 2, '顽固词计数等可选字段保留');
 })();
 
+/* ================= 37. 进度快速重建(清档补救) ================= */
+console.log('\n[37] 进度快速重建');
+(() => {
+  g('state = defaultState(); saveState();');
+  const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]');
+  g(`quickMark('${wA}', true)`);
+  const ra = g(`curWords()['${wA}']`);
+  ok(ra.stage === 2 && Math.abs(ra.due - (Date.now() + g('INTERVALS')[1] * 86400000)) < 2000, '认识:按第2级(2天后)排期');
+  g(`quickMark('${wB}', false)`);
+  const rb = g(`curWords()['${wB}']`);
+  ok(rb.stage === 1 && Math.abs(rb.due - (Date.now() + 86400000)) < 2000, '不认识:明天再来(第1级)');
+  // FSRS 模式下同样工作
+  g(`setReviewAlgo('fsrs'); quickMark('${wA}', true)`);
+  const rf = g(`curWords()['${wA}']`);
+  ok(rf.fsrs && isFinite(rf.fsrs.due) && rf.fsrs.due > Date.now() && rf.fsrs.s === g('FSRS_W')[2], 'FSRS 模式:认识按 Good 初始化并排期');
+  // 剩余计数与扫词列表排除已有记录
+  g(`setReviewAlgo('ebbinghaus')`);
+  const rem = g('quickRemaining()');
+  ok(rem === g('WORD_LIST.length') - 2, `快速重建剩余数=未记录词数(${rem})`);
+  g(`startQuickRebuild()`);
+  ok(g('quickRebuild') && g('quickRebuild.list.length') === rem && !g('quickRebuild.list').includes(wA), '扫词列表只含无记录的词');
+  g(`const qLen = quickRebuild.list.length; quickAnswer(true);`);
+  ok(g('quickRebuild.i') === 1 && g('quickRebuild.known') === 1, '扫词作答前进并计数');
+  g('quickExit()');
+  ok(g('quickRebuild') === null && g("document.getElementById('topTitle').textContent") === '学习', '退出重建回主页');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

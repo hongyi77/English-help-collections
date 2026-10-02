@@ -919,6 +919,26 @@ function noteWrong(word, addBook) {
   saveState();
 }
 
+/* 进度快速重建(清档补救):对没有记录的词快速重标——认识按第2级排期,不认识明天再来。
+ * 不动每日目标/学习记录 history,纯重建调度数据 */
+function quickMark(word, known) {
+  let r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
+  if (!r.created) r.created = Date.now();
+  r.right++;
+  if (useFsrs()) {
+    const f = fsrsInit(known ? 3 : 1);
+    f.last = Date.now();
+    f.due = f.last + fsrsInterval(f.s, state.settings.fsrsRetention) * DAY_MS;
+    r.fsrs = f;
+    r.due = f.due;
+  } else {
+    r.due = Date.now() + (known ? INTERVALS[1] : 1) * DAY_MS;
+  }
+  r.stage = known ? 2 : 1;
+  curWords()[word] = r;
+  saveState();
+}
+
 /* ---------------- 出题 ----------------
  * 英译汉：看单词选释义
  * 汉译英：看释义选单词（复习模式增强提取练习）
