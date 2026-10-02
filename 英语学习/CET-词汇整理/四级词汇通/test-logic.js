@@ -557,7 +557,7 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   g('renderSpellConfig()');
   const cfgHtml = documentStub.getElementById('spellQuiz').innerHTML;
   ok(cfgHtml.includes('选择日期') && cfgHtml.includes('type="date"') && cfgHtml.includes('月'), '配置页渲染紧凑日期选择(中文日期+原生日历输入)');
-  ok(cfgHtml.includes('高亮 = 学过词的日子'), '有学过/没学过的图例说明');
+  ok(cfgHtml.includes('高亮 = 有学习记录的日子'), '有学过/没学过的图例说明');
   ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
   ok(!cfgHtml.includes('>昨天<') && !cfgHtml.includes('>前天<'), '不再有昨天/前天快捷 chip');
   // 可翻页月历:学过词的高亮、选中的红圈、‹›导航(前天必在当前月或上月,选前天让月历跟过去)
@@ -1259,6 +1259,103 @@ console.log('\n[31] FSRS 自适应复习算法');
   ok(g('state.settings.reviewAlgo') === 'fsrs' && g('state.settings.fsrsRetention') === 0.95, '存档合并:算法/保持率正确读回');
   g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { reviewAlgo: 'bogus', fsrsRetention: 0.7 } })); state = loadState();`);
   ok(g('state.settings.reviewAlgo') === 'ebbinghaus' && g('state.settings.fsrsRetention') === 0.9, '非法算法/保持率回落缺省');
+})();
+
+/* ================= 32. 选词器带入范围 + 按日期含复习/答错 ================= */
+console.log('\n[32] 选词器带入范围 + 按日期含复习/答错');
+(() => {
+  g('state = defaultState(); saveState();');
+  const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]'), wC = g('WORD_LIST[2]'), wD = g('WORD_LIST[3]');
+  const dk32 = g('dateKey()');
+  // 造一天混合记录:A 新学+复习, B 仅复习, C 仅答错;混入他库条目与垃圾条目
+  g(`state.history['${dk32}'] = {
+    learned: [['cet4','${wA}']],
+    reviewed: [['cet4','${wA}'], ['cet4','${wB}'], ['cet6','${wC}'], 'junk-word'],
+    wrongs: [['cet4','${wC}']],
+  }; saveState();`);
+  const touched = g(`wordsTouchedOn('${dk32}')`);
+  ok(touched.length === 3 && touched.includes(wA) && touched.includes(wB) && touched.includes(wC), '按日期=新学+复习+答错并集(同词去重)');
+  const cnt = g(`dayTouchCounts('${dk32}')`);
+  ok(cnt.learned === 1 && cnt.reviewed === 2 && cnt.wrongs === 1, `分项统计正确(新学${cnt.learned}/复习${cnt.reviewed}/答错${cnt.wrongs},他库与垃圾条目不计)`);
+  ok(g(`wordsTouchedOn('1999-01-01')`).length === 0, '无记录日期返回空');
+  g(`state.settings.spellDate = '${dk32}'; state.settings.spellScope = 'date'; saveState();`);
+  const scopePool = g(`wordsInScope('date', 'spell')`);
+  ok(scopePool.length === 3 && scopePool.includes(wB), '「按日期」范围取词含复习/答错的词');
+  g("go('screen-spell')");
+  let sh = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(sh.includes('新学 1') && sh.includes('复习 2') && sh.includes('答错 1'), '日期配置页信息行显示分项统计');
+  ok(sh.includes('有学习记录的日子'), '月历图例更新(含复习/答错)');
+  // 只答错过的日子(当月非今天)月历也应高亮
+  const now32 = new Date();
+  const probe32 = new Date(now32.getFullYear(), now32.getMonth(), now32.getDate() === 1 ? 2 : 1);
+  const dkW = g(`dateKey(${probe32.getTime()})`);
+  g(`state.history['${dkW}'] = { learned: [], reviewed: [], wrongs: [['cet4','${wD}']] };`);
+  g('calY = null; calM = null; renderSpellConfig()');
+  sh = documentStub.getElementById('spellQuiz').innerHTML;
+  const cellM = sh.match(new RegExp(`<button[^>]*setPracticeDate\\('spell','${dkW}'\\)[^>]*>`));
+  ok(!!cellM && cellM[0].includes('has') && cellM[0].includes('title="1 词"'), '只答错过的日子月历也高亮');
+  // 选词器带入配置页已选范围
+  g(`learnWord('${wA}')`);
+  g(`state.settings.spellScope = 'learning'; saveState(); renderSpellConfig()`);
+  g(`openWordPicker('spell')`);
+  ok(g('pickerFilter') === 'learning', '进选词器自动带入外部范围(学习中)');
+  let ph = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(ph.includes(`data-w="${wA}"`) && !ph.includes(`data-w="${wD}"`), '列表直接只列该范围的词');
+  g(`state.settings.spellScope = 'custom'; state.settings.spellWords = ['${wB}']; saveState(); openWordPicker('spell')`);
+  ok(g('pickerFilter') === 'picked', '自选范围进选词器直接显示已选');
+  g(`state.settings.dictScope = 'mastered'; saveState()`);
+  g(`openWordPicker('dict')`);
+  ok(g('pickerFilter') === 'mastered', '听力练习选词器同样带入范围');
+  // 选词器的返回层级:顶栏箭头回配置页,完成后标题还原
+  ok(g('pickerOpen') === true, '选词器打开状态被记录');
+  g(`topBack()`);
+  ok(g('pickerOpen') === false && g('pickerKind') === 'dict', '选词器打开时顶栏返回→回配置页(不回主菜单)');
+  ok(g("document.getElementById('topTitle').textContent") === '听力练习', '返回配置页后顶栏标题还原');
+  ok(g(`document.getElementById('dictQuiz').innerHTML`).includes('开始听写'), '返回后配置页正常渲染');
+  // 未开选词器时顶栏返回仍是回主菜单
+  g(`topBack()`);
+  ok(g("document.getElementById('topTitle').textContent") === '学习', '未开选词器时顶栏返回→主菜单');
+})();
+
+/* ================= 33. 配置页布局:固定开始栏/分组重排/月历禁未来/吸顶 ================= */
+console.log('\n[33] 配置页布局优化');
+(() => {
+  g('state = defaultState(); saveState();');
+  // 固定开始栏:词数与按钮分离
+  g(`go('screen-spell')`);
+  let sh = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(sh.includes('practice-foot') && sh.includes('id="spellStartBtn"') && sh.includes('id="spellFootCount"'), '拼写配置页有固定开始栏(词数+按钮)');
+  ok(/id="spellFootCount">20</.test(sh), '开始栏实时词数=min(数量,池)');
+  ok(!sh.includes('实际取词不足'), '数量长提示已移除');
+  // 数量改动就地更新词数与按钮
+  g(`setPracticeCount('spell', 7)`);
+  ok(documentStub.getElementById('spellFootCount').textContent === '7' && documentStub.getElementById('spellStartBtn').textContent === '开始拼写', '改数量就地更新词数,按钮文案不带词数');
+  // 听力练习分组:类型专属设置紧跟练习类型,共用范围在后
+  g(`go('screen-dictate')`);
+  let dh = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(dh.indexOf('作答方式') < dh.indexOf('选择范围'), '写词专属设置在共用范围之前(分组重排)');
+  ok(dh.includes('practice-foot') && dh.includes('>开始听写</button>'), '听力练习固定开始栏(听音写词)');
+  g(`setPracticeCfg('dictKind','pick')`);
+  dh = documentStub.getElementById('dictQuiz').innerHTML;
+  ok(dh.includes('>开始听音辨义</button>') && !dh.includes('作答方式'), '切辨义:按钮换文案,写词配置收起');
+  // 月历:下月导航到当前月即禁用;未来日期禁点
+  g(`setPracticeCfg('spellScope','date')`);
+  sh = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(/cfg-cal-nav next"[^>]*disabled/.test(sh), '当前月时下月导航禁用');
+  ok(sh.includes('高亮 = 有学习记录的日子') && !sh.includes('含复习/答错'), '图例已缩短');
+  g(`calShift('spell', 1)`);
+  const now33 = new Date();
+  ok(documentStub.getElementById('spellQuiz').innerHTML.includes(`${now33.getFullYear()}年${now33.getMonth() + 1}月`), '当前月时下月翻页被阻止');
+  const lastDay33 = new Date(now33.getFullYear(), now33.getMonth() + 1, 0).getDate();
+  if (now33.getDate() < lastDay33) {
+    const dkF = g(`dateKey(Date.now() + DAY_MS)`);
+    sh = documentStub.getElementById('spellQuiz').innerHTML;
+    ok(sh.includes('dis') && !sh.includes(`onclick="setPracticeDate('spell','${dkF}')"`), '未来日期格子禁点(无 onclick)');
+  }
+  // 选词器:搜索+筛选吸顶
+  g(`openWordPicker('spell')`);
+  sh = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(sh.includes('picker-head') && sh.includes('pickerSearchInput'), '选词器搜索+筛选吸顶容器');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);

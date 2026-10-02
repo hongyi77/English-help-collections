@@ -487,6 +487,24 @@
   .picker-foot .next-btn { flex: 1.4; margin-top: 0; }
   .picker-count { flex: none; align-self: center; font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
   .picker-count b { font-family: var(--serif); color: var(--ink-blue); font-size: 16px; }
+  /* 练习配置页固定开始栏:左侧实时词数,右侧开始按钮(参数改完随时能看到入口) */
+  .practice-foot {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;
+    display: flex; gap: 14px; align-items: stretch;
+    max-width: 600px; margin: 0 auto; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper); border-top: 1px solid var(--hairline);
+    box-shadow: 0 -2px 10px rgba(31, 78, 121, .06);
+  }
+  .practice-foot .next-btn { flex: 1.6; margin-top: 0; }
+  /* 选词器搜索+筛选吸顶:长列表滚动时保持可见 */
+  .picker-head {
+    position: sticky; top: 54px; z-index: 4;
+    margin: -8px -20px 12px; padding: 12px 20px 10px;
+    background: var(--card); border-bottom: 1px solid var(--hairline);
+  }
+  /* 月历:未来日期与越界导航禁用 */
+  .cfg-cal-day.dis { color: var(--hairline); cursor: default; }
+  .cfg-cal-nav:disabled { opacity: .35; cursor: default; }
   /* 错误选项点看标签（答错反馈内） */
   .def-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .def-chip {
@@ -524,7 +542,7 @@
 <body>
 
 <div class="topbar">
-  <button class="back" id="topBack" onclick="goHome()" style="display:none" title="返回"><span data-icon="chevron-left"></span></button>
+  <button class="back" id="topBack" onclick="topBack()" style="display:none" title="返回"><span data-icon="chevron-left"></span></button>
   <span id="topTitle">英语词汇通</span>
   <span class="sub" id="topSub"></span>
 </div>

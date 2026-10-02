@@ -26,6 +26,8 @@ function go(id) {
   const tabbar = document.getElementById('tabbar');
   if (tabbar) tabbar.style.display = tabbed ? 'flex' : 'none';
   document.getElementById('topBack').style.display = tabbed ? 'none' : 'inline';
+  // 离开拼写/听力页时选词器必然已关闭(防状态残留导致返回箭头误判层级)
+  if (id !== 'screen-spell' && id !== 'screen-dictate') pickerOpen = false;
   document.querySelectorAll('#tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
   // 学习页顶栏右侧显示当前词库名
   document.getElementById('topSub').textContent = (id === 'screen-home') ? LIBS[libKey()].name : '';
@@ -1585,7 +1587,7 @@ function spellCfgHtml(kind) {
     </div>
     ${scope === 'date' ? practiceDateHtml(kind) : ''}
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
-    <div class="cfg-title">数量 <span class="mt-cnt">（1 ~ ${WORD_LIST.length}，实际取词不足时按剩余数）</span></div>
+    <div class="cfg-title">数量</div>
     <div class="set-ctrl" style="justify-content:flex-start">
       <button onclick="adjPracticeCount('${kind}',-1)">−</button>
       <input type="number" id="${kind}CountInput" class="count-input" inputmode="numeric" min="1" max="${WORD_LIST.length}"
@@ -1611,19 +1613,37 @@ function adjPracticeCount(kind, delta) {
   if (inp) inp.value = state.settings[kind + 'Count'];
 }
 
-/* 数量变化时就地更新开始按钮文案(不重渲染配置页,避免输入框失焦) */
-const PRACTICE_START_LABELS = { spell: '开始拼写（', dict: '开始听写（' };
+/* 数量变化时就地更新开始栏词数(不重渲染配置页,避免输入框失焦) */
+const PRACTICE_START_LABELS = { spell: '开始拼写', dict: '开始听写' };
+function practiceStartLabel(kind) {
+  return (kind === 'dict' && normDictKind(state.settings.dictKind) === 'pick')
+    ? '开始听音辨义'
+    : (PRACTICE_START_LABELS[kind] || '开始');
+}
 function updatePracticeStartLabel(kind) {
   const btn = document.getElementById(kind + 'StartBtn');
   if (!btn) return;
   const pool = practicePool(kind);
   const custom = normScope(state.settings[kind + 'Scope']) === 'custom';
   const n = custom ? pool.length : Math.min(state.settings[kind + 'Count'] || 1, pool.length);
-  const label = (kind === 'dict' && normDictKind(state.settings.dictKind) === 'pick')
-    ? '开始听音辨义（'
-    : (PRACTICE_START_LABELS[kind] || '开始（');
-  btn.textContent = label + n + ' 词）';
+  btn.textContent = practiceStartLabel(kind);
   btn.disabled = !pool.length;
+  const cnt = document.getElementById(kind + 'FootCount');
+  if (cnt) cnt.textContent = String(n);
+}
+
+/* 配置页固定开始栏:左侧实时词数,右侧开始按钮(参数改完随时能看到入口)。
+ * 实际取词 = min(数量,池大小);自选范围取整个词单 */
+function practiceFootHtml(kind) {
+  const pool = practicePool(kind);
+  const custom = normScope(state.settings[kind + 'Scope']) === 'custom';
+  const n = custom ? pool.length : Math.min(state.settings[kind + 'Count'] || 1, pool.length);
+  return `
+    <div class="practice-foot">
+      <span class="picker-count">共 <b id="${kind}FootCount">${n}</b> 词</span>
+      <button class="next-btn" id="${kind}StartBtn" onclick="${kind === 'dict' ? 'startDictPractice()' : 'startCustomSpell()'}" ${pool.length ? '' : 'disabled'}>${practiceStartLabel(kind)}</button>
+    </div>
+  `;
 }
 
 /* 自选词单（按当前词库过滤，切词库后他库词自动忽略） */
@@ -1670,6 +1690,12 @@ function setPracticeCfg(key, val) {
 let calY = null, calM = null;   // 月历浏览的年月(null = 今天所在月)
 
 function calShift(kind, delta) {
+  // 只能回翻历史;已在当前月时禁止再往后(与月历禁未来日期一致)
+  if (delta > 0) {
+    const t = new Date();
+    if (calY === t.getFullYear() && calM >= t.getMonth()) return;
+    if (calY > t.getFullYear()) return;
+  }
   const base = (calY === null) ? new Date() : new Date(calY, calM, 1);
   const d = new Date(base.getFullYear(), base.getMonth() + delta, 1);
   calY = d.getFullYear();
@@ -1679,14 +1705,20 @@ function calShift(kind, delta) {
 
 function practiceDateHtml(kind) {
   const cur = state.settings[kind + 'Date'] || '';
-  const words = wordsLearnedOn(cur);
+  const words = wordsTouchedOn(cur);
+  const cnt = dayTouchCounts(cur);
   const fmt = (dk) => {
     const p = (dk || '').split('-');
     return p.length === 3 ? `${+p[1]}月${+p[2]}日` : '选择日期';
   };
+  // 当天有学过(新学/复习/答错)就给分项统计,首词做认日子的锚点
+  const parts = [];
+  if (cnt.learned) parts.push('新学 ' + cnt.learned);
+  if (cnt.reviewed) parts.push('复习 ' + cnt.reviewed);
+  if (cnt.wrongs) parts.push('答错 ' + cnt.wrongs);
   const info = !cur ? '未选择日期'
-    : words.length ? `当天新学 ${words.length} 词 · 从 ${words[0]} 开始`
-    : '该日无新学记录';
+    : parts.length ? `当天 ${parts.join(' · ')} · 从 ${words[0]} 开始`
+    : '该日无学习记录';
   if (calY === null) {
     const t = new Date();
     calY = t.getFullYear();
@@ -1694,19 +1726,23 @@ function practiceDateHtml(kind) {
   }
   const firstWd = new Date(calY, calM, 1).getDay();          // 1 号是周几(0=日)
   const daysInMonth = new Date(calY, calM + 1, 0).getDate();
+  const today = dateKey();
   let cells = '';
   for (let i = 0; i < firstWd; i++) cells += '<span></span>';
   for (let d = 1; d <= daysInMonth; d++) {
     const dk = dateKey(new Date(calY, calM, d));
-    const n = wordsLearnedOn(dk).length;
-    cells += `<button type="button" class="cfg-cal-day ${n ? 'has' : ''} ${dk === cur ? 'sel' : ''}" title="${n ? n + ' 词' : '无记录'}" onclick="setPracticeDate('${kind}','${dk}')">${d}</button>`;
+    const future = dk > today;                               // 未来日期禁点(与原生日历 max 一致)
+    const n = future ? 0 : wordsTouchedOn(dk).length;
+    cells += `<button type="button" class="cfg-cal-day ${n ? 'has' : ''} ${dk === cur ? 'sel' : ''} ${future ? 'dis' : ''}" title="${future ? '未来日期' : (n ? n + ' 词' : '无记录')}" ${future ? 'disabled' : `onclick="setPracticeDate('${kind}','${dk}')"`}>${d}</button>`;
   }
   const wd = ['日', '一', '二', '三', '四', '五', '六'].map(w => `<span class="cfg-cal-wd">${w}</span>`).join('');
+  const now = new Date();
+  const nextOff = calY > now.getFullYear() || (calY === now.getFullYear() && calM >= now.getMonth());
   return `
-    <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 学过词的日子</span></div>
+    <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 有学习记录的日子</span></div>
     <div class="cfg-date-row">
       <span class="cfg-date-btn">
-        <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${dateKey()}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">
+        <input type="date" class="cfg-date-input" value="${escapeHtml(cur)}" max="${today}" aria-label="选择日期" onchange="setPracticeDate('${kind}', this.value)">
         <span class="cfg-date-label">${fmt(cur)} ${icon('chevron-left')}</span>
       </span>
       <span class="cfg-date-info">${escapeHtml(info)}</span>
@@ -1715,7 +1751,7 @@ function practiceDateHtml(kind) {
       <div class="cfg-cal-head">
         <button type="button" class="cfg-cal-nav" aria-label="上个月" onclick="calShift('${kind}',-1)">${icon('chevron-left')}</button>
         <span class="cfg-cal-title">${calY}年${calM + 1}月</span>
-        <button type="button" class="cfg-cal-nav next" aria-label="下个月" onclick="calShift('${kind}',1)">${icon('chevron-left')}</button>
+        <button type="button" class="cfg-cal-nav next" aria-label="下个月" onclick="calShift('${kind}',1)" ${nextOff ? 'disabled' : ''}>${icon('chevron-left')}</button>
       </div>
       <div class="cfg-cal-grid">${wd}${cells}</div>
     </div>
@@ -1726,6 +1762,7 @@ function practiceDateHtml(kind) {
  * 选中后月历跟到该日期所在月(含原生日历跳到很早的日期的情况) */
 function setPracticeDate(kind, v) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
+  if (v > dateKey()) return;   // 不收未来日期(与月历禁点、原生日历 max 一致)
   state.settings[kind + 'Date'] = v;
   const dt = new Date(v + 'T00:00:00');
   calY = dt.getFullYear();
@@ -1738,7 +1775,7 @@ function setPracticeDate(kind, v) {
 function practiceEmptyHtml(kind) {
   const scope = normScope(state.settings[kind + 'Scope']);
   if (scope === 'custom') return '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>';
-  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有新学单词，换一天或换个范围试试</div>';
+  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有学习记录，换一天或换个范围试试</div>';
   return '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>';
 }
 
@@ -1746,16 +1783,14 @@ function renderSpellConfig() {
   const el = document.getElementById('spellQuiz');
   if (!el) return;
   const pool = practicePool('spell');
-  const custom = normScope(state.settings.spellScope) === 'custom';
-  const count = custom ? pool.length : Math.min(state.settings.spellCount || 20, pool.length);
   el.innerHTML = `
-    <div class="quiz-card" style="text-align:left">
+    <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
       <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
       ${spellCfgHtml('spell')}
       ${pool.length ? '' : practiceEmptyHtml('spell')}
-      <button class="next-btn" id="spellStartBtn" onclick="startCustomSpell()" ${pool.length ? '' : 'disabled'}>开始拼写（${count} 词）</button>
     </div>
+    ${practiceFootHtml('spell')}
   `;
 }
 
@@ -1930,16 +1965,21 @@ function practiceAgain() {
  * 搜索 + 按范围筛选 + 点行勾选;词单存 settings.spellWords/dictWords,按当前词库过滤生效
  */
 let pickerKind = null;      // 'spell' | 'dict'
+let pickerOpen = false;     // 选词器是否打开:决定顶栏返回箭头回配置页还是主菜单
 let pickerSearch = '';
 let pickerFilter = 'all';   // SCOPES key | 'picked'
 let pickerLimit = 100;
 
 function openWordPicker(kind) {
   pickerKind = kind;
+  pickerOpen = true;
   pickerSearch = '';
-  pickerFilter = 'all';
+  // 带入配置页已选的范围:外面筛了哪类,进来就直接列哪类(自选→已选),不用再筛一遍
+  const scope = normScope(state.settings[kind + 'Scope']);
+  pickerFilter = scope === 'custom' ? 'picked' : scope;
   pickerLimit = 100;
   renderWordPicker();
+  document.getElementById('topTitle').textContent = '选定单词';
 }
 
 function pickerPool() {
@@ -1978,10 +2018,12 @@ function renderWordPicker() {
     <div class="quiz-card" style="text-align:left">
       <span class="quiz-type">${icon('list-plus')} 选定单词</span>
       <p class="cfg-note">点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
-      <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
-      <div class="cfg-chips">${SCOPES.map(s =>
-        `<button class="master-tab ${pickerFilter === s.key ? 'active' : ''}" onclick="setPickerFilter('${s.key}')">${s.label}</button>`
-      ).join('')}<button class="master-tab ${pickerFilter === 'picked' ? 'active' : ''}" onclick="setPickerFilter('picked')">已选 ${picked.length}</button></div>
+      <div class="picker-head">
+        <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
+        <div class="cfg-chips">${SCOPES.map(s =>
+          `<button class="master-tab ${pickerFilter === s.key ? 'active' : ''}" onclick="setPickerFilter('${s.key}')">${s.label}</button>`
+        ).join('')}<button class="master-tab ${pickerFilter === 'picked' ? 'active' : ''}" onclick="setPickerFilter('picked')">已选 ${picked.length}</button></div>
+      </div>
       <div id="pickerList">${rows || '<div class="empty-tip" style="padding:24px 0">没有匹配的单词</div>'}${moreBtn}</div>
     </div>
     <div class="picker-foot">
@@ -2105,7 +2147,16 @@ function pickerSelectAll() {
 }
 
 function pickerDone() {
+  if (!pickerKind) return;
+  pickerOpen = false;
   renderPracticeConfig(pickerKind);
+  document.getElementById('topTitle').textContent = SCREEN_TITLES[PRACTICE_SCREENS[pickerKind]] || '';
+}
+
+/* 顶栏返回箭头统一入口:选词器打开时回配置页(上一级),其余回主菜单 */
+function topBack() {
+  if (pickerOpen) { pickerDone(); return; }
+  goHome();
 }
 
 /* ============================================================
@@ -2130,21 +2181,19 @@ function renderDictConfig() {
   const kind = normDictKind(state.settings.dictKind);   // write 听音写词 | pick 听音辨义
   const mode = normDictMode(state.settings.dictMode);
   const pool = practicePool('dict');
-  const custom = normScope(state.settings.dictScope) === 'custom';
-  const count = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
   const s = state.settings;
   const rate = s.dictRate || 0.9;
   const pause = s.dictPause == null ? 1 : s.dictPause;
+  // 分组顺序:练习类型 → 该类型专属设置 → 共用范围/数量,底部固定开始栏(practiceFootHtml)
   el.innerHTML = `
-    <div class="quiz-card" style="text-align:left">
+    <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('ear')} 听力练习</span>
-      <p class="cfg-note">两种练法共用下面的范围/数量/自选词单，错词都会穿插重现；纯练习，不影响学习进度。<br><b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。发音用 Edge 朗读/设备 TTS，熄屏/切后台可继续播；首次需联网，之后离线可用。</p>
+      <p class="cfg-note"><b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。两类共用下面的范围/数量/自选词单，错词自动穿插重现；发音首次需联网，之后离线可用。</p>
       <div class="cfg-title">练习类型</div>
       <div class="cfg-chips">
         <button class="master-tab ${kind === 'write' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','write')">${icon('pencil-line')} 听音写词</button>
         <button class="master-tab ${kind === 'pick' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','pick')">${icon('volume-2')} 听音辨义</button>
       </div>
-      ${spellCfgHtml('dict')}
       ${kind === 'write' ? `
         <div class="cfg-title">作答方式</div>
         <div class="cfg-chips">
@@ -2169,10 +2218,11 @@ function renderDictConfig() {
         <div class="cfg-title">语速 <span class="mt-cnt" id="rateLabel">${rate.toFixed(1)}x</span></div>
         <div class="rate-row">
           <input type="range" min="0.5" max="1.5" step="0.1" value="${rate}" oninput="onDictRate(this.value)">
-        </div>` : `<p class="cfg-note">听音辨义不显示单词拼写，堵住「靠字形认词」；自动轮播等免手持选项仅听音写词需要。</p>`}
+        </div>` : `<p class="cfg-note">不显示单词拼写，堵住「靠字形认词」；四选一答完即判分，错词稍后穿插重现。</p>`}
+      ${spellCfgHtml('dict')}
       ${pool.length ? '' : practiceEmptyHtml('dict')}
-      <button class="next-btn" id="dictStartBtn" onclick="startDictPractice()" ${pool.length ? '' : 'disabled'}>开始${kind === 'pick' ? '听音辨义' : '听写'}（${count} 词）</button>
     </div>
+    ${practiceFootHtml('dict')}
   `;
 }
 

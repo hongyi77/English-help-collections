@@ -716,16 +716,37 @@ function normScope(v) {
   return (v === 'custom' || SCOPES.some(s => s.key === v)) ? v : 'all';
 }
 
-/* 指定日期「新学」的单词（当前词库）。
+/* 指定日期的学习活动统计（当前词库）：新学/复习/答错各多少。
  * history 条目为 [词库key, 单词]，兼容旧版纯字符串条目（按词库归属） */
-function wordsLearnedOn(dk) {
+function dayTouchCounts(dk) {
   const rec = state.history && state.history[dk];
-  if (!rec || !Array.isArray(rec.learned)) return [];
+  const cnt = (list) => {
+    let n = 0;
+    for (const e of (list || [])) {
+      const pair = normHistEntry(e);
+      if (pair && pair[0] === libKey()) n++;
+    }
+    return n;
+  };
+  return {
+    learned: rec ? cnt(rec.learned) : 0,
+    reviewed: rec ? cnt(rec.reviewed) : 0,
+    wrongs: rec ? cnt(rec.wrongs) : 0,
+  };
+}
+
+/* 指定日期「接触过」的单词（当前词库）：新学+复习+答错合并去重。
+ * 「按日期」范围练的是当天碰过的所有词，不止新学 */
+function wordsTouchedOn(dk) {
+  const rec = state.history && state.history[dk];
+  if (!rec) return [];
   const set = LIB_WORD_SETS[libKey()];
   const out = [];
-  for (const e of rec.learned) {
-    const pair = normHistEntry(e);
-    if (pair && pair[0] === libKey() && set.has(pair[1]) && !out.includes(pair[1])) out.push(pair[1]);
+  for (const cat of ['learned', 'reviewed', 'wrongs']) {
+    for (const e of (rec[cat] || [])) {
+      const pair = normHistEntry(e);
+      if (pair && pair[0] === libKey() && set.has(pair[1]) && !out.includes(pair[1])) out.push(pair[1]);
+    }
   }
   return out;
 }
@@ -741,7 +762,7 @@ function wordsInScope(scope, kind) {
   if (scope === 'mastered') return masteredWords();
   if (scope === 'book') return bookWords();
   if (scope === 'hard') return leechWords();
-  if (scope === 'date') return wordsLearnedOn(practiceDateOf(kind));
+  if (scope === 'date') return wordsTouchedOn(practiceDateOf(kind));
   return WORD_LIST.slice();
 }
 
