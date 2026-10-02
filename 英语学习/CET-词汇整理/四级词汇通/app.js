@@ -11,6 +11,7 @@
  */
 const INTERVALS = [1, 2, 4, 7, 15]; // 升到 stage1..5 后的间隔天数
 const STAGE_MASTERED = INTERVALS.length; // 5 = 已掌握
+const LEECH_THRESHOLD = 5; // 复习答错(lapse)累计到该次数 → 自动标记顽固词(Anki Leech 思路)
 
 const STATE_KEY = 'cet4_study_state_v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -23,19 +24,22 @@ const DEFAULT_SETTINGS = {
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听写:范围 + 数量 + 作答方式(judge判分/listen自查/auto自动轮播)
   dictDate: '',                                           // 听写:「按日期」范围选的日期
   dictWords: [],                                          // 听写自选词单
+  listenScope: 'all', listenCount: 10, listenWords: [],   // 听音辨义:范围 + 数量 + 自选词单(共用取词框架)
+  listenDate: '',                                         // 听音辨义:「按日期」范围选的日期
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
 };
 
-/* 自定义拼写/听写的取词范围 */
+/* 自定义拼写/听写/听音辨义的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
 const SCOPES = [
   { key: 'all', label: '全部' },
   { key: 'unseen', label: '未学习' },
   { key: 'learning', label: '学习中' },
   { key: 'mastered', label: '已掌握' },
   { key: 'book', label: '生词本' },
+  { key: 'hard', label: '顽固词' },
   { key: 'date', label: '按日期' },
 ];
 
@@ -390,6 +394,24 @@ function recordWrong(word) {
   saveState();
 }
 
+/* 连续学习天数(streak)：从今天往回数连续有学习活动的日子，全词库合计；
+ * 今天还没学不打断(Duolingo 规则，避免晚上打开时显示已断签) */
+function streakInfo() {
+  const h = state.history || {};
+  const hasAct = dk => {
+    const r = h[dk];
+    return !!(r && ((r.learned && r.learned.length) || (r.reviewed && r.reviewed.length)));
+  };
+  let n = 0;
+  let t = Date.now();
+  if (!hasAct(dateKey(t))) t -= DAY_MS;
+  while (hasAct(dateKey(t))) {
+    n++;
+    t -= DAY_MS;
+  }
+  return n;
+}
+
 /* 每日计数对账：以当天 history 为权威，重建各词库的 learnedToday/reviewedToday。
  * history 条目自带词库归属，且 learnWord/reviewCorrect/reviewWrong 写计数时必同步写 history
  * （计数 ⊆ history，重建不丢数）。自愈旧版混库迁移造成的污染——2026-08-31 实测 bug：
@@ -496,6 +518,9 @@ function sanitizeWordRecord(r) {
     wrong: num(r.wrong),
     inBook: r.inBook === true,
     created: num(r.created) || Date.now(),
+    // 顽固词字段(可选,旧档/导入缺省即无标记)
+    lapses: num(r.lapses),
+    leech: r.leech === true,
   };
 }
 
@@ -618,11 +643,20 @@ function learningWords() {
   });
 }
 
-/* 分类：unlearned / learning / due / mastered */
+/* 顽固词：复习答错累计达 LEECH_THRESHOLD 自动标记(重置单词即清除) */
+function leechWords() {
+  return WORD_LIST.filter(w => {
+    const r = curWords()[w];
+    return r && r.leech;
+  });
+}
+
+/* 分类：unlearned / learning / due / mastered / leech */
 function wordsByClass(cls) {
   if (cls === 'unlearned') return unseenWords();
   if (cls === 'mastered') return masteredWords();
   if (cls === 'due') return dueWords();
+  if (cls === 'leech') return leechWords();
   return learningWords();
 }
 
@@ -655,6 +689,7 @@ function wordsInScope(scope, kind) {
   if (scope === 'learning') return learningWords();
   if (scope === 'mastered') return masteredWords();
   if (scope === 'book') return bookWords();
+  if (scope === 'hard') return leechWords();
   if (scope === 'date') return wordsLearnedOn(practiceDateOf(kind));
   return WORD_LIST.slice();
 }
@@ -738,6 +773,9 @@ function reviewWrong(word, addBook) {
   r.stage = Math.max(1, r.stage - 2);
   r.due = Date.now() + 10 * 60 * 1000; // 10 分钟后重试
   if (addBook !== false) r.inBook = true;
+  // 顽固词计数：只统计复习答错(lapse)，拼写/识别答错不污染(拼写是纯练习不写状态)
+  r.lapses = (r.lapses || 0) + 1;
+  if (r.lapses >= LEECH_THRESHOLD) r.leech = true;
   curWords()[word] = r;
   const L = curDaily();
   if (!L.reviewedToday.includes(word)) L.reviewedToday.push(word);

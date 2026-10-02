@@ -1084,6 +1084,86 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
   ok(detAll2.includes('新学（1）') && !detAll2.includes('复习（1）'), '全部视图空组自动隐藏(既有行为回归)');
 })();
 
+/* ================= 30. 顽固词机制 + 学习热力图/streak + 听音辨义 ================= */
+console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨义全流程');
+(() => {
+  g('state = defaultState(); saveState();');
+  const w0 = g(`LIBS.cet4.words[0][0]`);
+  // ---- 顽固词:复习答错累计 5 次 → 自动标记 ----
+  for (let i = 0; i < 4; i++) g(`reviewWrong('${w0}', false)`);
+  ok(g(`curWords()['${w0}'].lapses`) === 4 && !g(`curWords()['${w0}'].leech`), '4 次 lapse 不标记顽固词');
+  g(`reviewWrong('${w0}', false)`);
+  ok(g(`curWords()['${w0}'].lapses`) === 5 && g(`curWords()['${w0}'].leech`) === true, '第 5 次 lapse 自动标记顽固词');
+  ok(g(`leechWords().join()`).includes(w0), 'leechWords 包含顽固词');
+  ok(g(`wordsByClass('leech').length`) === 1, 'wordsByClass(leech) 分类生效');
+  ok(g(`wordsInScope('hard', 'spell').join()`).includes(w0), '取词范围 hard(顽固词)生效');
+  ok(g(`JSON.stringify(SCOPES.map(s => s.key))`).includes('hard'), 'SCOPES 含顽固词档(拼写/听写/听音辨义共用)');
+  // 重置单词清除顽固标记
+  g(`resetWord('${w0}')`);
+  ok(!g(`curWords()['${w0}']`), '重置单词删除记录(顽固标记一并清除)');
+  // 掌握情况顽固词 tab
+  g(`curWords()['${w0}'] = { stage:1, due:Date.now()+DAY_MS, right:1, wrong:5, lapses:5, leech:true, inBook:false, created:Date.now() }; saveState();`);
+  g('renderMaster();');
+  ok(documentStub.getElementById('masterTabs').innerHTML.includes('顽固词'), '掌握情况有顽固词分类 tab');
+  g(`masterTab = 'leech'; renderMasterList();`);
+  ok(documentStub.getElementById('masterList').innerHTML.includes('顽固 · 错5 次'), '顽固词列表行显示答错次数');
+  // ---- streak 连续学习天数 ----
+  g('state = defaultState(); saveState();');
+  ok(g('streakInfo()') === 0, '无记录 streak=0');
+  const dkT = g('dateKey()');
+  const dkY = g('dateKey(Date.now() - DAY_MS)');
+  const dkY2 = g('dateKey(Date.now() - 2 * DAY_MS)');
+  g(`
+    state.history['${dkT}'] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
+    state.history['${dkY}'] = { learned: [], reviewed: [['cet4','${w0}']], wrongs: [] };
+    state.history['${dkY2}'] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
+    saveState();
+  `);
+  ok(g('streakInfo()') === 3, '连续 3 天有活动 streak=3');
+  g(`delete state.history['${dkT}']; saveState();`);
+  ok(g('streakInfo()') === 2, '今天还没学不打断 streak(数到昨天)');
+  g(`delete state.history['${dkY}']; saveState();`);
+  ok(g('streakInfo()') === 0, '链条断掉 streak 归零');
+  // ---- 学习热力图渲染 ----
+  g(`
+    state.history['${dkY}'] = { learned: [], reviewed: [['cet4','${w0}']], wrongs: [] };
+    saveState(); historyDay = null; renderHistory();
+  `);
+  const hm = documentStub.getElementById('heatmapBox').innerHTML;
+  ok(hm.includes('<svg') && hm.includes('hm-1'), '热力图 SVG 渲染(有活动的格子着色)');
+  ok(documentStub.getElementById('streakLine').textContent.includes('连续学习'), 'streak 文案渲染');
+  g(`heatmapClick({ target: { dataset: { dk: '${dkY2}' } } })`);
+  ok(g('historyDay') === dkY2, '点热力格子跳到对应日期记录');
+  // ---- 听音辨义 ----
+  g(`speakWord = function(w){ window.__spoke.push(w); }; window.__spoke = [];`);
+  g('state = defaultState(); saveState();');
+  ok(g('state.settings.listenScope') === 'all' && g('state.settings.listenCount') === 10, '听音辨义配置字段有缺省值');
+  g('state.settings.listenCount = 2; saveState();');
+  g("go('screen-listen')");
+  const lcfg = documentStub.getElementById('listenQuiz').innerHTML;
+  ok(lcfg.includes('开始听音辨义') && lcfg.includes('顽固词'), '听音辨义配置页渲染(取词框架含顽固词范围)');
+  g('startListen()');
+  ok(g('session.mode') === 'listen' && g('session.phase') === 'clist', '听音辨义会话创建(mode/phase 正确)');
+  ok(g('session.queue.length') === 2, '按数量取词');
+  ok(documentStub.getElementById('listenQuiz').innerHTML.includes('听发音，选释义'), '题干不显示拼写,只有听音提示');
+  // 答对路径
+  g('const liAns = session.q.options.findIndex(o => o.isAnswer); listenAnswer(liAns, null)');
+  ok(g('session.correct') === 1, '听音辨义答对计 1');
+  ok(g(`window.__spoke.includes(session.word)`), '答对后自动朗读单词');
+  ok(documentStub.getElementById('listenFeedback').innerHTML.includes(g('session.word')), '反馈显示单词与释义');
+  // 答错路径
+  g('session.answered = false');
+  g('const liWrong = session.q.options.findIndex(o => !o.isAnswer); listenAnswer(liWrong, null)');
+  ok(g('session.wrong') === 1 && g('session.spellRetries.includes(session.word)') === true, '答错进错词池待穿插重现');
+  ok(g(`window.__spoke.includes(session.word)`), '答错揭底时朗读单词');
+  ok(documentStub.getElementById('listenFeedback').innerHTML.includes('加入生词本'), '答错反馈有加入生词本');
+  g('listenNext()');
+  ok(g('session.answered') === false && g('session.idx') === 1, 'listenNext 前进到下一词');
+  // 纯练习:不写学习状态
+  const listened = g('session.word');
+  ok(!g(`curWords()['${listened}']`), '听音辨义纯练习不写学习状态');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

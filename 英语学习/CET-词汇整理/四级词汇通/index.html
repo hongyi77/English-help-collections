@@ -437,6 +437,20 @@
   .cfg-cal-day.sel { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
   .rate-row input[type=range] { flex: 1; accent-color: var(--ink-blue); }
+  /* 听音辨义:题干区(大喇叭按钮+提示语,不显示单词拼写) */
+  .listen-prompt { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0 4px; }
+  .listen-prompt .speak-btn { width: 58px; height: 58px; border-radius: 50%; border: 1.5px solid var(--ink-blue); background: var(--blue-soft); color: var(--ink-blue); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .listen-prompt .speak-btn svg { width: 26px; height: 26px; }
+  .listen-tip { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+  /* 学习热力图(GitHub 贡献图风格):墨蓝 5 档,0 档只有描边 */
+  .hm-scroll { overflow-x: auto; padding: 2px 0; -webkit-overflow-scrolling: touch; }
+  .hm-svg { display: block; }
+  .hm-cell { stroke: var(--hairline); stroke-width: 1; cursor: pointer; }
+  .hm-0 { fill: transparent; }
+  .hm-1 { fill: rgba(31, 78, 121, .22); }
+  .hm-2 { fill: rgba(31, 78, 121, .45); }
+  .hm-3 { fill: rgba(31, 78, 121, .7); }
+  .hm-4 { fill: var(--ink-blue); }
   /* 练习数量输入(自由拼写/听写) */
   .count-input {
     width: 84px; padding: 9px 6px; border: 1px solid var(--hairline); border-radius: 9px;
@@ -564,6 +578,11 @@
         <span class="ba-txt"><b>听写</b><i>听音拼词，支持判分/自查、循环与语速</i></span>
         <span class="arrow">›</span>
       </button>
+      <button class="big-action" id="listenEntry" onclick="go('screen-listen')">
+        <span class="ba-ico" data-icon="volume-2"></span>
+        <span class="ba-txt"><b>听音辨义</b><i>只听发音选释义，堵住「看字形认词」</i></span>
+        <span class="arrow">›</span>
+      </button>
     </div>
   </div>
 </div>
@@ -596,6 +615,13 @@
   </div>
 </div>
 
+<!-- ==================== 听音辨义 ==================== -->
+<div class="screen" id="screen-listen">
+  <div class="wrap">
+    <div id="listenQuiz"></div>
+  </div>
+</div>
+
 <!-- ==================== Tab2 · 词汇（生词本/掌握情况/学习记录） ==================== -->
 <div class="screen tabbed" id="screen-vocab">
   <div class="wrap">
@@ -619,7 +645,8 @@
       <h3>按分类查看并重置</h3>
       <div id="masterTabs"></div>
       <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.7">
-        点击某个单词可重置它(回到未学习);<br>
+        复习答错累计 5 次的词自动标记为「顽固词」，可单独查看或到自由拼写/听写里选「顽固词」范围专项练；<br>
+        点击某个单词可重置它(回到未学习，顽固标记一并清除)；<br>
         点分类旁「重置全部」可清空该分类所有单词。
       </p>
     </div>
@@ -634,6 +661,11 @@
       <div class="stat-card"><div class="num" id="hLearned">0</div><div class="lbl">新学</div></div>
       <div class="stat-card"><div class="num green" id="hReviewed">0</div><div class="lbl">复习</div></div>
       <div class="stat-card"><div class="num red" id="hWrongs">0</div><div class="lbl">答错</div></div>
+    </div>
+    <div class="settings-card">
+      <h3>学习热力 <span class="mt-cnt" id="streakLine"></span></h3>
+      <div id="heatmapBox"></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</p>
     </div>
     <div id="historyDetail"></div>
   </div>

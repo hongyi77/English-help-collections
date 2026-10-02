@@ -10,6 +10,7 @@ const SCREEN_TITLES = {
   'screen-review': '复习单词',
   'screen-spell': '自由拼写',
   'screen-dictate': '听写',
+  'screen-listen': '听音辨义',
   'screen-vocab': '词汇',
   'screen-dict': '词典',
   'screen-settings': '设置',
@@ -36,6 +37,7 @@ function go(id) {
   if (id === 'screen-settings') refreshSettings();
   if (id === 'screen-spell') renderSpellConfig();
   if (id === 'screen-dictate') renderDictConfig();
+  if (id === 'screen-listen') renderListenConfig();
 }
 
 function goHome() { go('screen-home'); }
@@ -55,6 +57,8 @@ function refreshHome() {
   // 听写依赖发音能力:Edge朗读/在线音源(音频元素)/系统 TTS 任一即可;微信/QQ 内置等无 TTS 仍可用在线音源
   const dictEntry = document.getElementById('dictationEntry');
   if (dictEntry) dictEntry.style.display = canSpeakHere() ? 'flex' : 'none';
+  const listenEntry = document.getElementById('listenEntry');
+  if (listenEntry) listenEntry.style.display = canSpeakHere() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
 }
@@ -936,6 +940,10 @@ function prefetchUpcomingAudio() {
       edgePrefetch(w, edgeVoiceOf('en-US'), rate);
       edgePrefetch(speakableDef(w) || w, edgeVoiceOf('zh-CN'), Math.min(1.2, rate + 0.1));
     }
+  } else if (session.mode === 'listen') {
+    // 听音辨义:题干是单词读音,预取后续词的单词音频
+    const rem = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
+    for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
   } else if (session.mode === 'spell' || (session.phase === 'spell')) {
     const rem = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
     for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
@@ -1572,13 +1580,14 @@ function adjPracticeCount(kind, delta) {
 }
 
 /* 数量变化时就地更新开始按钮文案(不重渲染配置页,避免输入框失焦) */
+const PRACTICE_START_LABELS = { spell: '开始拼写（', dict: '开始听写（', listen: '开始听音辨义（' };
 function updatePracticeStartLabel(kind) {
-  const btn = document.getElementById(kind === 'spell' ? 'spellStartBtn' : 'dictStartBtn');
+  const btn = document.getElementById(kind + 'StartBtn');
   if (!btn) return;
   const pool = practicePool(kind);
   const custom = normScope(state.settings[kind + 'Scope']) === 'custom';
   const n = custom ? pool.length : Math.min(state.settings[kind + 'Count'] || 1, pool.length);
-  btn.textContent = (kind === 'spell' ? '开始拼写（' : '开始听写（') + n + ' 词）';
+  btn.textContent = (PRACTICE_START_LABELS[kind] || '开始（') + n + ' 词）';
   btn.disabled = !pool.length;
 }
 
@@ -1841,7 +1850,7 @@ function customSpellNext() {
 
 /* 练习完成页（自由拼写 / 听写共用；纯练习不写学习状态） */
 function practiceDoneHtml(title, typeName) {
-  practiceMode = session.mode === 'dict' ? 'dict' : 'spell';
+  practiceMode = session.mode === 'dict' ? 'dict' : (session.mode === 'listen' ? 'listen' : 'spell');
   const total = session.queue.length;
   const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const list = session.queue.map(w => {
@@ -1871,10 +1880,11 @@ function practiceDoneHtml(title, typeName) {
   `;
 }
 
-/* 练习完成页「再来一组」：回到本次练习模式（spell/dict）的配置页 */
+/* 练习完成页「再来一组」：回到本次练习模式（spell/dict/listen）的配置页 */
 let practiceMode = 'spell';
+const PRACTICE_SCREENS = { spell: 'screen-spell', dict: 'screen-dictate', listen: 'screen-listen' };
 function practiceAgain() {
-  go(practiceMode === 'dict' ? 'screen-dictate' : 'screen-spell');
+  go(PRACTICE_SCREENS[practiceMode] || 'screen-spell');
 }
 
 /* ---------------- 自选词单选词器(自由拼写/听写共用) ----------------
@@ -2436,6 +2446,159 @@ function finishDictation() {
 }
 
 /* ============================================================
+ * 听音辨义（只听发音四选一中文释义，纯练习不改动学习进度）
+ * 出题复用 makeQuestion/pickDistractors；取词复用 spellCfgHtml 框架(kind='listen')；
+ * 错词穿插/答对即过规则与自由拼写一致；题干是音频，出词自动播报 + 可重听
+ * ============================================================ */
+function renderListenConfig() {
+  const el = document.getElementById('listenQuiz');
+  if (!el) return;
+  if (!canSpeakHere()) {
+    el.innerHTML = `<div class="quiz-card session-done"><div class="icon">${icon('ear')}</div>
+      <h2>当前浏览器不支持语音</h2><p>听音辨义需要发音能力（Edge 朗读或系统语音合成）。<br>当前环境两者皆无，请改用系统浏览器打开。</p></div>`;
+    return;
+  }
+  const pool = practicePool('listen');
+  const custom = normScope(state.settings.listenScope) === 'custom';
+  const count = custom ? pool.length : Math.min(state.settings.listenCount || 10, pool.length);
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left">
+      <span class="quiz-type">${icon('volume-2')} 听音辨义</span>
+      <p class="cfg-note">只听发音、不看拼写，四选一中文释义；答错不卡住、稍后穿插重现。纯练习，不影响学习进度。</p>
+      ${spellCfgHtml('listen')}
+      ${pool.length ? '' : practiceEmptyHtml('listen')}
+      <button class="next-btn" id="listenStartBtn" onclick="startListen()" ${pool.length ? '' : 'disabled'}>开始听音辨义（${count} 词）</button>
+    </div>
+  `;
+}
+
+function startListen() {
+  const pool = practicePool('listen');
+  if (!pool.length) return;
+  const custom = normScope(state.settings.listenScope) === 'custom';
+  const picked = custom ? shuffle(pool) : pickRandom(pool, Math.min(state.settings.listenCount || 10, pool.length));
+  session = {
+    mode: 'listen',
+    phase: 'clist',           // 避开全局快捷键对识别阶段的接管
+    queue: picked,
+    spellRetries: [],
+    sinceSpellRetry: 0,
+    idx: 0,
+    correct: 0, wrong: 0,
+    records: new Map(picked.map(w => [w, makeRecord()])),
+  };
+  renderListenWord();
+}
+
+function renderListenWord() {
+  const el = document.getElementById('listenQuiz');
+  const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
+  if (!remaining.length) {
+    el.innerHTML = practiceDoneHtml('听音辨义', '听音辨义');
+    return;
+  }
+  // 错词穿插：每答 RETRY_INTERVAL 个词重现 1 个错词（与自由拼写一致）
+  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
+  const retries = session.spellRetries;
+  let word;
+  if (retries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
+    word = retries[0];
+    session.sinceSpellRetry = 0;
+    rotateSpellRetries();
+  } else {
+    const fresh = remaining.filter(w => !retries.includes(w));
+    const pool2 = fresh.length ? fresh : remaining;
+    word = pool2[session.idx % pool2.length];
+    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
+  }
+  session.word = word;
+  session.answered = false;
+  session.q = makeQuestion(word);
+  prefetchUpcomingAudio();
+  const rec = session.records.get(word) || makeRecord();
+  const retryNote = rec.errors > 0 ? `<div class="retry-note">重记词 · 答对 1 次即完成</div>` : '';
+  const optionsHtml = session.q.options.map((o, i) =>
+    `<button class="opt" data-ans="${o.isAnswer}" onclick="listenAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
+  ).join('');
+  el.innerHTML = `
+    <div class="quiz-card">
+      <span class="quiz-type">${icon('volume-2')} 听音辨义</span>
+      <div class="listen-prompt">
+        <button class="speak-btn" title="重听" onclick="speakWord('${escapeAttr(word)}')">${icon('volume-2')}</button>
+        <span class="listen-tip">听发音，选释义</span>
+      </div>
+      <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}</div>
+      <div class="options">${optionsHtml}</div>
+      ${retryNote}
+      <div id="listenFeedback"></div>
+    </div>
+  `;
+  if (state.settings.autoSpeak) speakWord(word);
+}
+
+function listenAnswer(idx, btnEl) {
+  if (session.answered) return;
+  session.answered = true;
+  const word = session.word;
+  const isCorrect = session.q.options[idx].isAnswer;
+  const rec = session.records.get(word) || makeRecord();
+  const fbEl = document.getElementById('listenFeedback');
+  const card = fbEl.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  document.querySelectorAll('#listenQuiz .opt').forEach(b => {
+    if (b.dataset.ans === 'true') b.classList.add('correct');
+  });
+  if (!isCorrect && btnEl) btnEl.classList.add('wrong');
+  const def = WORD_MAP.get(word) || '';
+  if (isCorrect) {
+    rec.done = true;
+    session.records.set(word, rec);
+    session.correct++;
+    session.spellRetries = (session.spellRetries || []).filter(w => w !== word);
+    if (state.settings.autoSpeak) speakWord(word);
+    fbEl.innerHTML = `
+      <div class="feedback good">
+        <div class="fb-title">${icon('circle-check')} 答对了！</div>
+        <div class="ans-word">${escapeHtml(word)}</div>
+        <div class="ans-def">${escapeHtml(def)}</div>
+      </div>
+      <button class="next-btn" onclick="listenNext()">下一个 →</button>
+    `;
+  } else {
+    rec.errors++;
+    session.wrong++;
+    session.records.set(word, rec);
+    if (!session.spellRetries) session.spellRetries = [];
+    if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
+    session.sinceSpellRetry = 0;
+    if (state.settings.autoSpeak) speakWord(word);   // 揭底时补听一遍单词，音形义对上
+    const inBook = curWords()[word] && curWords()[word].inBook;
+    fbEl.innerHTML = `
+      <div class="feedback bad">
+        <div class="fb-title">${icon('circle-x')} 答错了，过几个词再考你</div>
+        <div class="wrong-pair">
+          <span class="wp-ans">${escapeHtml(word)}</span>
+          <span class="wp-def">${escapeHtml(def)}</span>
+        </div>
+        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
+      </div>
+      <div class="wrong-actions">
+        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
+          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
+        </button>
+        <button class="next-btn" onclick="listenNext()">下一个 →</button>
+      </div>
+    `;
+  }
+}
+
+function listenNext() {
+  session.answered = false;
+  session.idx++;
+  renderListenWord();
+}
+
+/* ============================================================
  * 生词本
  * ============================================================ */
 function renderBook() {
@@ -2469,6 +2632,7 @@ const MASTER_TABS = [
   { cls: 'learning', label: '学习中' },
   { cls: 'due', label: '待复习' },
   { cls: 'mastered', label: '已掌握' },
+  { cls: 'leech', label: '顽固词' },
   { cls: 'unlearned', label: '未学习' },
 ];
 let masterTab = 'learning';
@@ -2533,9 +2697,15 @@ function renderMasterList() {
   const rows = shown.map(w => {
     const st = wordStatus(w);
     const badgeCls = st.cls === 'mastered' ? 'ms-mastered' : (st.cls === 'due' ? 'ms-due' : 'ms-learning');
+    const r = curWords()[w];
+    // 顽固词标记：顽固词分类里显示答错次数，其他分类里追加「顽固」小徽章
+    const leechBadge = masterTab === 'leech'
+      ? `<span class="ms-badge ms-due">顽固 · 错${(r && r.lapses) || 0} 次</span>`
+      : (r && r.leech ? '<span class="ms-badge ms-due">顽固</span>' : '');
     return `<div class="list-card"><div class="list-item">
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
+      ${leechBadge}
       <span class="ms-badge ${badgeCls}">${st.label}</span>
       ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
       <button class="list-del" title="重置此单词" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
@@ -2613,7 +2783,52 @@ function renderHistory() {
   document.getElementById('hLearned').textContent = rec.learned.length;
   document.getElementById('hReviewed').textContent = rec.reviewed.length;
   document.getElementById('hWrongs').textContent = rec.wrongs.length;
+  renderHeatmap();
   renderHistoryDetail(rec);
+}
+
+/* ---------------- 学习热力图(GitHub 贡献图风格) + 连续学习 streak ----------------
+ * 数据直接来自 state.history(永久保留)，纯渲染零状态。
+ * 格子强度 = 当天新学+复习数(答错不计入颜色，避免"错得多颜色深"的负反馈误导)。
+ * 点格子跳到学习记录对应日期(复用 setHistoryDay)。 */
+const HEATMAP_WEEKS = 26;   // 近半年
+function renderHeatmap() {
+  const box = document.getElementById('heatmapBox');
+  if (!box) return;
+  const h = state.history || {};
+  const actOf = dk => {
+    const r = h[dk];
+    if (!r) return 0;
+    return (r.learned ? r.learned.length : 0) + (r.reviewed ? r.reviewed.length : 0);
+  };
+  const levelOf = n => n <= 0 ? 0 : (n < 10 ? 1 : (n < 30 ? 2 : (n < 60 ? 3 : 4)));
+  // 起点 = 含「今天-(周数-1)*7 天」那一周的周日，最后一列是本周
+  const DAY = 24 * 60 * 60 * 1000;
+  const today0 = new Date(new Date().setHours(0, 0, 0, 0));
+  const start = new Date(today0.getTime() - (HEATMAP_WEEKS - 1) * 7 * DAY);
+  start.setDate(start.getDate() - start.getDay());   // 回到当周周日
+  const CELL = 12, GAP = 3;
+  let rects = '';
+  for (let col = 0; col < HEATMAP_WEEKS; col++) {
+    for (let row = 0; row < 7; row++) {
+      const d = new Date(start.getTime() + (col * 7 + row) * DAY);
+      if (d > today0) continue;   // 未来的日子不画
+      const dk = dateKey(d.getTime());
+      const n = actOf(dk);
+      const x = col * (CELL + GAP), y = row * (CELL + GAP);
+      rects += `<rect class="hm-cell hm-${levelOf(n)}" x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="3" data-dk="${dk}"`
+        + `><title>${dk} · 新学+复习 ${n} 词${n ? '，点看记录' : ''}</title></rect>`;
+    }
+  }
+  const w = HEATMAP_WEEKS * (CELL + GAP) - GAP, ht = 7 * (CELL + GAP) - GAP;
+  box.innerHTML = `<div class="hm-scroll"><svg class="hm-svg" width="${w}" height="${ht}" viewBox="0 0 ${w} ${ht}" onclick="heatmapClick(event)">${rects}</svg></div>`;
+  document.getElementById('streakLine').textContent = `连续学习 ${streakInfo()} 天`;
+}
+
+/* 热力图点击 → 跳到该天记录(event.target 为 rect) */
+function heatmapClick(e) {
+  const dk = e.target && e.target.dataset && e.target.dataset.dk;
+  if (dk) setHistoryDay(dk);
 }
 
 function setHistoryDay(day) {
@@ -2716,6 +2931,17 @@ document.addEventListener('keydown', e => {
     if (session.answered && e.key === 'Enter' && !inInput) {
       const good = document.querySelector('#spellFeedback .feedback.good');
       if (good) nextSpell(); else advanceSpellAfterWrong();
+    }
+  } else if (session.phase === 'clist') {
+    // 听音辨义:数字键 1-4 选选项;出反馈后 Enter 进下一个
+    if (!session.answered && !inInput) {
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 4) {
+        const opts = document.querySelectorAll('#screen-listen .opt');
+        if (opts[n - 1]) opts[n - 1].click();
+      }
+    } else if (session.answered && e.key === 'Enter' && !inInput) {
+      listenNext();
     }
   }
 });
