@@ -605,6 +605,11 @@
         <span class="ba-txt"><b>听力练习</b><i>听音写词 · 听音辨义，判分/自查/自动轮播</i></span>
         <span class="arrow">›</span>
       </button>
+      <button class="big-action grn" onclick="openQuickPractice()">
+        <span class="ba-ico" data-icon="sparkles"></span>
+        <span class="ba-txt"><b>快速复习</b><i>快扫词库自测，纯练习不改进度</i></span>
+        <span class="arrow">›</span>
+      </button>
     </div>
   </div>
 </div>
@@ -627,6 +632,13 @@
 <div class="screen" id="screen-spell">
   <div class="wrap">
     <div id="spellQuiz"></div>
+  </div>
+</div>
+
+<!-- ==================== 快速复习 / 进度重建 ==================== -->
+<div class="screen" id="screen-quick">
+  <div class="wrap">
+    <div id="quickQuiz"></div>
   </div>
 </div>
 
@@ -797,8 +809,8 @@
     </div>
     <div class="settings-card">
       <h3>进度快速重建</h3>
-      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin:0 0 10px">快速扫一遍词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个）：认识点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。</p>
-      <button class="btn-ghost" style="padding:10px 16px;border-radius:10px" onclick="startQuickRebuild()">开始快速重建</button>
+      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin:0 0 10px">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</p>
+      <button class="btn-ghost" style="padding:10px 16px;border-radius:10px" onclick="openQuickRebuild()">去重建进度（预选重建模式）</button>
     </div>
     <div class="settings-card">
       <h3>关于</h3>

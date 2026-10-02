@@ -9,6 +9,7 @@ const SCREEN_TITLES = {
   'screen-study': '学习新词',
   'screen-review': '复习单词',
   'screen-spell': '自由拼写',
+  'screen-quick': '快速复习',
   'screen-dictate': '听力练习',
   'screen-vocab': '词汇',
   'screen-dict': '词典',
@@ -37,6 +38,7 @@ function go(id) {
   if (id === 'screen-vocab') renderVocab();
   if (id === 'screen-settings') refreshSettings();
   if (id === 'screen-spell') renderSpellConfig();
+  if (id === 'screen-quick') renderQuickConfig();
   if (id === 'screen-dictate') renderDictConfig();
 }
 
@@ -1586,12 +1588,11 @@ const SCOPE_GROUPS = [
   { label: '自选词单', keys: ['custom'] },
 ];
 
-function spellCfgHtml(kind) {
-  // kind: 'spell' | 'dict'，配置项存 settings.spellXxx / dictXxx
+/* 范围选择器:层级分组(学习进度/学习标记/按时间/自选词单)+日期面板+选定具体单词入口。
+ * 拼写/听力/快扫三方共用(数量块由 spellCfgHtml 自行追加) */
+function scopeCfgHtml(kind) {
   const scopeKey = kind + 'Scope';
-  const countKey = kind + 'Count';
   const scope = normScope(state.settings[scopeKey]);
-  const count = state.settings[countKey] || 1;
   const pickedN = practicePicked(kind).length;
   const scopeChip = (key, label, n) =>
     `<button class="master-tab ${key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${key}')">${label} <span class="mt-cnt">${n}</span></button>`;
@@ -1606,6 +1607,14 @@ function spellCfgHtml(kind) {
     ${SCOPE_GROUPS.map(groupRow).join('')}
     ${scope === 'date' ? practiceDateHtml(kind) : ''}
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
+  `;
+}
+
+function spellCfgHtml(kind) {
+  // kind: 'spell' | 'dict'，配置项存 settings.spellXxx / dictXxx
+  const countKey = kind + 'Count';
+  const count = state.settings[countKey] || 1;
+  return scopeCfgHtml(kind) + `
     <div class="cfg-title">数量</div>
     <div class="set-ctrl" style="justify-content:flex-start">
       <button onclick="adjPracticeCount('${kind}',-1)">−</button>
@@ -1686,6 +1695,7 @@ function practicePool(kind) {
  * 注意:key 缺省落 dict——拼写/听力之外的配置键都是听写专属(dictMode/dictPause 等) */
 function renderPracticeConfig(kind) {
   if (kind === 'dict') renderDictConfig();
+  else if (kind === 'quick') renderQuickConfig();
   else renderSpellConfig();
 }
 
@@ -1699,8 +1709,8 @@ function setPracticeCfg(key, val) {
     calM = null;
   }
   saveState();
-  // 拼写专属键以 spell 开头(其余含 dict* 都归听写页)
-  renderPracticeConfig(key.startsWith('spell') ? 'spell' : 'dict');
+  // 拼写专属键以 spell 开头、快扫键以 quick 开头,其余(含 dict*)归听写页
+  renderPracticeConfig(key.startsWith('spell') ? 'spell' : key.startsWith('quick') ? 'quick' : 'dict');
 }
 
 /* 「按日期」范围：紧凑两块——
@@ -1989,7 +1999,7 @@ function practiceDoneHtml(title, typeName) {
 
 /* 练习完成页「再来一组」：回到本次练习模式（spell/dict）的配置页(听音辨义也归听力练习页) */
 let practiceMode = 'spell';
-const PRACTICE_SCREENS = { spell: 'screen-spell', dict: 'screen-dictate' };
+const PRACTICE_SCREENS = { spell: 'screen-spell', dict: 'screen-dictate', quick: 'screen-quick' };
 function practiceAgain() {
   go(PRACTICE_SCREENS[practiceMode] || 'screen-spell');
 }
@@ -3145,17 +3155,60 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ---------------- 进度快速重建(清档补救) ----------------
- * 快扫当前词库的全部未学词:认识的按第2级排期,不认识的明天再来。
- * 即标即存,随时退出、随时继续(继续=重新进入,扫的总是还没标的词)。 */
-let quickRebuild = null;
+/* ---------------- 快速复习 / 进度重建(清档补救工具升级) ----------------
+ * 两个入口共用一套配置页与快扫会话:
+ *   主页「快速复习」= 纯练习模式,认识/不认识只计次,不写任何用户数据;
+ *   设置「进度快速重建」= 重建模式,写入学习进度(认识=stage2/2天后,不认识=stage1/明天来)。
+ * 配置页可选题库(全局切换)+范围(含自选词单,复用拼写/听写的选词器);即标即存随时续扫。 */
+let quickMode = 'practice';   // 'practice' 纯练习 | 'rebuild' 写入进度
+let quickRebuild = null;      // 会话 {list, i, known, unknown, write}
 
 function quickRemaining() {
   return unseenWords().length;
 }
 
-function startQuickRebuild() {
-  quickRebuild = { list: unseenWords(), i: 0, known: 0, unknown: 0 };
+function openQuickPractice() { quickMode = 'practice'; go('screen-quick'); }
+function openQuickRebuild() { quickMode = 'rebuild'; go('screen-quick'); }
+function setQuickMode(v) {
+  if (v !== 'practice' && v !== 'rebuild') return;
+  quickMode = v;
+  renderQuickConfig();
+}
+
+function renderQuickConfig() {
+  const el = document.getElementById('quickQuiz');
+  if (!el) return;
+  const mode = quickMode;
+  const pool = practicePool('quick');
+  // 重建模式只扫还没有学习记录的词(已排期的不重复打扰)
+  const sweep = mode === 'rebuild' ? pool.filter(w => !curWords()[w]) : pool;
+  const libChips = Object.keys(LIBS).map(k =>
+    `<button class="master-tab ${k === libKey() ? 'active' : ''}" onclick="setLibrary('${k}');renderQuickConfig()">${escapeHtml(LIBS[k].name)}</button>`).join('');
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left;margin-bottom:100px">
+      <span class="quiz-type">${icon('sparkles')} 快速复习</span>
+      <p class="cfg-note">一屏一词,认识/不认识点一下。${mode === 'rebuild' ? '<b>重建模式会写入学习进度</b>:认识按 2 天后排期,不认识明天再来;只扫还没有记录的词。' : '<b>纯练习不改任何学习数据</b>,放心扫。'}</p>
+      <div class="cfg-title">模式</div>
+      <div class="cfg-chips">
+        <button class="master-tab ${mode === 'practice' ? 'active' : ''}" onclick="setQuickMode('practice')">复习练习(不改数据)</button>
+        <button class="master-tab ${mode === 'rebuild' ? 'active' : ''}" onclick="setQuickMode('rebuild')">进度重建(写入)</button>
+      </div>
+      <div class="cfg-title">题库</div>
+      <div class="cfg-chips" style="margin-bottom:2px">${libChips}</div>
+      ${scopeCfgHtml('quick')}
+      ${sweep.length ? '' : practiceEmptyHtml('quick')}
+    </div>
+    <div class="practice-foot">
+      <span class="picker-count">共 <b>${sweep.length}</b> 词</span>
+      <button class="next-btn" id="quickStartBtn" onclick="startQuickSweep()" ${sweep.length ? '' : 'disabled'}>开始${mode === 'rebuild' ? '重建' : '复习'}</button>
+    </div>`;
+}
+
+function startQuickSweep() {
+  let list = practicePool('quick');
+  if (quickMode === 'rebuild') list = list.filter(w => !curWords()[w]);
+  if (!list.length) return;
+  quickRebuild = { list: shuffle(list), i: 0, known: 0, unknown: 0, write: quickMode === 'rebuild' };
   go('screen-study');
   renderQuickRebuild();
 }
@@ -3169,10 +3222,12 @@ function renderQuickRebuild() {
     el.innerHTML = `
       <div class="quiz-card session-done">
         <div class="icon">${icon('circle-check')}</div>
-        <h2>这一轮扫完了</h2>
-        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词<br>不认识的词明天会出现在复习里,反复过几轮就补回来了。</p>
-        <button class="next-btn" onclick="startQuickRebuild()">再扫一轮（还有 ${quickRemaining()} 词没记录）</button>
-        <button class="btn-ghost" style="width:100%;margin-top:10px;padding:12px;border-radius:12px" onclick="quickExit()">完成，回主页</button>
+        <h2>${q.write ? '这一轮扫完了' : '本轮结束'}</h2>
+        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词<br>${q.write
+          ? '不认识的词明天会出现在复习里,反复过几轮就补回来了。'
+          : '纯练习,学习数据没有任何变化。'}</p>
+        <button class="next-btn" onclick="startQuickSweep()">再来一轮</button>
+        <button class="btn-ghost" style="width:100%;margin-top:10px;padding:12px;border-radius:12px" onclick="quickExit()">完成,回主页</button>
       </div>`;
     return;
   }
@@ -3180,17 +3235,19 @@ function renderQuickRebuild() {
   const def = WORD_MAP.get(w) || '';
   el.innerHTML = `
     <div class="quiz-card">
-      <span class="quiz-type">${icon('rotate-ccw')} 进度重建 ${q.i + 1} / ${q.list.length}</span>
+      <span class="quiz-type">${icon('sparkles')} ${q.write ? '进度重建' : '快速复习'} ${q.i + 1} / ${q.list.length}</span>
       <p class="quiz-prompt">${escapeHtml(w)}</p>
       <p style="text-align:center;color:var(--muted);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
-      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来</p>
+      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.write
+        ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
+        : '这个词认识吗？（纯练习，不影响进度）'}</p>
       <div class="wrong-actions">
         <button class="next-btn" style="background:var(--amber)" onclick="quickAnswer(false)">不认识</button>
         <button class="next-btn" style="background:var(--green)" onclick="quickAnswer(true)">认识</button>
       </div>
       <div class="wrong-actions" style="margin-top:0">
         <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickSkip()">跳过</button>
-        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束重建</button>
+        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束</button>
       </div>
     </div>`;
 }
@@ -3199,7 +3256,7 @@ function quickAnswer(known) {
   const q = quickRebuild;
   if (!q) return;
   const w = q.list[q.i];
-  quickMark(w, known);
+  if (q.write) quickMark(w, known);
   if (known) q.known++; else q.unknown++;
   q.i++;
   renderQuickRebuild();

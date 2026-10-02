@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   dictWords: [],                                          // 听写自选词单
   dictKind: 'write',                                      // 听力练习类型:write 听音写词 / pick 听音辨义(两类共用范围/数量/自选词单)
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
+  quickScope: 'all', quickWords: [],                      // 快速复习/重建:范围 + 自选词单(两模式共用)
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
@@ -493,8 +494,9 @@ function loadState() {
     const DATE_CAT_KEYS = ['all', 'learn', 'review', 'wrong'];
     s.settings.spellDateCat = DATE_CAT_KEYS.includes(s.settings.spellDateCat) ? s.settings.spellDateCat : 'all';
     s.settings.dictDateCat = DATE_CAT_KEYS.includes(s.settings.dictDateCat) ? s.settings.dictDateCat : 'all';
-    if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
-    if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
+      if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
+      if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
+      if (!Array.isArray(s.settings.quickWords)) s.settings.quickWords = [];
     // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
     if (s.words && !s.libs) {
       s.libs = { cet4: { words: s.words } };
