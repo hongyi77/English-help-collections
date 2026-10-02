@@ -414,6 +414,11 @@
 
   /* ---------- 自由拼写/听写：配置与播放状态 ---------- */
   .cfg-title { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin: 16px 0 8px; }
+  /* 范围选择器层级分组:组名小字列 + 组内 chips */
+  .cfg-scope-group { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .cfg-scope-group:last-child { margin-bottom: 0; }
+  .cfg-group-label { flex: none; width: 60px; font-size: 12px; line-height: 32px; color: var(--muted); }
+  .cfg-scope-group .cfg-chips { flex: 1; }
   .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
   .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .cfg-chips .master-tab { margin: 0; }
@@ -496,9 +501,10 @@
     box-shadow: 0 -2px 10px rgba(31, 78, 121, .06);
   }
   .practice-foot .next-btn { flex: 1.6; margin-top: 0; }
-  /* 选词器搜索+筛选吸顶:长列表滚动时保持可见 */
+  /* 选词器搜索+筛选吸顶:长列表滚动时保持可见。
+   * top:0 是相对滚动容器 padding 边缘(即顶栏下沿),再写 54px 会双倍偏移漏出缝隙 */
   .picker-head {
-    position: sticky; top: 54px; z-index: 4;
+    position: sticky; top: 0; z-index: 4;
     margin: -8px -20px 12px; padding: 12px 20px 10px;
     background: var(--card); border-bottom: 1px solid var(--hairline);
   }

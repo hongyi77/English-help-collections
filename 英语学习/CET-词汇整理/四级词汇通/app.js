@@ -477,6 +477,9 @@ function loadState() {
       // 复习算法与 FSRS 保持率缺省校验
       if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
       if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
+      // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')
+      s.settings.spellDateCat = normDateCat(s.settings.spellDateCat);
+      s.settings.dictDateCat = normDateCat(s.settings.dictDateCat);
       if (!Array.isArray(s.settings.spellWords)) s.settings.spellWords = [];
       if (!Array.isArray(s.settings.dictWords)) s.settings.dictWords = [];
       // 旧版存档迁移：state.words（单一词库）→ state.libs.cet4.words（按词库隔离）
@@ -735,15 +738,19 @@ function dayTouchCounts(dk) {
   };
 }
 
-/* 指定日期「接触过」的单词（当前词库）：新学+复习+答错合并去重。
- * 「按日期」范围练的是当天碰过的所有词，不止新学 */
-function wordsTouchedOn(dk) {
+/* 指定日期「接触过」的单词（当前词库）。cat 缺省/all=新学+复习+答错合并去重;
+ * 也可单取一类:learn=新学 / review=复习 / wrong=答错 */
+function wordsTouchedOn(dk, cat) {
   const rec = state.history && state.history[dk];
   if (!rec) return [];
+  const cats = cat === 'learn' ? ['learned']
+    : cat === 'review' ? ['reviewed']
+    : cat === 'wrong' ? ['wrongs']
+    : ['learned', 'reviewed', 'wrongs'];
   const set = LIB_WORD_SETS[libKey()];
   const out = [];
-  for (const cat of ['learned', 'reviewed', 'wrongs']) {
-    for (const e of (rec[cat] || [])) {
+  for (const c of cats) {
+    for (const e of (rec[c] || [])) {
       const pair = normHistEntry(e);
       if (pair && pair[0] === libKey() && set.has(pair[1]) && !out.includes(pair[1])) out.push(pair[1]);
     }
@@ -751,9 +758,23 @@ function wordsTouchedOn(dk) {
   return out;
 }
 
-/* scope='date' 时按模式读各自选的日期（spellDate/dictDate） */
+/* scope='date' 时按模式读各自选的日期（spellDate/dictDate）与当天内容分类（spellDateCat/dictDateCat） */
 function practiceDateOf(kind) {
   return state.settings[(kind || 'spell') + 'Date'] || '';
+}
+
+/* 按日期范围的当天内容分类:all全部(默认)/learn新学/review复习/wrong答错 */
+const DATE_CATS = [
+  { key: 'all', label: '全部' },
+  { key: 'learn', label: '新学' },
+  { key: 'review', label: '复习' },
+  { key: 'wrong', label: '答错' },
+];
+function normDateCat(v) {
+  return DATE_CATS.some(c => c.key === v) ? v : 'all';
+}
+function practiceDateCatOf(kind) {
+  return normDateCat(state.settings[(kind || 'spell') + 'DateCat']);
 }
 
 function wordsInScope(scope, kind) {
@@ -762,7 +783,7 @@ function wordsInScope(scope, kind) {
   if (scope === 'mastered') return masteredWords();
   if (scope === 'book') return bookWords();
   if (scope === 'hard') return leechWords();
-  if (scope === 'date') return wordsTouchedOn(practiceDateOf(kind));
+  if (scope === 'date') return wordsTouchedOn(practiceDateOf(kind), practiceDateCatOf(kind));
   return WORD_LIST.slice();
 }
 

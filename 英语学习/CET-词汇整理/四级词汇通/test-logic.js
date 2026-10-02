@@ -1358,6 +1358,76 @@ console.log('\n[33] 配置页布局优化');
   ok(sh.includes('picker-head') && sh.includes('pickerSearchInput'), '选词器搜索+筛选吸顶容器');
 })();
 
+/* ================= 34. 长按连选自动滚屏 ================= */
+console.log('\n[34] 长按连选自动滚屏');
+(() => {
+  g('state = defaultState(); saveState();');
+  g(`openWordPicker('dict'); setPickerFilter('all'); window.innerHeight = 844;`);
+  ok(g('pickerLimit') === 100, '进选词器默认显示 100 个');
+  // 速度函数:贴上缘向上滚(负)、贴下缘向下滚(正)、中间不动;越贴边越快
+  const sp34 = g('pickerAutoScrollSpeed');
+  ok(sp34(40, 844) < 0 && sp34(800, 844) > 0 && sp34(422, 844) === 0, '自动滚屏方向:贴上缘向上/贴下缘向下/中间不动');
+  ok(Math.abs(sp34(10, 844)) > Math.abs(sp34(80, 844)), '越贴近边缘滚得越快');
+  // 拖到下缘:列表自动向下滚
+  g(`pickerDrag = { x0: 100, y0: 400, x: 100, y: 830, apply: true, active: true };`);
+  g(`var __sc34 = { scrollTop: 0, clientHeight: 800, scrollHeight: 5000 };`);
+  const r1 = g(`[pickerAutoScrollStep(__sc34), __sc34.scrollTop]`);
+  ok(r1[0] === true && r1[1] > 0, '拖到下缘:列表自动向下滚');
+  // 拖到列表尽头自动加载下一批(拖选不中断靠容器级事件委托)
+  g(`__sc34.scrollTop = 4940;`);
+  const r2 = g(`[pickerAutoScrollStep(__sc34), pickerLimit]`);
+  ok(r2[0] === true && r2[1] === 300, '拖到底自动加载下一批(100→300)');
+  // 手指回中间区停止自动滚
+  g(`pickerDrag.y = 422; __sc34.scrollTop = 100;`);
+  const r3 = g(`[pickerAutoScrollStep(__sc34), __sc34.scrollTop]`);
+  ok(r3[0] === false && r3[1] === 100, '手指回中间区停止自动滚');
+  // 贴上缘向上滚
+  g(`pickerDrag.y = 30;`);
+  const r4 = g(`[pickerAutoScrollStep(__sc34), __sc34.scrollTop]`);
+  ok(r4[0] === true && r4[1] < 100, '贴上缘自动向上滚');
+  g(`pickerDrag = null;`);
+})();
+
+/* ================= 35. 按日期内容分类 + 范围分组层级 ================= */
+console.log('\n[35] 按日期内容分类 + 范围分组层级');
+(() => {
+  g('state = defaultState(); saveState();');
+  const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]'), wC = g('WORD_LIST[2]');
+  const dk35 = g('dateKey()');
+  g(`state.history['${dk35}'] = {
+    learned: [['cet4','${wA}']],
+    reviewed: [['cet4','${wA}'], ['cet4','${wB}']],
+    wrongs: [['cet4','${wC}']],
+  }; saveState();`);
+  ok(JSON.stringify(g(`wordsTouchedOn('${dk35}','learn')`)) === JSON.stringify([wA]), '按日期·新学=仅 learned');
+  const rv35 = g(`wordsTouchedOn('${dk35}','review')`);
+  ok(rv35.length === 2 && rv35.includes(wA) && rv35.includes(wB), '按日期·复习=reviewed 去重');
+  const wg35 = g(`wordsTouchedOn('${dk35}','wrong')`);
+  ok(wg35.length === 1 && wg35[0] === wC, '按日期·答错=仅 wrongs');
+  ok(g(`wordsTouchedOn('${dk35}')`).length === 3 && g(`wordsTouchedOn('${dk35}','all')`).length === 3, '缺省/all=三类并集');
+  // 范围取词跟随分类,两模式独立记忆
+  g(`state.settings.spellDate = '${dk35}'; state.settings.spellScope = 'date'; state.settings.spellDateCat = 'learn'; saveState();`);
+  ok(JSON.stringify(g(`wordsInScope('date','spell')`)) === JSON.stringify([wA]), '范围取词跟随内容分类');
+  ok(g(`practiceDateCatOf('dict')`) === 'all', '听写的内容分类独立(缺省 all)');
+  // spell* 配置键改动应回拼写页渲染(键分发回归)
+  g(`go('screen-spell'); setPracticeCfg('spellDateCat','review')`);
+  const sh35 = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(g('state.settings.spellDateCat') === 'review' && sh35.includes('cfg-scope-group'), 'spell* 配置键改动回拼写页渲染');
+  ok(sh35.includes('当天内容') && sh35.includes('>新学 <') && sh35.includes('>复习 <') && sh35.includes('>答错 <'), '日期面板含内容分类 chips');
+  ok(/onclick="setPracticeCfg\('spellDateCat','wrong'\)"/.test(sh35), '内容分类点击走 setPracticeCfg');
+  // 范围选择器分组层级
+  ok(sh35.includes('学习进度') && sh35.includes('学习标记') && sh35.includes('按时间') && sh35.includes('自选词单'), '范围选择器按层级分组(四组)');
+  // 分类下无词:开始栏词数 0 + 空池提示
+  g(`state.settings.spellDateCat = 'wrong'; state.settings.spellDate = '${g('dateKey(Date.now() - DAY_MS)')}'; saveState(); renderSpellConfig()`);
+  const shEmpty = documentStub.getElementById('spellQuiz').innerHTML;
+  ok(/id="spellFootCount">0</.test(shEmpty), '分类无词时开始栏词数 0');
+  ok(shEmpty.includes('换个内容类型'), '空池提示提及内容类型');
+  // 非法分类回落
+  g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { spellDateCat: 'bogus' } })); state = loadState();`);
+  ok(g('state.settings.spellDateCat') === 'all', '非法内容分类回落 all');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

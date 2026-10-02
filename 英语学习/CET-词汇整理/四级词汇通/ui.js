@@ -1570,6 +1570,14 @@ function toggleMemoRow(word, btn) {
  * 看释义输单词；答错不卡住直接跳过，错词每过 3 个词穿插重现，
  * 重现时答对 1 次即完成（比复习拼写的连对 2 次宽松）
  * ============================================================ */
+/* 范围选择器的层级分组:组名小字+组内 chips,按语义分层(2026-10-02) */
+const SCOPE_GROUPS = [
+  { label: '学习进度', keys: ['all', 'unseen', 'learning', 'mastered'] },
+  { label: '学习标记', keys: ['book', 'hard'] },
+  { label: '按时间', keys: ['date'] },
+  { label: '自选词单', keys: ['custom'] },
+];
+
 function spellCfgHtml(kind) {
   // kind: 'spell' | 'dict'，配置项存 settings.spellXxx / dictXxx
   const scopeKey = kind + 'Scope';
@@ -1577,14 +1585,17 @@ function spellCfgHtml(kind) {
   const scope = normScope(state.settings[scopeKey]);
   const count = state.settings[countKey] || 1;
   const pickedN = practicePicked(kind).length;
+  const scopeChip = (key, label, n) =>
+    `<button class="master-tab ${key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${key}')">${label} <span class="mt-cnt">${n}</span></button>`;
+  const groupRow = (g) => `<div class="cfg-scope-group"><span class="cfg-group-label">${g.label}</span><div class="cfg-chips">${
+    g.keys.map(k => k === 'custom'
+      ? scopeChip('custom', '自选', pickedN)
+      : scopeChip(k, (SCOPES.find(s => s.key === k) || {}).label || k, wordsInScope(k, kind).length)
+    ).join('')
+  }</div></div>`;
   return `
     <div class="cfg-title">选择范围</div>
-    <div class="cfg-chips">${SCOPES.map(s => {
-      const n = wordsInScope(s.key, kind).length;
-      return `<button class="master-tab ${s.key === scope ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','${s.key}')">${s.label} <span class="mt-cnt">${n}</span></button>`;
-    }).join('')}
-      <button class="master-tab ${scope === 'custom' ? 'active' : ''}" onclick="setPracticeCfg('${scopeKey}','custom')">自选 <span class="mt-cnt">${pickedN}</span></button>
-    </div>
+    ${SCOPE_GROUPS.map(groupRow).join('')}
     ${scope === 'date' ? practiceDateHtml(kind) : ''}
     <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
     <div class="cfg-title">数量</div>
@@ -1680,7 +1691,8 @@ function setPracticeCfg(key, val) {
     calM = null;
   }
   saveState();
-  renderPracticeConfig(key.endsWith('Scope') ? key.slice(0, -'Scope'.length) : 'dict');
+  // 拼写专属键以 spell 开头(其余含 dict* 都归听写页)
+  renderPracticeConfig(key.startsWith('spell') ? 'spell' : 'dict');
 }
 
 /* 「按日期」范围：紧凑两块——
@@ -1738,6 +1750,10 @@ function practiceDateHtml(kind) {
   const wd = ['日', '一', '二', '三', '四', '五', '六'].map(w => `<span class="cfg-cal-wd">${w}</span>`).join('');
   const now = new Date();
   const nextOff = calY > now.getFullYear() || (calY === now.getFullYear() && calM >= now.getMonth());
+  // 当天内容分类(第二级筛选):全部=新学+复习+答错合并,单选,各模式独立记忆
+  const catNow = practiceDateCatOf(kind);
+  const catChip = (key, label, n) =>
+    `<button class="master-tab ${key === catNow ? 'active' : ''}" onclick="setPracticeCfg('${kind}DateCat','${key}')">${label} <span class="mt-cnt">${n}</span></button>`;
   return `
     <div class="cfg-title">选择日期 <span class="mt-cnt">高亮 = 有学习记录的日子</span></div>
     <div class="cfg-date-row">
@@ -1746,6 +1762,15 @@ function practiceDateHtml(kind) {
         <span class="cfg-date-label">${fmt(cur)} ${icon('chevron-left')}</span>
       </span>
       <span class="cfg-date-info">${escapeHtml(info)}</span>
+    </div>
+    <div class="cfg-scope-group" style="margin:10px 0 8px">
+      <span class="cfg-group-label">当天内容</span>
+      <div class="cfg-chips">
+        ${catChip('all', '全部', words.length)}
+        ${catChip('learn', '新学', cnt.learned)}
+        ${catChip('review', '复习', cnt.reviewed)}
+        ${catChip('wrong', '答错', cnt.wrongs)}
+      </div>
     </div>
     <div class="cfg-cal">
       <div class="cfg-cal-head">
@@ -1775,7 +1800,7 @@ function setPracticeDate(kind, v) {
 function practiceEmptyHtml(kind) {
   const scope = normScope(state.settings[kind + 'Scope']);
   if (scope === 'custom') return '<div class="empty-tip" style="padding:20px 0">词单还是空的，点上面「选定具体单词」去勾选</div>';
-  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有学习记录，换一天或换个范围试试</div>';
+  if (scope === 'date') return '<div class="empty-tip" style="padding:20px 0">选定的日期没有符合条件的单词，换个内容类型、换一天或换个范围试试</div>';
   return '<div class="empty-tip" style="padding:20px 0">该范围暂无单词</div>';
 }
 
@@ -2033,59 +2058,127 @@ function renderWordPicker() {
       <button class="next-btn" onclick="pickerDone()">完成</button>
     </div>
   `;
-  attachPickerGestures(document.getElementById('pickerList'));
+  attachPickerGestures(el);
 }
 
 /* ---------------- 长按拖动连续选择 ----------------
  * 长按一行(350ms)进入连续模式:以该行的反向状态为基准,手指滑过哪些行就统一设成该状态;
- * 松手结束。点按仍是单个切换(长按触发的那次 click 会被吞掉)。
+ * 拖到屏幕上/下边缘时列表自动滚屏(越贴边越快),手指不动行也会从指下滑过并保持选中,
+ * 拖到底自动加载下一批——一路拖到底可连选整个词库。松手结束,点按仍是单个切换。
+ * 事件委托挂在选词器容器上:重渲染列表(加载更多)不丢监听、不打断进行中的拖选。
  */
-let pickerDrag = null;
+let pickerDrag = null;        // {x0,y0 起点 | x,y 手指当前坐标 | apply 目标状态 | active 连选中}
 let pickerDragTimer = null;
 let pickerSuppressClick = false;
+let pickerRaf = 0;
+const PICKER_EDGE = 90;       // 距屏幕上/下边缘多少像素内触发自动滚屏
 
-function attachPickerGestures(list) {
-  if (!list) return;
-  list.addEventListener('pointerdown', e => {
+function attachPickerGestures(el) {
+  if (!el || el._pickerGestures) return;
+  el._pickerGestures = true;
+  el.addEventListener('pointerdown', e => {
     const row = e.target.closest('.picker-row');
     if (!row || !row.dataset.w) return;
-    pickerDrag = { row, apply: !pickerRowPicked(row), y: e.clientY, active: false };
+    pickerDrag = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, apply: !pickerRowPicked(row), active: false };
     pickerDragTimer = setTimeout(() => {
       if (!pickerDrag) return;
       pickerDrag.active = true;
       pickerSuppressClick = true;   // 长按松手后的 click 不再当点按处理
       pickerApplyRow(row, pickerDrag.apply);
       if (navigator.vibrate) { try { navigator.vibrate(15); } catch (err) { /* 忽略 */ } }
+      pickerStartAutoScroll();
     }, 350);
   });
-  list.addEventListener('pointermove', e => {
+  el.addEventListener('pointermove', e => {
     if (!pickerDrag) return;
+    pickerDrag.x = e.clientX;
+    pickerDrag.y = e.clientY;
     if (!pickerDrag.active) {
       // 长按前就移动(滚动列表)→ 取消长按计时
-      if (Math.abs(e.clientY - pickerDrag.y) > 10) {
+      if (Math.abs(e.clientY - pickerDrag.y0) > 10) {
         clearTimeout(pickerDragTimer);
         pickerDrag = null;
       }
       return;
     }
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const row = el && el.closest ? el.closest('.picker-row') : null;
-    if (row && row.dataset.w) pickerApplyRow(row, pickerDrag.apply);
+    pickerApplyAtPoint();
   });
-  const endDrag = () => { clearTimeout(pickerDragTimer); pickerDrag = null; };
-  list.addEventListener('pointerup', endDrag);
-  list.addEventListener('pointercancel', endDrag);
-  // 连续模式期间阻止页面滚动(手指当画笔用)
-  list.addEventListener('touchmove', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); }, { passive: false });
-  list.addEventListener('contextmenu', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); });
+  const endDrag = () => { clearTimeout(pickerDragTimer); pickerDrag = null; pickerStopAutoScroll(); };
+  // 连续模式期间阻止原生滚动(手指当画笔用,滚屏由边缘自动滚屏接管)
+  el.addEventListener('touchmove', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); }, { passive: false });
+  el.addEventListener('contextmenu', e => { if (pickerDrag && pickerDrag.active) e.preventDefault(); });
   // 长按后松手的那次 click 不当点按处理
-  list.addEventListener('click', e => {
+  el.addEventListener('click', e => {
     if (pickerSuppressClick) {
       pickerSuppressClick = false;
       e.stopPropagation();
       e.preventDefault();
     }
   }, true);
+  // 松手可能发生在容器外(顶栏等),挂 document 保证拖选一定结束
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+}
+
+/* 手指当前坐标处的行应用目标状态。手指压在吸顶头/固定底栏上时,
+ * 采样点投影到列表可见带内——贴边自动滚屏时行从指下穿过也能被选中 */
+function pickerSampleRow(x, y) {
+  if (!document.elementFromPoint) return null;
+  const probe = (px, py) => {
+    const el = document.elementFromPoint(px, py);
+    return (el && el.closest) ? el.closest('.picker-row') : null;
+  };
+  let row = probe(x, y);
+  if (row) return row;
+  const head = document.querySelector('.picker-head');
+  const foot = document.querySelector('.picker-foot');
+  const top = head ? head.getBoundingClientRect().bottom + 8 : 0;
+  const bottom = foot ? foot.getBoundingClientRect().top - 8 : window.innerHeight;
+  if (bottom <= top) return null;
+  return probe(x, Math.min(bottom, Math.max(top, y)));
+}
+
+function pickerApplyAtPoint() {
+  if (!pickerDrag || !pickerDrag.active) return;
+  const row = pickerSampleRow(pickerDrag.x, pickerDrag.y);
+  if (row && row.dataset.w) pickerApplyRow(row, pickerDrag.apply);
+}
+
+/* 纯函数:手指 y 坐标 → 自动滚屏速度(px/帧)。负=向上滚,正=向下滚,中段 0,越贴边越快 */
+function pickerAutoScrollSpeed(y, viewportH, edge) {
+  edge = edge || PICKER_EDGE;
+  if (y < edge) return -(2 + 12 * (1 - y / edge));
+  const gap = viewportH - y;
+  if (gap < edge) return 2 + 12 * (1 - gap / edge);
+  return 0;
+}
+
+/* 单帧自动滚屏:滚活动屏;向下拖到列表尽头自动加载下一批;返回是否发生了滚动 */
+function pickerAutoScrollStep(sc) {
+  if (!pickerDrag || !pickerDrag.active || !sc) return false;
+  const v = pickerAutoScrollSpeed(pickerDrag.y, window.innerHeight);
+  if (v === 0) return false;
+  sc.scrollTop += v;
+  if (v > 0 && sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2) {
+    const total = pickerPool().length;
+    if (pickerLimit < total) pickerLimit = Math.min(total, pickerLimit + 200);
+  }
+  pickerApplyAtPoint();
+  return true;
+}
+
+function pickerStartAutoScroll() {
+  if (pickerRaf) return;
+  const step = () => {
+    if (!pickerDrag || !pickerDrag.active) { pickerRaf = 0; return; }
+    pickerAutoScrollStep(document.querySelector('.screen.active'));
+    pickerRaf = requestAnimationFrame(step);
+  };
+  pickerRaf = requestAnimationFrame(step);
+}
+
+function pickerStopAutoScroll() {
+  if (pickerRaf) { cancelAnimationFrame(pickerRaf); pickerRaf = 0; }
 }
 
 function pickerRowPicked(row) {
