@@ -1557,26 +1557,54 @@ console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快
   g('canUseEdgeVoice = () => false');
   ok(g('edgePackBtnLabel(0)') === '不可用', 'Edge 不可用按钮=不可用');
   g('canUseEdgeVoice = () => true');
-  // 下载中文案
-  ok(g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: [], paused: false })`) === '下载中 3/5', '下载中文案含进度');
-  ok(g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: ['x'], paused: true })`).indexOf('已暂停') > 0 && g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: ['x'], paused: true })`).indexOf('失败 1') > 0, '暂停/失败进文案');
-  // 下载流程(worker 级):好词成功、坏词重试 4 次后记 failed,收尾写元数据
+  // 下载中文案:含速率与剩余时间(纯函数,显式传 now 保证确定性)
+  ok(g(`edgePackRunStatus({ done: 120, list: new Array(4543), failed: [], paused: false, t0: 1000000 }, 1060000)`) === '下载中 120/4543 · 2.0 词/秒 · 剩约 37 分钟', '下载中文案含速率与分钟级 ETA');
+  ok(g(`edgePackRunStatus({ done: 40, list: new Array(100), failed: [], paused: false, t0: 1000000 }, 1050000)`) === '下载中 40/100 · 0.8 词/秒 · 剩约 75 秒', 'ETA 不足 90 秒显示秒');
+  ok(g(`edgePackRunStatus({ done: 0, list: new Array(100), failed: [], paused: false, t0: 1000000 }, 1000000)`).indexOf('词/秒') < 0, '刚起步无速率不显示 ETA');
+  ok(g(`edgePackRunStatus({ done: 3, list: new Array(12), failed: ['x'], paused: true, t0: 1000000 }, 1000000)`).indexOf('已暂停') >= 0 && g(`edgePackRunStatus({ done: 3, list: new Array(12), failed: ['x'], paused: true, t0: 1000000 }, 1000000)`).indexOf('失败 1') >= 0, '暂停/失败进文案');
+  // 下载流程(pump 调度):好词成功、坏词重试 4 次后记 failed,收尾写元数据
   g('edgePackSleep = () => Promise.resolve()');                       // 退避即时化,纯微任务调度
   g(`edgeSynthesize = async (word, voice, rate) => (word === 'bad' ? null : 'blob:x')`);
-  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['good1', 'bad', 'good2'], i: 0, done: 0, failed: [], paused: false }`);
-  g('edgePackWorker(edgePackJob); edgePackWorker(edgePackJob);');
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['good1', 'bad', 'good2'], i: 0, done: 0, failed: [], paused: false, active: 0, limit: EDGE_PACK_LIMIT_START, streak: 0, t0: Date.now() }`);
+  g('edgePackPump(edgePackJob)');
   await new Promise(r => setTimeout(r, 0));
   await new Promise(r => setTimeout(r, 0));
-  ok(g('edgePackJob === null && edgePackWorkers === 0'), '列表扫完任务自动收尾');
+  ok(g('edgePackJob === null'), '列表扫完任务自动收尾');
   ok(g('state.settings.edgePack && state.settings.edgePack.words') === 3, '收尾写入元数据(词数=列表长)');
   ok(g('state.settings.edgePack.voice') === g("edgeVoiceOf('en-US')"), '元数据音色=开任务时音色');
+  // 自适应并发:20 连胜 → 3 起步爬两档到 5(每 8 连胜升一档,上限 6)
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: new Array(20).fill(0).map((_, i) => 'w' + i), i: 0, done: 0, failed: [], paused: false, active: 0, limit: EDGE_PACK_LIMIT_START, streak: 0, t0: Date.now() }`);
+  const jobRamp = g('edgePackJob');
+  g('edgePackPump(edgePackJob)');
+  await new Promise(r => setTimeout(r, 0));
+  await new Promise(r => setTimeout(r, 0));
+  ok(g('edgePackJob === null'), '20 词任务收尾');
+  ok(jobRamp.limit === 5, `连续成功爬坡:3→5(实际 ${jobRamp.limit})`);
+  ok(jobRamp.done === 20 && jobRamp.failed.length === 0 && jobRamp.active === 0, '20 词全成且在途清零');
+  ok(g('state.settings.edgePack.words') === 20, '爬坡任务收尾元数据=20 词');
+  // 失败立即降档:单失败词 → 3 降 2
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['bad'], i: 0, done: 0, failed: [], paused: false, active: 0, limit: EDGE_PACK_LIMIT_START, streak: 0, t0: Date.now() }`);
+  const jobDrop = g('edgePackJob');
+  g('edgePackPump(edgePackJob)');
+  await new Promise(r => setTimeout(r, 0));
+  await new Promise(r => setTimeout(r, 0));
+  ok(jobDrop.limit === 2 && jobDrop.failed.length === 1 && jobDrop.streak === 0, `失败降档 3→2 且连击归零(实际 ${jobDrop.limit})`);
+  // 暂停:合成挂起时暂停应冻结(挂起的 promise 不再推进,无轮询不空转)
+  g(`edgeSynthesize = () => new Promise(() => {})`);
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['a','b','c','d','e','f'], i: 0, done: 0, failed: [], paused: false, active: 0, limit: EDGE_PACK_LIMIT_START, streak: 0, t0: Date.now() }`);
+  g('edgePackPump(edgePackJob)');
+  await new Promise(r => setTimeout(r, 0));
+  g('edgePackToggle()');   // 暂停(与主按钮同一函数)
+  ok(g('edgePackJob.paused') === true, '暂停生效');
+  ok(g('document.getElementById("edgePackBtn").textContent') === '继续', '暂停后按钮=继续');
+  ok(g('document.getElementById("edgePackStatus").textContent').indexOf('已暂停') >= 0, '暂停进状态文案');
+  g('edgePackToggle()');   // 继续 → 重新触发调度泵
+  ok(g('edgePackJob.paused') === false && g('edgePackJob.active') === EDGE_PACK_LIMIT_START, '继续后在途数回到并发档');
   // 停止:任务被丢弃,不写元数据,已下载的留给缓存(真实环境中即断点续传)
-  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['a', 'b', 'c'], i: 0, done: 0, failed: [], paused: false }`);
-  g('edgePackWorker(edgePackJob);');
   g('edgePackStopJob()');
   await new Promise(r => setTimeout(r, 0));
-  ok(g('edgePackJob === null && edgePackWorkers === 0'), '停止后任务清空、worker 退岗');
-  ok(g('state.settings.edgePack.words') === 3, '停止不覆盖已有元数据');
+  ok(g('edgePackJob === null'), '停止后任务清空');
+  ok(g('state.settings.edgePack.words') === 1, '停止不覆盖已有元数据(仍是降档任务的 1 词)');
   // 恢复环境(edgeSynthesize 恢复为直通 edgeSynthesizeNow 的等价形态;原 in-flight 去重不再需要)
   g('edgePackSleep = (ms) => new Promise(r => setTimeout(r, ms))');
   g(`edgeSynthesize = (text, voice, rate) => edgeSynthesizeNow(text, voice, rate, voice + '|' + edgeRate(rate) + '|' + text)`);

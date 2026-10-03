@@ -1007,10 +1007,11 @@ function prefetchUpcomingAudio() {
  * 已缓存的词走三级查找秒过,中断/失败后再点 = 断点续传只补缺的。
  * 元数据存 settings.edgePack:{lib,voice,rate,words,ts},换音色/词库后提示重新下载(旧包保留)。 */
 const EDGE_PACK_RATE = 0.9;        // 包内语速:与 speakWord 缺省一致(播放端 playbackRate 还可再变速)
-const EDGE_PACK_CONCURRENCY = 2;   // 并发合成连接数(保守,防 IP 级限流)
 const EDGE_PACK_RETRIES = 3;       // 单词最大重试次数
+const EDGE_PACK_LIMIT_START = 3;   // 起步并发数
+const EDGE_PACK_LIMIT_MAX = 6;     // 并发上限:连续成功逐步爬到这一档
+const EDGE_PACK_RAMP_EVERY = 8;    // 每连续成功 N 词升一档并发
 let edgePackJob = null;            // 进行中的下载任务,null=空闲
-let edgePackWorkers = 0;           // 在岗 worker 数(归零且扫完才结算)
 
 /* 包内缓存键:必须与播放链路的键完全一致(音色|edgeRate|文本),否则白下 */
 function edgePackKeyOf(word, voice) {
@@ -1083,9 +1084,15 @@ function edgePackBtnLabel(cached) {
   return state.settings.edgePack ? '补漏 ' + (total - cached) + ' 词' : '下载发音包';
 }
 
-/* 下载中状态行文案(纯函数) */
-function edgePackRunStatus(job) {
+/* 下载中状态行文案(纯函数,now 可显式传入便于测试):含实时速率与剩余时间预估 */
+function edgePackRunStatus(job, now) {
   let s = `下载中 ${job.done}/${job.list.length}`;
+  if (typeof now !== 'number') now = Date.now();
+  const rate = job.done / Math.max(1, (now - job.t0) / 1000);
+  if (rate >= 0.25) {
+    const remain = (job.list.length - job.done) / rate;
+    s += ` · ${rate.toFixed(1)} 词/秒 · 剩约 ${remain >= 90 ? Math.round(remain / 60) + ' 分钟' : Math.round(remain) + ' 秒'}`;
+  }
   if (job.paused) s += '（已暂停，点「继续」接着下）';
   if (job.failed.length) s += ` · 失败 ${job.failed.length}（结束后可补漏）`;
   return s;
@@ -1121,10 +1128,11 @@ function updateEdgePackUI() {
   });
 }
 
-/* 主按钮:空闲→开任务;下载中→暂停/继续 */
+/* 主按钮:空闲→开任务;下载中→暂停/继续(继续时重新触发调度泵) */
 function edgePackToggle() {
   if (!edgePackJob) { edgePackStart(); return; }
   edgePackJob.paused = !edgePackJob.paused;
+  if (!edgePackJob.paused) edgePackPump(edgePackJob);
   edgePackRender();
 }
 
@@ -1143,9 +1151,11 @@ function edgePackStart() {
     lib: libKey(), voice: edgeVoiceOf('en-US'),
     list: WORD_LIST.slice(), i: 0, done: 0, failed: [],
     paused: false,
+    active: 0, limit: EDGE_PACK_LIMIT_START, streak: 0,   // 自适应并发:在途数/当前并发档/连续成功计数
+    t0: Date.now(),
   };
   edgePackRender();
-  for (let k = 0; k < EDGE_PACK_CONCURRENCY; k++) edgePackWorker(edgePackJob);
+  edgePackPump(edgePackJob);
 }
 
 /* 单词合成带重试:失败按 1s/2s/4s 退避重试,仍失败记入 failed 由「补漏」兜底 */
@@ -1159,23 +1169,36 @@ async function edgePackSynthWithRetry(word, voice, job) {
   return null;
 }
 
-async function edgePackWorker(job) {
-  edgePackWorkers++;
-  try {
-    while (edgePackJob === job) {
-      if (job.i >= job.list.length) break;
-      if (job.paused) { await edgePackSleep(400); continue; }
-      const word = job.list[job.i++];
-      const url = await edgePackSynthWithRetry(word, job.voice, job);
+/* 调度泵:有空位就发起新的合成(事件驱动,无轮询)。
+ * 自适应并发——连续成功 EDGE_PACK_RAMP_EVERY 词升一档(至 MAX),
+ * 一旦失败立即降一档归零连击,被微软限流时自动放慢不硬撞。 */
+function edgePackPump(job) {
+  while (edgePackJob === job && !job.paused && job.active < job.limit && job.i < job.list.length) {
+    const word = job.list[job.i++];
+    job.active++;
+    edgePackSynthWithRetry(word, job.voice, job).then(url => {
+      job.active--;
       if (edgePackJob !== job) return;      // 已停止/已重开:旧任务就地消亡
       job.done++;
       if (!url) job.failed.push(word);
+      if (url) {
+        job.streak++;
+        if (job.streak >= EDGE_PACK_RAMP_EVERY && job.limit < EDGE_PACK_LIMIT_MAX) { job.limit++; job.streak = 0; }
+      } else {
+        job.streak = 0;
+        if (job.limit > 1) job.limit--;
+      }
       edgePackRender();
-    }
-  } finally {
-    edgePackWorkers--;
-    if (edgePackJob === job && edgePackWorkers === 0 && job.i >= job.list.length) edgePackFinish(job);
+      edgePackPump(job);
+      edgePackMaybeFinish(job);
+    });
   }
+  edgePackMaybeFinish(job);
+}
+
+/* 全部取空且在途清零(且未暂停)即收尾 */
+function edgePackMaybeFinish(job) {
+  if (edgePackJob === job && !job.paused && job.active === 0 && job.i >= job.list.length) edgePackFinish(job);
 }
 
 /* 全部扫完收尾:写元数据入档(断点续传的"完成"凭证),UI 切回空闲态 */
