@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
   dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   quickScope: 'all', quickWords: [],                      // 快速复习/重建:范围 + 自选词单(两模式共用)
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
+  edgePack: null,                                         // Edge发音离线包元数据 {lib,voice,rate,words,ts},null=未下载(音频本体在 IndexedDB)
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
   reviewAlgo: 'ebbinghaus',                               // 复习调度算法:'ebbinghaus'固定间隔 / 'fsrs'自适应

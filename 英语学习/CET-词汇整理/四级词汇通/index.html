@@ -798,6 +798,23 @@
         <label style="flex:1">Edge 普通话音色<br><span style="font-size:12px;color:var(--muted)">汉译朗读 · 男女声自选</span></label>
         <select id="setEdgeVoiceZh" class="voice-select" onchange="onEdgeVoiceChange('zh', this.value)"></select>
       </div>
+      <div class="edge-voice-row" style="display:none">
+        <div style="flex:1">
+          <div class="cfg-title" style="margin:0 0 6px">发音离线包 · 下载后秒播</div>
+          <p id="edgePackStatus" style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 8px">…</p>
+          <div style="height:6px;border-radius:3px;background:var(--blue-soft);overflow:hidden;margin-bottom:10px">
+            <div id="edgePackBar" style="height:100%;width:0%;background:var(--ink-blue);border-radius:3px;transition:width .3s"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="data-btn" id="edgePackBtn" onclick="edgePackToggle()">下载发音包</button>
+            <button class="btn-ghost" id="edgePackStopBtn" onclick="edgePackStopJob()" style="display:none;padding:8px 14px;border-radius:10px">停止</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">
+            只含单词发音（每词约 6KB，不含汉译）。下载期间请保持页面在前台；中途退出不丢进度，已下的词立即秒播。
+            换音色或词库后重新下载即可，旧包保留、切回不用重下。
+          </p>
+        </div>
+      </div>
       <div class="set-row">
         <label style="flex:1">设备TTS英语声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>
         <select id="setTtsEngVoice" class="voice-select" onchange="onTTSVoiceChange('en', this.value)"></select>

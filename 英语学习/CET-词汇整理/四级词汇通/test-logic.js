@@ -1515,6 +1515,85 @@ console.log('\n[37] 快速复习/进度重建双模式');
   g('state = defaultState(); saveState();');
 })();
 
+/* ================= 38. Edge 发音离线包 + 快扫发音 ================= */
+console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快扫发音');
+(async () => {
+  g('state = defaultState(); saveState();');
+  // 旧存档缺 edgePack 字段 → 缺省合并出 null(纯 DEFAULT_SETTINGS 合并,无迁移代码)
+  {
+    const raw = JSON.parse(storage.get('cet4_study_state_v1'));
+    delete raw.settings.edgePack;
+    storage.set('cet4_study_state_v1', JSON.stringify(raw));
+    g('state = loadState()');
+    ok(g('state.settings.edgePack') === null, '旧档缺 edgePack 字段合并出 null(不涉迁移)');
+  }
+  // 包键与播放链路一致:speakWord 缺省 0.9 → edgeRate('-10%'),键格式=音色|-10%|文本
+  ok(g(`edgePackKeyOf('hello', 'en-US-AriaNeural')`) === 'en-US-AriaNeural|-10%|hello', '包键=音色|-10%|单词(与 speakWord(0.9) 缓存键一致)');
+  ok(g(`edgePackKeyOf('a<b', 'v1')`) === 'v1|-10%|a<b', '包键原样拼文本(与 edgeSynthesize 同构)');
+  // 元数据比对
+  const meta0 = { lib: 'cet4', voice: 'en-US-AriaNeural', rate: 0.9, words: 4543, ts: 1 };
+  ok(g(`edgePackMetaMatches(${JSON.stringify(meta0)}, 'cet4', 'en-US-AriaNeural')`) === true, '元数据匹配(同库同音色)');
+  ok(g(`edgePackMetaMatches(${JSON.stringify(meta0)}, 'cet6', 'en-US-AriaNeural')`) === false, '换词库判不匹配');
+  ok(g(`edgePackMetaMatches(${JSON.stringify(meta0)}, 'cet4', 'en-GB-SoniaNeural')`) === false, '换音色判不匹配');
+  ok(g(`edgePackMetaMatches(null, 'cet4', 'en-US-AriaNeural')`) === false, '无元数据判不匹配');
+  // 退避序列:1s/2s/4s 递增,抖动 < 0.4s
+  const b1 = g('edgePackBackoffMs(1)'), b2 = g('edgePackBackoffMs(2)'), b3 = g('edgePackBackoffMs(3)');
+  ok(b1 >= 1000 && b1 < 1400 && b2 >= 2000 && b2 < 2400 && b3 >= 4000 && b3 < 4400, `重试退避 1/2/4 秒递增带抖动(${b1}/${b2}/${b3})`);
+  // 状态文案:先在沙箱里放开 Edge 可用性(纯函数分支测试)
+  g('canUseEdgeVoice = () => true');
+  ok(g('edgePackIdleStatus(0)').indexOf('未下载') >= 0, '无元数据 → 未下载文案');
+  g(`state.settings.edgePack = ${JSON.stringify(meta0)}`);
+  const total = g('WORD_LIST.length');
+  ok(g(`edgePackIdleStatus(${total})`).indexOf('已就绪') >= 0, '全量缓存 → 已就绪文案');
+  ok(g('edgePackIdleStatus(100)').indexOf('补漏') >= 0, '部分缓存 → 补漏提示');
+  g(`state.settings.edgePack = ${JSON.stringify({ lib: 'cet4', voice: 'en-GB-SoniaNeural', rate: 0.9, words: 4543, ts: 1 })}`);
+  ok(g('edgePackIdleStatus(100)').indexOf('英音色已改为') >= 0, '换音色 → 提示重新下载');
+  g(`state.settings.edgePack = ${JSON.stringify({ lib: 'cet6', voice: 'en-US-AriaNeural', rate: 0.9, words: 3992, ts: 1 })}`);
+  ok(g('edgePackIdleStatus(100)').indexOf('词库已切到') >= 0, '换词库 → 提示重新下载');
+  ok(g(`edgePackBtnLabel(${total})`) === '重新下载', '全量缓存按钮=重新下载');
+  ok(g('edgePackBtnLabel(100)').indexOf('补漏 ') >= 0, '部分缓存按钮=补漏 N 词');
+  g('state.settings.edgePack = null');
+  ok(g('edgePackBtnLabel(0)') === '下载发音包', '无元数据按钮=下载发音包');
+  g('canUseEdgeVoice = () => false');
+  ok(g('edgePackBtnLabel(0)') === '不可用', 'Edge 不可用按钮=不可用');
+  g('canUseEdgeVoice = () => true');
+  // 下载中文案
+  ok(g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: [], paused: false })`) === '下载中 3/5', '下载中文案含进度');
+  ok(g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: ['x'], paused: true })`).indexOf('已暂停') > 0 && g(`edgePackRunStatus({ done: 3, list: [1,2,3,4,5], failed: ['x'], paused: true })`).indexOf('失败 1') > 0, '暂停/失败进文案');
+  // 下载流程(worker 级):好词成功、坏词重试 4 次后记 failed,收尾写元数据
+  g('edgePackSleep = () => Promise.resolve()');                       // 退避即时化,纯微任务调度
+  g(`edgeSynthesize = async (word, voice, rate) => (word === 'bad' ? null : 'blob:x')`);
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['good1', 'bad', 'good2'], i: 0, done: 0, failed: [], paused: false }`);
+  g('edgePackWorker(edgePackJob); edgePackWorker(edgePackJob);');
+  await new Promise(r => setTimeout(r, 0));
+  await new Promise(r => setTimeout(r, 0));
+  ok(g('edgePackJob === null && edgePackWorkers === 0'), '列表扫完任务自动收尾');
+  ok(g('state.settings.edgePack && state.settings.edgePack.words') === 3, '收尾写入元数据(词数=列表长)');
+  ok(g('state.settings.edgePack.voice') === g("edgeVoiceOf('en-US')"), '元数据音色=开任务时音色');
+  // 停止:任务被丢弃,不写元数据,已下载的留给缓存(真实环境中即断点续传)
+  g(`edgePackJob = { lib: libKey(), voice: edgeVoiceOf('en-US'), list: ['a', 'b', 'c'], i: 0, done: 0, failed: [], paused: false }`);
+  g('edgePackWorker(edgePackJob);');
+  g('edgePackStopJob()');
+  await new Promise(r => setTimeout(r, 0));
+  ok(g('edgePackJob === null && edgePackWorkers === 0'), '停止后任务清空、worker 退岗');
+  ok(g('state.settings.edgePack.words') === 3, '停止不覆盖已有元数据');
+  // 恢复环境(edgeSynthesize 恢复为直通 edgeSynthesizeNow 的等价形态;原 in-flight 去重不再需要)
+  g('edgePackSleep = (ms) => new Promise(r => setTimeout(r, ms))');
+  g(`edgeSynthesize = (text, voice, rate) => edgeSynthesizeNow(text, voice, rate, voice + '|' + edgeRate(rate) + '|' + text)`);
+  g('canUseEdgeVoice = () => false');
+  g('state = defaultState(); saveState();');
+  // 快扫卡片:发音按钮 + 预取守卫
+  g(`quickMode = 'practice'; startQuickSweep()`);
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('speakQuickWord()'), '快扫词卡带发音按钮');
+  ok(g('prefetchQuickAudio()') === undefined, '快扫预取在无 Edge 环境走守卫静默返回');
+  g('canUseEdgeVoice = () => true');   // 打开守卫,让预取与发音真实跑一遍(合成桩返回 blob,播放层 catch 掉)
+  ok(g('prefetchQuickAudio()') === undefined, '快扫预取真实路径可安全调用');
+  ok(g('typeof speakQuickWord') === 'function' && (() => { g('speakQuickWord()'); return true; })(), 'speakQuickWord 可调用(降级链路不抛错)');
+  g('canUseEdgeVoice = () => false');
+  g('quickExit()');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

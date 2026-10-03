@@ -196,6 +196,7 @@ function renderVoiceSettings() {
   fillEdgeVoiceSelect('setEdgeVoiceZh', 'zh', state.settings.edgeVoiceZh);
   fillTTSVoiceSelect('setTtsEngVoice', 'en-US', state.settings.ttsEngVoiceName);
   fillTTSVoiceSelect('setTtsZhVoice', 'zh-CN', state.settings.ttsZhVoiceName);
+  updateEdgePackUI();
 }
 
 /* Edge 朗读音色下拉:按女声/男声分组,显示中文名+性别+口音 */
@@ -225,6 +226,7 @@ function onEdgeVoiceChange(which, val) {
   if (which === 'en') state.settings.edgeVoiceEn = val;
   else state.settings.edgeVoiceZh = val;
   saveState();
+  updateEdgePackUI();   // 英音色变更会影响离线包匹配,立即刷新提示
 }
 
 /* 设备TTS声音下拉：首项「自动优选」+ 按女声/男声/其他分组;
@@ -995,6 +997,194 @@ function prefetchUpcomingAudio() {
     // 学习/复习识别阶段:自动发音只读单词
     for (const w of ahead(session.pending || [])) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
   }
+}
+
+/* ---------------- Edge 发音离线包（设置页批量预热） ----------------
+ * 把当前词库全部单词用当前英音色预合成一遍,产物落 IndexedDB 永久缓存 →
+ * 之后所有模块的单词发音零网络等待(秒播),离线可用。
+ * 批量经验(来自 rany2/edge-tts issue 区):约 5-10% 请求会随机失败(NoAudioReceived),
+ * 重试即成功 → 每词最多重试 3 次(1s/2s/4s 指数退避+抖动);并发压到 2 防撞 IP 级限流。
+ * 已缓存的词走三级查找秒过,中断/失败后再点 = 断点续传只补缺的。
+ * 元数据存 settings.edgePack:{lib,voice,rate,words,ts},换音色/词库后提示重新下载(旧包保留)。 */
+const EDGE_PACK_RATE = 0.9;        // 包内语速:与 speakWord 缺省一致(播放端 playbackRate 还可再变速)
+const EDGE_PACK_CONCURRENCY = 2;   // 并发合成连接数(保守,防 IP 级限流)
+const EDGE_PACK_RETRIES = 3;       // 单词最大重试次数
+let edgePackJob = null;            // 进行中的下载任务,null=空闲
+let edgePackWorkers = 0;           // 在岗 worker 数(归零且扫完才结算)
+
+/* 包内缓存键:必须与播放链路的键完全一致(音色|edgeRate|文本),否则白下 */
+function edgePackKeyOf(word, voice) {
+  return voice + '|' + edgeRate(EDGE_PACK_RATE) + '|' + word;
+}
+
+/* 包元数据是否与当前(词库,音色)匹配 */
+function edgePackMetaMatches(meta, lib, voice) {
+  return !!meta && meta.lib === lib && meta.voice === voice;
+}
+
+/* 第 attempt 次重试前的等待:1s/2s/4s 基础 + 0~0.4s 抖动(打散重试风暴) */
+function edgePackBackoffMs(attempt) {
+  return Math.pow(2, attempt - 1) * 1000 + Math.floor(Math.random() * 400);
+}
+
+function edgePackSleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+/* 数当前词库在当前英音色下已缓存多少个单词音频(一个事务批量 get,几千词几百毫秒) */
+function edgePackCachedCount() {
+  return edgeIdbOpen().then(db => new Promise(resolve => {
+    const total = WORD_LIST.length;
+    if (!db || !total) return resolve(0);
+    const voice = edgeVoiceOf('en-US');
+    try {
+      const store = db.transaction('audio').objectStore('audio');
+      let done = 0, hit = 0;
+      const step = () => { if (++done === total) resolve(hit); };
+      for (const w of WORD_LIST) {
+        const r = store.get(edgePackKeyOf(w, voice));
+        r.onsuccess = () => { if (r.result) hit++; step(); };
+        r.onerror = step;
+      }
+    } catch (e) { resolve(0); }
+  }));
+}
+
+/* 空闲态状态行文案(纯函数,cached=当前词库已缓存词数) */
+function edgePackIdleStatus(cached) {
+  if (!canUseEdgeVoice()) return '当前浏览器不支持 Edge 朗读，离线包不可用。';
+  const total = WORD_LIST.length;
+  const libName = (LIBS[libKey()] || LIBS.cet4).name;
+  const vm = edgeVoiceById(edgeVoiceOf('en-US'));
+  const curVoiceName = vm ? vm.zh : edgeVoiceOf('en-US');
+  const cachedTxt = `已缓存 ${cached}/${total} 词`;
+  const mb = Math.max(1, Math.round(total * 6 / 1000));
+  const meta = state.settings.edgePack;
+  if (!meta) {
+    return `未下载（${cachedTxt}）· 把本词库 ${total} 个单词的发音预存到本地（约 ${mb} MB），下载后单词发音零等待、离线可用。`;
+  }
+  const pm = edgeVoiceById(meta.voice);
+  const changed = [];
+  if (meta.lib !== libKey()) changed.push('词库已切到「' + libName + '」');
+  if (meta.voice !== edgeVoiceOf('en-US')) changed.push('英音色已改为「' + curVoiceName + '」');
+  if (changed.length) {
+    const packName = (LIBS[meta.lib] || {}).name || meta.lib;
+    return `${changed.join('，')}，包内是「${pm ? pm.zh : meta.voice} × ${packName}」的音频（${cachedTxt}）→ 重新下载后全库秒播；旧包保留，切回不用重下。`;
+  }
+  if (cached >= total) return `已就绪（${cachedTxt}）· 音色 ${curVoiceName} × ${libName} · 发音零等待，离线可用。`;
+  return `包内音色/词库未变（${cachedTxt}）→ 点「补漏」把没下完的补齐。`;
+}
+
+/* 空闲态按钮文案(纯函数) */
+function edgePackBtnLabel(cached) {
+  if (!canUseEdgeVoice()) return '不可用';
+  const total = WORD_LIST.length;
+  if (cached >= total) return '重新下载';
+  return state.settings.edgePack ? '补漏 ' + (total - cached) + ' 词' : '下载发音包';
+}
+
+/* 下载中状态行文案(纯函数) */
+function edgePackRunStatus(job) {
+  let s = `下载中 ${job.done}/${job.list.length}`;
+  if (job.paused) s += '（已暂停，点「继续」接着下）';
+  if (job.failed.length) s += ` · 失败 ${job.failed.length}（结束后可补漏）`;
+  return s;
+}
+
+/* 按 job 现状刷一遍设置页 UI(状态行/进度条/按钮) */
+function edgePackRender() {
+  const job = edgePackJob;
+  const st = document.getElementById('edgePackStatus');
+  const bar = document.getElementById('edgePackBar');
+  const btn = document.getElementById('edgePackBtn');
+  const stop = document.getElementById('edgePackStopBtn');
+  if (bar) bar.style.width = job ? Math.round((job.done / Math.max(1, job.list.length)) * 100) + '%' : '0%';
+  if (btn) btn.textContent = job ? (job.paused ? '继续' : '暂停') : '下载发音包';
+  if (stop) stop.style.display = job ? '' : 'none';
+  if (st) st.textContent = job ? edgePackRunStatus(job) : '';
+}
+
+/* 设置页发音卡的离线包区块:空闲查缓存计数,下载中显示进度。renderVoiceSettings/收尾时调用 */
+function updateEdgePackUI() {
+  const st = document.getElementById('edgePackStatus');
+  if (!st) return Promise.resolve();
+  if (edgePackJob) { edgePackRender(); return Promise.resolve(); }
+  return edgePackCachedCount().then(cached => {
+    if (edgePackJob) { edgePackRender(); return; }
+    st.textContent = edgePackIdleStatus(cached);
+    const bar = document.getElementById('edgePackBar');
+    if (bar) bar.style.width = Math.round((cached / Math.max(1, WORD_LIST.length)) * 100) + '%';
+    const btn = document.getElementById('edgePackBtn');
+    if (btn) btn.textContent = edgePackBtnLabel(cached);
+    const stop = document.getElementById('edgePackStopBtn');
+    if (stop) stop.style.display = 'none';
+  });
+}
+
+/* 主按钮:空闲→开任务;下载中→暂停/继续 */
+function edgePackToggle() {
+  if (!edgePackJob) { edgePackStart(); return; }
+  edgePackJob.paused = !edgePackJob.paused;
+  edgePackRender();
+}
+
+/* 停止并丢弃任务(在途合成自然完成并入缓存,已下的不浪费) */
+function edgePackStopJob() {
+  if (!edgePackJob) return;
+  edgePackJob = null;
+  updateEdgePackUI();
+}
+
+function edgePackStart() {
+  if (edgePackJob) return;
+  if (!canUseEdgeVoice()) { alert('当前浏览器不支持 Edge 朗读，无法下载发音包。'); return; }
+  if (!WORD_LIST.length) return;
+  edgePackJob = {
+    lib: libKey(), voice: edgeVoiceOf('en-US'),
+    list: WORD_LIST.slice(), i: 0, done: 0, failed: [],
+    paused: false,
+  };
+  edgePackRender();
+  for (let k = 0; k < EDGE_PACK_CONCURRENCY; k++) edgePackWorker(edgePackJob);
+}
+
+/* 单词合成带重试:失败按 1s/2s/4s 退避重试,仍失败记入 failed 由「补漏」兜底 */
+async function edgePackSynthWithRetry(word, voice, job) {
+  for (let attempt = 0; attempt <= EDGE_PACK_RETRIES; attempt++) {
+    if (attempt) await edgePackSleep(edgePackBackoffMs(attempt));
+    if (edgePackJob !== job) return null;   // 任务已停止/重开,别再耗网络
+    const url = await edgeSynthesize(word, voice, EDGE_PACK_RATE);
+    if (url) return url;
+  }
+  return null;
+}
+
+async function edgePackWorker(job) {
+  edgePackWorkers++;
+  try {
+    while (edgePackJob === job) {
+      if (job.i >= job.list.length) break;
+      if (job.paused) { await edgePackSleep(400); continue; }
+      const word = job.list[job.i++];
+      const url = await edgePackSynthWithRetry(word, job.voice, job);
+      if (edgePackJob !== job) return;      // 已停止/已重开:旧任务就地消亡
+      job.done++;
+      if (!url) job.failed.push(word);
+      edgePackRender();
+    }
+  } finally {
+    edgePackWorkers--;
+    if (edgePackJob === job && edgePackWorkers === 0 && job.i >= job.list.length) edgePackFinish(job);
+  }
+}
+
+/* 全部扫完收尾:写元数据入档(断点续传的"完成"凭证),UI 切回空闲态 */
+function edgePackFinish(job) {
+  if (edgePackJob !== job) return;
+  edgePackJob = null;
+  state.settings.edgePack = { lib: job.lib, voice: job.voice, rate: EDGE_PACK_RATE, words: job.list.length, ts: Date.now() };
+  saveState();
+  updateEdgePackUI();
 }
 
 /* Sec-MS-GEC token：SHA-256(时间刻度 + TrustedClientToken) 大写十六进制 */
@@ -3213,6 +3403,21 @@ function startQuickSweep() {
   renderQuickRebuild();
 }
 
+/* 快扫发音：卡片上的小喇叭（不依赖 session，与学词页 speakCurrent 分开） */
+function speakQuickWord() {
+  const q = quickRebuild;
+  if (q && q.list[q.i]) speakWord(q.list[q.i]);
+}
+
+/* 快扫预取：把后面几个词的音频提前合成好（快扫没有 session，prefetchUpcomingAudio 不覆盖这里） */
+function prefetchQuickAudio() {
+  if (!canUseEdgeVoice() || !quickRebuild) return;
+  const q = quickRebuild;
+  for (const w of q.list.slice(q.i + 1, q.i + 1 + PREFETCH_AHEAD)) {
+    edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
+  }
+}
+
 function renderQuickRebuild() {
   const el = document.getElementById('studyQuiz');
   if (!el) return;
@@ -3233,10 +3438,11 @@ function renderQuickRebuild() {
   }
   const w = q.list[q.i];
   const def = WORD_MAP.get(w) || '';
+  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" onclick="speakQuickWord()">${icon('volume-2')}</button>` : '';
   el.innerHTML = `
     <div class="quiz-card">
       <span class="quiz-type">${icon('sparkles')} ${q.write ? '进度重建' : '快速复习'} ${q.i + 1} / ${q.list.length}</span>
-      <p class="quiz-prompt">${escapeHtml(w)}</p>
+      <p class="quiz-prompt">${escapeHtml(w)}${speakBtn}</p>
       <p style="text-align:center;color:var(--muted);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
       <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.write
         ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
@@ -3250,6 +3456,8 @@ function renderQuickRebuild() {
         <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束</button>
       </div>
     </div>`;
+  prefetchQuickAudio();
+  if (state.settings.autoSpeak) speakWord(w);
 }
 
 function quickAnswer(known) {
