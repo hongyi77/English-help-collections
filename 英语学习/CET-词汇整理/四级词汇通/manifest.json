@@ -1,7 +1,7 @@
 {
   "name": "英语词汇通",
   "short_name": "英语词汇通",
-  "description": "四级英语背单词：艾宾浩斯记忆曲线 · 六词库切换 · 离线可用",
+  "description": "四级英语背单词：艾宾浩斯记忆曲线 · 多词库切换 · 离线可用",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",
