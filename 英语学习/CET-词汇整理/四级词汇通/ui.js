@@ -472,7 +472,7 @@ function exportProgressFile() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  setImportMsg('✅ 已导出进度文件，把它发到另一台设备即可', 'ok');
+  setImportMsg('已导出进度文件，把它发到另一台设备即可', 'ok');
 }
 
 function handleImport(event) {
@@ -480,7 +480,7 @@ function handleImport(event) {
   if (!file) return;
   // 安全限制:进度文件最大 10MB,拒绝异常巨大的文件
   if (file.size > 10 * 1024 * 1024) {
-    setImportMsg('❌ 文件超过 10MB，不是有效的进度文件', 'err');
+    setImportMsg('文件超过 10MB，不是有效的进度文件', 'err');
     event.target.value = '';
     return;
   }
@@ -488,15 +488,15 @@ function handleImport(event) {
   reader.onload = () => {
     try {
       const n = importProgress(String(reader.result));
-      setImportMsg(`✅ 导入成功，同步了 ${n} 个单词的学习记录`, 'ok');
+      setImportMsg(`导入成功，同步了 ${n} 个单词的学习记录`, 'ok');
       refreshHome();
       if (masterTab) renderMaster();
       renderBook();
     } catch (e) {
-      setImportMsg('❌ 导入失败：' + e.message, 'err');
+      setImportMsg('导入失败：' + e.message, 'err');
     }
   };
-  reader.onerror = () => setImportMsg('❌ 读取文件失败', 'err');
+  reader.onerror = () => setImportMsg('读取文件失败', 'err');
   reader.readAsText(file, 'utf-8');
   event.target.value = ''; // 允许重复选择同一文件
 }
@@ -636,7 +636,7 @@ function goalDoneHtml() {
     <div class="quiz-card session-done">
       <div class="icon">${icon("target")}</div>
       <h2>今日新学目标已完成！</h2>
-      <p>「${escapeHtml(LIBS[libKey()].name)}」今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>各词库目标独立，切换词库可以继续学。<br>坚持就是胜利，明天再来吧 🌙</p>
+      <p>「${escapeHtml(LIBS[libKey()].name)}」今天已学 <b>${g.learned}</b> 个新词，目标 ${g.target} 个。<br>各词库目标独立，切换词库可以继续学。<br>坚持就是胜利，明天再来吧。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
         <button class="next-btn" onclick="goHome()">回到首页</button>
         <button class="btn-ghost" onclick="go('screen-settings')">调整每日目标，继续学习</button>
@@ -850,7 +850,7 @@ function canUseEdgeVoice() {
   return state.settings.voiceSrc === 'edge' && edgeTtsAvailable();
 }
 
-/* 当前环境是否还有任何发声途径（🔊 按钮/听写入口的显隐守卫） */
+/* 当前环境是否还有任何发声途径（发音按钮/听写入口的显隐守卫） */
 function canSpeakHere() {
   return ttsSupported() || edgeTtsAvailable();
 }
@@ -1697,11 +1697,11 @@ function checkSpell() {
           <span class="wp-ans">${escapeHtml(word)}</span>
           <span class="wp-def">${escapeHtml(WORD_MAP.get(word))}</span>
         </div>
-        ${memoOf(word) ? `<div class="wrong-memo">💡 ${escapeHtml(memoOf(word))}</div>` : ''}
+        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
       </div>
       <div class="wrong-actions">
         <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-          ${inBook ? '✓ 已在生词本' : '📌 加入生词本'}
+          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
         </button>
         <button class="next-btn" onclick="advanceSpellAfterWrong()">下一个 →</button>
       </div>
@@ -1777,14 +1777,14 @@ function doneHtml() {
   `;
 }
 
-/* 点 💡 展开该词的巧记（生词本/掌握情况列表通用） */
+/* 点灯泡图标展开该词的巧记（生词本/掌握情况列表通用） */
 function toggleMemoRow(word, btn) {
   const card = btn.closest('.list-card');
   const next = card.nextElementSibling;
   if (next && next.classList && next.classList.contains('memo-panel')) { next.remove(); return; }
   const div = document.createElement('div');
   div.className = 'memo-panel';
-  div.textContent = '💡 ' + memoOf(word);
+  div.innerHTML = icon('lightbulb') + ' ' + escapeHtml(memoOf(word));
   card.parentNode.insertBefore(div, card.nextSibling);
 }
 
@@ -1803,6 +1803,14 @@ const SCOPE_GROUPS = [
 
 /* 范围选择器:层级分组(学习进度/学习标记/按时间/自选词单)+日期面板+选定具体单词入口。
  * 拼写/听力/快扫三方共用(数量块由 spellCfgHtml 自行追加) */
+/* 配置页「选择范围」折叠态:视图状态(不入存档),按模式各记各的 */
+let cfgScopeOpen = {};
+
+function toggleCfgScope(kind) {
+  cfgScopeOpen[kind] = !cfgScopeOpen[kind];
+  renderPracticeConfig(kind);
+}
+
 function scopeCfgHtml(kind) {
   const scopeKey = kind + 'Scope';
   const scope = normScope(state.settings[scopeKey]);
@@ -1815,11 +1823,19 @@ function scopeCfgHtml(kind) {
       : scopeChip(k, (SCOPES.find(s => s.key === k) || {}).label || k, wordsInScope(k, kind).length)
     ).join('')
   }</div></div>`;
+  const open = !!cfgScopeOpen[kind];
+  const curLabel = scope === 'custom' ? '自选' : ((SCOPES.find(s => s.key === scope) || {}).label || scope);
+  const curN = scope === 'custom' ? pickedN : wordsInScope(scope, kind).length;
+  const pickBtn = `<div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>`;
   return `
     <div class="cfg-title">选择范围</div>
-    ${SCOPE_GROUPS.map(groupRow).join('')}
+    <button class="cfg-scope-summary" onclick="toggleCfgScope('${kind}')">
+      <span>范围：${curLabel} <span class="mt-cnt">${curN}</span></span>
+      <span class="cfg-scope-arrow ${open ? 'open' : ''}">${icon('chevron-left')}</span>
+    </button>
+    ${open ? SCOPE_GROUPS.map(groupRow).join('') : ''}
     ${scope === 'date' ? practiceDateHtml(kind) : ''}
-    <div style="margin:8px 0 4px"><button class="cfg-pick-btn" onclick="openWordPicker('${kind}')">${icon('list-plus')} 选定具体单词（当前词库：${escapeHtml(LIBS[libKey()].name)}）</button></div>
+    ${pickBtn}
   `;
 }
 
@@ -1827,8 +1843,16 @@ function spellCfgHtml(kind) {
   // kind: 'spell' | 'dict'，配置项存 settings.spellXxx / dictXxx
   const countKey = kind + 'Count';
   const count = state.settings[countKey] || 1;
+  const total = WORD_LIST.length;
+  const preset = (label, val) => {
+    const active = val === 'all' ? count >= total : count === val;
+    return `<button class="master-tab ${active ? 'active' : ''}" onclick="setPracticeCountPreset('${kind}','${val}')">${label}</button>`;
+  };
   return scopeCfgHtml(kind) + `
     <div class="cfg-title">数量</div>
+    <div class="cfg-chips" style="margin-bottom:8px">
+      ${preset('10', 10)}${preset('20', 20)}${preset('50', 50)}${preset('全部', 'all')}
+    </div>
     <div class="set-ctrl" style="justify-content:flex-start">
       <button onclick="adjPracticeCount('${kind}',-1)">−</button>
       <input type="number" id="${kind}CountInput" class="count-input" inputmode="numeric" min="1" max="${WORD_LIST.length}"
@@ -1852,6 +1876,12 @@ function adjPracticeCount(kind, delta) {
   setPracticeCount(kind, (state.settings[kind + 'Count'] || 1) + delta);
   const inp = document.getElementById(kind + 'CountInput');
   if (inp) inp.value = state.settings[kind + 'Count'];
+}
+
+/* 数量预设 chip:设值后重渲染,刷新 chip 高亮与输入框 */
+function setPracticeCountPreset(kind, v) {
+  setPracticeCount(kind, v === 'all' ? WORD_LIST.length : v);
+  renderPracticeConfig(kind);
 }
 
 /* 数量变化时就地更新开始栏词数(不重渲染配置页,避免输入框失焦) */
@@ -2097,6 +2127,7 @@ function renderCustomSpell() {
   el.innerHTML = `
     <div class="quiz-card">
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
+      <div class="progress-bar"><span style="width:${Math.round((session.queue.length - remaining.length) / session.queue.length * 100)}%"></span></div>
       <div class="quiz-prompt small">${escapeHtml(WORD_MAP.get(word) || '')}</div>
       <div class="spell-input-wrap">
         <input type="text" id="spellInput" class="spell-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="输入英文单词">
@@ -2112,6 +2143,7 @@ function renderCustomSpell() {
     if (inp) {
       inp.focus();
       inp.addEventListener('keydown', e => {
+        if (session.answered && e.key === ' ') { e.preventDefault(); customSpellNext(); return; }
         if (e.key !== 'Enter') return;
         e.stopPropagation();
         if (session.answered) customSpellNext(); else customSpellCheck();
@@ -2607,7 +2639,7 @@ function stopDictPlayback() {
 
 function dictStatus(t) {
   const st = document.getElementById('dictStatus');
-  if (st) st.textContent = t;
+  if (st) st.innerHTML = t;
 }
 
 /* 等待 utterance 播完（设备TTS兜底用）；部分环境 onend 不触发，用时长兜底 */
@@ -2638,7 +2670,7 @@ async function speakDictText(text, lang, rate) {
   if (edgeRes === true || edgeRes === 'x') return;
   if (!ttsFallbackWarned && canUseEdgeVoice()) {
     ttsFallbackWarned = true;
-    dictStatus('🔊 Edge 朗读不可用，已切换设备语音');
+    dictStatus(icon('volume-2') + ' Edge 朗读不可用，已切换设备语音');
   }
   await speakAwait(text, lang, rate);
 }
@@ -2682,7 +2714,7 @@ async function playDictCycle(sess, gen) {
   const word = sess.word;
   const rate = state.settings.dictRate || 0.9;
   const pause = Math.max(0.5, (state.settings.dictPause == null ? 1 : state.settings.dictPause)) * 1000;
-  dictStatus('🔊 正在播放…');
+  dictStatus(icon('volume-2') + ' 正在播放…');
   for (let round = 1; round <= 2; round++) {
     await speakDictText(word, 'en-US', rate);
     if (session !== sess || sess.gen !== gen) return;
@@ -2701,7 +2733,7 @@ async function playDictCycle(sess, gen) {
   }
   if (session !== sess || sess.gen !== gen) return;
   if (sess.judge) {
-    dictStatus('🔊 播放完毕，输入后提交');
+    dictStatus(icon('volume-2') + ' 播放完毕，输入后提交');
   } else if (sess.auto) {
     // 自动轮播:前两轮已播完单词×4+汉译×2,与其他模式节奏一致,不再额外强化,
     // 稍候自动切下一个词(单词全程显示在卡片上)
@@ -2709,11 +2741,11 @@ async function playDictCycle(sess, gen) {
     rec.done = true;
     sess.records.set(word, rec);
     sess.correct++;
-    dictStatus('🔊 即将下一个…');
+    dictStatus(icon('volume-2') + ' 即将下一个…');
     await dictSleep(Math.max(2000, pause * 2), sess, gen);
     if (session === sess && sess.gen === gen) dictNext();
   } else {
-    dictStatus('🔊 播放完毕');
+    dictStatus(icon('volume-2') + ' 播放完毕');
   }
 }
 
@@ -2767,7 +2799,7 @@ function renderDictWord() {
     <div class="quiz-card">
       <span class="quiz-type">${icon('ear')} 听写 · ${modeLabel}</span>
       ${showWord}
-      <div class="dict-status" id="dictStatus">🔊 准备播放…</div>
+      <div class="dict-status" id="dictStatus"><span data-icon="volume-2"></span> 准备播放…</div>
       <div class="show-ans-wrap"><button class="show-ans-btn" onclick="dictReplay()">${icon('volume-2')} 重听本词</button></div>
       ${inputHtml}
       <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}
@@ -3291,6 +3323,7 @@ function renderHistoryDetail(rec) {
         <span class="list-word">${escapeHtml(w)}</span>
         ${libTag}
         <span class="list-def">${escapeHtml(def)}</span>
+        <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
         <span class="ms-badge ${cls}">${title}</span>
       </div></div>`;
     }).join('');
@@ -3331,7 +3364,7 @@ function escapeAttr(s) {
 
 /* ---------------- 桌面端键盘快捷键 ----------------
  * 识别阶段：数字键 1-4 选选项；出反馈后 Enter 进下一个
- * 拼写阶段：出反馈后 Enter 进下一个（输入框内的 Enter 由输入框自身处理）
+ * 拼写阶段：出反馈后 Enter/空格 进下一个（输入框内的按键由输入框自身处理）
  */
 document.addEventListener('keydown', e => {
   if (!session) return;
@@ -3350,7 +3383,7 @@ document.addEventListener('keydown', e => {
       advanceAfterWrong();
     }
   } else if (session.phase === 'spell') {
-    if (session.answered && e.key === 'Enter' && !inInput) {
+    if (session.answered && (e.key === 'Enter' || e.key === ' ') && !inInput) {
       const good = document.querySelector('#spellFeedback .feedback.good');
       if (good) nextSpell(); else advanceSpellAfterWrong();
     }
@@ -3365,8 +3398,53 @@ document.addEventListener('keydown', e => {
     } else if (session.answered && e.key === 'Enter' && !inInput) {
       listenNext();
     }
+  } else if (session.phase === 'cspell') {
+    // 自由拼写:出反馈后 Enter/空格 进下一个(输入框内由输入框自身处理)
+    if (session.answered && (e.key === 'Enter' || e.key === ' ') && !inInput) {
+      e.preventDefault();
+      customSpellNext();
+    }
   }
 });
+
+/* ---------------- 移动端键盘避让 ----------------
+ * 键盘弹出只缩小 visualViewport,布局视口(100vh)不变:输入框会被键盘盖住。
+ * 这里把键盘高度写进 --kb-h(配合 CSS 缩容器/抬固定开始栏),并在聚焦与键盘尺寸变化时
+ * 把输入框滚进可视区。visualViewport 不可用的环境(桌面/测试桩)自动降级为无操作。 */
+(function () {
+  const docEl = document.documentElement;
+  if (!docEl || !docEl.style || !document.body || !document.body.classList) return;
+  const vv = window.visualViewport;
+  const kbHeight = () => (vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0);
+  const syncKb = () => {
+    const kb = kbHeight();
+    docEl.style.setProperty('--kb-h', kb + 'px');
+    document.body.classList.toggle('kbd-open', kb > 60);
+  };
+  const reveal = () => {
+    const a = document.activeElement;
+    if (!a || (a.tagName !== 'INPUT' && a.tagName !== 'TEXTAREA') || !a.closest) return;
+    const scr = a.closest('.screen');
+    if (!scr || !scr.scrollBy) return;
+    const limit = window.innerHeight - kbHeight() - 16;
+    const r = a.getBoundingClientRect();
+    if (r.bottom > limit) scr.scrollBy({ top: r.bottom - limit, behavior: 'smooth' });
+  };
+  if (vv) {
+    vv.addEventListener('resize', () => { syncKb(); reveal(); });
+    vv.addEventListener('scroll', syncKb);
+  }
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', syncKb);
+    window.addEventListener('orientationchange', () => setTimeout(syncKb, 200));
+  }
+  document.addEventListener('focusin', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { syncKb(); setTimeout(reveal, 300); }
+  });
+  document.addEventListener('focusout', () => setTimeout(syncKb, 100));
+  syncKb();
+})();
 
 /* ---------------- 快速复习 / 进度重建(清档补救工具升级) ----------------
  * 两个入口共用一套配置页与快扫会话:

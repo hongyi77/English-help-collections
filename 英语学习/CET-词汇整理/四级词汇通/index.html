@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <title>英语词汇通</title>
 <!-- 安全加固:CSP 限制脚本只能来自本站(禁内联/外站脚本注入)、禁止插件/iframe 嵌入、http 自动升级 https -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' wss://speech.platform.bing.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
@@ -64,8 +64,12 @@
   .topbar .sub { position: absolute; right: 14px; font-size: 12px; color: var(--ink-soft); font-weight: 400; font-family: var(--mono); letter-spacing: .5px; }
 
   /* ---------- 主内容 ---------- */
-  .screen { display: none; padding-top: 54px; height: 100vh; overflow-y: auto; }
+  .screen { display: none; padding-top: 54px; height: 100vh; overflow-y: auto; scroll-padding-bottom: 16px; }
   .screen.active { display: block; }
+  /* 移动端键盘避让:键盘弹出时 visualViewport 缩小而 100vh 不变,若不处理输入框会被键盘盖住。
+   * ui.js 把键盘高度写入 --kb-h;这里让答题容器缩到键盘之上,并把固定开始栏抬到键盘上边缘。 */
+  body.kbd-open .screen.active { height: calc(100vh - var(--kb-h, 0px)); }
+  body.kbd-open .practice-foot { bottom: var(--kb-h, 0px); }
   .wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; }
 
   /* ---------- 首页 · 词卡 hero ---------- */
@@ -260,7 +264,7 @@
     text-align: center; font-size: 13px; color: var(--amber); margin-top: 12px;
   }
   .spell-input-wrap {
-    display: flex; gap: 10px; margin-top: 18px; align-items: stretch;
+    display: flex; flex-direction: column; gap: 10px; margin-top: 18px;
   }
   .spell-input {
     flex: 1; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--ink-blue);
@@ -269,10 +273,15 @@
   }
   .spell-input:focus { box-shadow: 0 0 0 3px rgba(31, 78, 121, .15); }
   .spell-check {
-    padding: 0 20px; border-radius: 12px; border: none; background: var(--ink-blue);
+    width: 100%; padding: 13px 20px; border-radius: 12px; border: none; background: var(--ink-blue);
     color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
   }
   .spell-check:active { background: var(--ink-blue-deep); }
+  /* 答题进度条:顶部细条,宽度=已完成占比 */
+  .progress-bar { height: 6px; border-radius: 999px; background: var(--hairline); overflow: hidden; margin: 12px 0; }
+  .progress-bar > span { display: block; height: 100%; background: var(--ink-blue); transition: width .2s; }
+  /* 自由拼写反馈里的「下一个」按钮全宽加大 */
+  #spellFeedback .next-btn { width: 100%; padding: 13px 20px; font-size: 16px; }
   .session-done { text-align: center; padding: 44px 0; }
   .session-done .icon { font-size: 46px; margin-bottom: 12px; }
   .session-done h2 { font-family: var(--serif); font-size: 24px; margin-bottom: 8px; color: var(--ink); }
@@ -435,6 +444,10 @@
   .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
   .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .cfg-chips .master-tab { margin: 0; }
+  /* 「选择范围」折叠摘要行 */
+  .cfg-scope-summary { width: 100%; display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--card); color: var(--ink); font-size: 14px; cursor: pointer; }
+  .cfg-scope-arrow { margin-left: auto; display: inline-flex; color: var(--ink-soft); transform: rotate(-90deg); transition: transform .15s; }
+  .cfg-scope-arrow.open { transform: rotate(90deg); }
   /* 「按日期」：紧凑单行——原生日期输入透明覆盖在中文日期标签上(点按即弹系统日历,手机友好) */
   .cfg-date-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .cfg-date-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 14px; color: var(--ink); }
@@ -786,8 +799,8 @@
       <div class="set-row">
         <label>试听</label>
         <div class="set-ctrl" style="gap:8px">
-          <button class="master-tab" onclick="previewVoice('en')">🔊 英语</button>
-          <button class="master-tab" onclick="previewVoice('zh')">🔊 汉译</button>
+          <button class="master-tab" onclick="previewVoice('en')"><span data-icon="volume-2"></span> 英语</button>
+          <button class="master-tab" onclick="previewVoice('zh')"><span data-icon="volume-2"></span> 汉译</button>
         </div>
       </div>
       <div class="set-row edge-voice-row" style="display:none">

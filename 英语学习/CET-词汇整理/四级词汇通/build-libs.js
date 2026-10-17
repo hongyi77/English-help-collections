@@ -20,6 +20,10 @@ const LIBS = [
   { key: 'junior',         file: '初中词汇.json',      name: '初中词汇',       group: '学段词汇' },
   { key: 'senior',         file: '高中词汇.json',      name: '高中词汇',       group: '学段词汇' },
   { key: 'cet6',           file: '六级词汇.json',      name: '六级词汇',       group: '四六级' },
+  { key: 'cet4_core',      file: '四级核心词.json',    name: '四级核心词',     group: '四六级' },
+  { key: 'cet4_lite',      file: '四级精简词.json',    name: '四级精简词',     group: '四六级' },
+  { key: 'cet6_core',      file: '六级核心词.json',    name: '六级核心词',     group: '四六级' },
+  { key: 'cet6_lite',      file: '六级精简词.json',    name: '六级精简词',     group: '四六级' },
   { key: 'diebian',        file: '蝶变单词.txt',       name: '蝶变单词（小学版）', group: '蝶变系列' },
   { key: 'diebian_junior', file: '蝶变单词(初中版).txt', name: '蝶变单词·初中版', group: '蝶变系列' },
 ];

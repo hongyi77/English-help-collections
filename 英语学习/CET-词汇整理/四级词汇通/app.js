@@ -72,7 +72,7 @@ for (const k of Object.keys(LIBS)) {
 /* 词库分组（设置页两级选择 UI：先选系列，再选具体词库）。
  * 只影响展示布局，词库本身互不合并；分组里没列到的词库不显示 */
 const LIB_GROUPS = [
-  { label: '四六级',   libs: ['cet4', 'cet6'] },
+  { label: '四六级',   libs: ['cet4', 'cet4_core', 'cet4_lite', 'cet6', 'cet6_core', 'cet6_lite'] },
   { label: '学段词汇', libs: ['primary', 'junior', 'senior'] },
   { label: '蝶变系列', libs: ['diebian', 'diebian_junior'] },
 ];

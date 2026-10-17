@@ -447,7 +447,7 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   g('libGroupOpen = undefined; refreshHome()');
   const libHtml = documentStub.getElementById('libList').innerHTML;
   ok(libHtml.includes('四六级') && libHtml.includes('学段词汇') && libHtml.includes('蝶变系列'), '渲染 3 个系列分组行');
-  ok((libHtml.match(/confirmSwitchLib/g) || []).length === 2, `默认只展开当前分组（四六级 2 个 chip，共 ${g('Object.keys(LIBS).length')} 库）`);
+  ok((libHtml.match(/confirmSwitchLib/g) || []).length === 6, `默认只展开当前分组（四六级 6 个 chip，共 ${g('Object.keys(LIBS).length')} 库）`);
   ok(libHtml.includes('master-tab active'), '当前词库 chip 高亮');
   // 展开蝶变系列：小学版（原 diebian 改名）+ 初中版
   ok(g("LIBS['diebian'].name").includes('小学版'), '原蝶变单词已改名（小学版），key 不变保进度');
@@ -507,6 +507,7 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(g('session && session.mode') === 'spell', '创建自由拼写会话');
   ok(g('session.queue.length') === 5, '按数量取 5 词');
   ok(g('session.phase') === 'cspell', '独立 phase(不触发复习拼写快捷键)');
+  ok(documentStub.getElementById('spellQuiz').innerHTML.includes('progress-bar'), '拼写页渲染顶部进度条');
   ok(g('Object.keys(curWords()).length') === 0, '开始前不写学习状态');
   // 第一个词拼错 → 不卡住、进错词池、不改进度
   const wrongWord = g('session.word');
@@ -535,6 +536,12 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(g('normScope("不存在的范围")') === 'all', '无效范围回落到全部');
   // 「按日期」范围:取指定日期新学的词(当前词库,history 条目 [lib, word])
   g(`state = defaultState(); saveState();`);
+  // 范围折叠:默认只显示摘要行,不渲染分组 chips(点摘要才展开)
+  g('cfgScopeOpen = {}; state.settings.spellScope = "unseen"; saveState(); renderSpellConfig()');
+  {
+    const ch = documentStub.getElementById('spellQuiz').innerHTML;
+    ok(ch.includes('cfg-scope-summary') && !ch.includes('cfg-scope-group'), '配置页范围默认折叠:摘要行可见、分组 chips 隐藏');
+  }
   g(`
     const yd = dateKey(Date.now() - DAY_MS), dby = dateKey(Date.now() - 2 * DAY_MS);
     const w2 = LIBS.cet4.words[0][0];
@@ -554,6 +561,7 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(g("practicePool('dict').join()") === 'hello', '听写取词池按自己的日期取词');
   g(`setPracticeDate('spell','')`);
   ok(g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '清空/非法日期被忽略,保留原选择');
+  g('cfgScopeOpen.spell = true;');
   g('renderSpellConfig()');
   const cfgHtml = documentStub.getElementById('spellQuiz').innerHTML;
   ok(cfgHtml.includes('选择日期') && cfgHtml.includes('type="date"') && cfgHtml.includes('月'), '配置页渲染紧凑日期选择(中文日期+原生日历输入)');
@@ -567,6 +575,12 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(calHtml.includes('年') && calHtml.includes('cfg-cal-wd'), '月历渲染年月标题与星期头');
   ok(calHtml.includes('cfg-cal-day has'), '学过词的日子高亮底色');
   ok(/cfg-cal-day[^"]*sel/.test(calHtml), '选中的日子有红圈标识');
+  // 数量预设 chips:点一下设值(全部=当前词库总词数)
+  ok(cfgHtml.includes('setPracticeCountPreset'), '数量控件含预设 chips(10/20/50/全部)');
+  g("setPracticeCountPreset('spell', 50)");
+  ok(g('state.settings.spellCount') === 50, '预设 50 生效');
+  g("setPracticeCountPreset('spell', 'all')");
+  ok(g('state.settings.spellCount') === g('WORD_LIST.length'), '预设「全部」= 当前词库总词数');
 })();
 
 /* ================= 20. 功能3:听写 ================= */
@@ -1064,6 +1078,7 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
   g('historyDay = null; historyFilter = "all"; renderHistory();');
   const detAll = documentStub.getElementById('historyDetail').innerHTML;
   ok(detAll.includes('setHistoryFilter'), '学习记录有类型筛选 chips');
+  ok(detAll.includes('list-speak') && detAll.includes(`speakWord('hello')`) && detAll.includes('<svg'), '学习记录行有发音按钮(点击播报)');
   ok(detAll.includes('新学（1）') && detAll.includes('复习（1）') && detAll.includes('答错（1）'), '全部视图新学/复习/答错三组都在');
   g(`setHistoryFilter('reviewed');`);
   const detRev = documentStub.getElementById('historyDetail').innerHTML;
@@ -1490,6 +1505,7 @@ console.log('\n[37] 快速复习/进度重建双模式');
   ok(rf.fsrs && isFinite(rf.fsrs.due) && rf.fsrs.due > Date.now() && rf.fsrs.s === g('FSRS_W')[2], 'FSRS 模式:认识按 Good 初始化并排期');
   g('setReviewAlgo("ebbinghaus")');
   // 配置页:模式/题库/范围分层
+  g('cfgScopeOpen.quick = true;');
   g(`openQuickPractice()`);
   const qh = documentStub.getElementById('quickQuiz').innerHTML;
   ok(qh.includes('复习练习(不改数据)') && qh.includes('进度重建(写入)'), '配置页含双模式切换');

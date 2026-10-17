@@ -14,7 +14,7 @@ const NAMES = [
   'book-open', 'repeat', 'bookmark', 'chart-column', 'calendar-days',
   'search', 'settings', 'search-x',
   // 反馈与动作
-  'circle-check', 'circle-x', 'eye', 'arrow-right', 'chevron-left',
+  'circle-check', 'circle-x', 'x', 'eye', 'arrow-right', 'chevron-left',
   'volume-2', 'lightbulb', 'bookmark-plus', 'bookmark-check', 'rotate-ccw',
   // 页面装饰
   'keyboard', 'trophy', 'party-popper', 'coffee', 'hourglass', 'target',
