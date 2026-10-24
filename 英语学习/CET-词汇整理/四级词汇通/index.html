@@ -308,7 +308,7 @@
   /* 词库两级选择：系列行 + 展开后的词库 chips */
   .lib-group { margin-bottom: 8px; }
   .lib-group-head { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--card); cursor: pointer; }
-  .lib-group-head.current { border-color: var(--ink-blue); }
+  /* 当前词库所在组:不用蓝边框(与其他组视觉不一),由组头右侧蓝色词库名标识 */
   .lib-group-name { font-size: 14px; font-weight: 600; color: var(--ink); }
   .lib-group-cur { flex: 1; text-align: right; font-size: 12px; color: var(--ink-blue); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lib-group-arrow { display: inline-flex; color: var(--ink-soft); transform: rotate(-90deg); transition: transform .15s; }  /* chevron-left(‹) 转 -90° = ˅ 收起态 */
@@ -579,6 +579,13 @@
   .doc-note[open] summary::after { transform: rotate(180deg); }
   .doc-note summary:hover { color: var(--ink-blue); }
   .doc-note .note-body { margin-top: 6px; color: var(--ink-soft); line-height: 1.7; }
+
+  /* ---------- 列表双行卡片(词汇页/词典:单词+按钮一行,释义整行) ---------- */
+  .list-item.two { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+  .li-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .li-head .list-word { min-width: 0; }
+  .li-btns { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none; }
+  .list-item.two .list-def { flex: none; width: 100%; }
 
   /* ---------- 首页·错词重练入口 ---------- */
   .big-action.wrong-re .ba-ico { background: var(--red-soft); color: var(--pen-red); }

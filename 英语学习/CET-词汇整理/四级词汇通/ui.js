@@ -419,13 +419,17 @@ function renderDictResults() {
     const inCur = LIB_WORD_SETS[cur].has(r.w);
     const inBookNow = !!(curWords()[r.w] && curWords()[r.w].inBook);
     const libTag = LIBS[r.lib].name.replace('词汇', '');
-    return `<div class="list-card"><div class="list-item">
-      <span class="list-word">${escapeHtml(r.w)}</span>
-      <span class="dict-lib">${escapeHtml(libTag)}</span>
-      <span class="list-def">${escapeHtml(r.def)}</span>
-      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(r.w)}" onclick="speakWord('${escapeAttr(r.w)}')">${icon('volume-2')}</button>
-      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" aria-label="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? icon('bookmark-check') : icon('bookmark-plus')}</button>` : ''}
+    return `<div class="list-card"><div class="list-item two">
+      <div class="li-head">
+        <span class="list-word">${escapeHtml(r.w)}</span>
+        <span class="dict-lib">${escapeHtml(libTag)}</span>
+        <span class="li-btns">
+          ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">${icon('lightbulb')}</button>` : ''}
+          <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(r.w)}" onclick="speakWord('${escapeAttr(r.w)}')">${icon('volume-2')}</button>
+          ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" aria-label="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? icon('bookmark-check') : icon('bookmark-plus')}</button>` : ''}
+        </span>
+      </div>
+      <div class="list-def">${escapeHtml(r.def)}</div>
     </div></div>`;
   }).join('');
 }
@@ -3196,13 +3200,17 @@ function renderBook() {
   const rows = book.map(w => {
     const r = words[w] || {};
     const wrongN = r.wrong || 0;
-    return `<div class="list-card"><div class="list-item">
-      <span class="list-word">${escapeHtml(w)}</span>
-      <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
-      ${wrongN ? `<span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span>` : ''}
-      <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-del" title="移出生词本" aria-label="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
+    return `<div class="list-card"><div class="list-item two">
+      <div class="li-head">
+        <span class="list-word">${escapeHtml(w)}</span>
+        ${wrongN ? `<span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span>` : ''}
+        <span class="li-btns">
+          <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
+          ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+          <button class="list-del" title="移出生词本" aria-label="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
+        </span>
+      </div>
+      <div class="list-def">${escapeHtml(WORD_MAP.get(w))}</div>
     </div></div>`;
   }).join('');
   el.innerHTML = head + rows;
@@ -3294,13 +3302,17 @@ function renderMasterList() {
     const leechBadge = masterTab === 'leech'
       ? `<span class="ms-badge ms-due">顽固 · 错${(r && r.lapses) || 0} 次</span>`
       : (r && r.leech ? '<span class="ms-badge ms-due">顽固</span>' : '');
-    return `<div class="list-card"><div class="list-item">
-      <span class="list-word">${escapeHtml(w)}</span>
-      <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
-      ${leechBadge}
-      <span class="ms-badge ${badgeCls}">${st.label}</span>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-del" title="重置此单词" aria-label="重置 ${escapeHtml(w)}" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
+    return `<div class="list-card"><div class="list-item two">
+      <div class="li-head">
+        <span class="list-word">${escapeHtml(w)}</span>
+        ${leechBadge}
+        <span class="ms-badge ${badgeCls}">${st.label}</span>
+        <span class="li-btns">
+          ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+          <button class="list-del" title="重置此单词" aria-label="重置 ${escapeHtml(w)}" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
+        </span>
+      </div>
+      <div class="list-def">${escapeHtml(WORD_MAP.get(w))}</div>
     </div></div>`;
   }).join('');
 
@@ -3468,12 +3480,16 @@ function renderHistoryDetail(rec) {
       const lib = norm ? norm[0] : null;
       const libTag = lib ? `<span class="dict-lib">${escapeHtml(LIBS[lib].name.replace('词汇', ''))}</span>` : '';
       const def = lib ? defInLib(lib, w) : (WORD_MAP.get(w) || '');
-      return `<div class="list-card"><div class="list-item">
-        <span class="list-word">${escapeHtml(w)}</span>
-        ${libTag}
-        <span class="list-def">${escapeHtml(def)}</span>
-        <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
-        <span class="ms-badge ${cls}">${title}</span>
+      return `<div class="list-card"><div class="list-item two">
+        <div class="li-head">
+          <span class="list-word">${escapeHtml(w)}</span>
+          ${libTag}
+          <span class="ms-badge ${cls}">${title}</span>
+          <span class="li-btns">
+            <button class="list-speak" title="发音" aria-label="朗读" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
+          </span>
+        </div>
+        <div class="list-def">${escapeHtml(def)}</div>
       </div></div>`;
     }).join('');
     return `<h3 style="font-family:var(--serif);font-size:15px;color:var(--ink-blue);margin:16px 0 8px">${title}（${list.length}）</h3>${rows}`;
