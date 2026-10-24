@@ -1,12 +1,14 @@
-/* 图标构建脚本:从 Lucide 图标库(D:\文件实验地\icons)提取所需 SVG 生成 icons.js
+/* 图标构建脚本:从 Lucide 图标库源目录提取所需 SVG 生成 icons.js
  * 用法:node build-icons.js
+ *   源目录默认 ./icons-src(仓库内),可用环境变量 ICONS_SRC 指向本地 Lucide 检出:
+ *   ICONS_SRC=D:/lucide/packages/lucide-icons/icons node build-icons.js
  * 产出:const ICONS = { 名称: "<svg ...>" };模板字符串里用 icon('book-open') 注入
  * 注意:新增图标先在 NAMES 里登记;源目录缺失会报错退出
  */
 const fs = require('fs');
 const path = require('path');
 
-const SRC_DIR = 'D:\\文件实验地\\icons';
+const SRC_DIR = process.env.ICONS_SRC || path.join(__dirname, 'icons-src');
 const OUT = path.join(__dirname, 'icons.js');
 
 const NAMES = [
@@ -20,18 +22,21 @@ const NAMES = [
   'keyboard', 'trophy', 'party-popper', 'coffee', 'hourglass', 'target',
   'notebook-pen', 'sliders-horizontal', 'sparkles',
   // 自由拼写 / 听写
-  'pencil-line', 'ear', 'check', 'volume-2', 'play', 'pause', 'square', 'shuffle', 'list-ordered',
+  'pencil-line', 'ear', 'check', 'play', 'pause', 'square', 'shuffle', 'list-ordered',
   'circle', 'list-plus',
 ];
+// 登记去重(复制粘贴 NAMES 时容易引入重复项)
+const UNIQUE_NAMES = [...new Set(NAMES)];
 
 const icons = {};
-for (const name of NAMES) {
+for (const name of UNIQUE_NAMES) {
   const file = path.join(SRC_DIR, name + '.svg');
   let svg;
   try {
     svg = fs.readFileSync(file, 'utf8');
   } catch (e) {
     console.error('图标不存在: ' + file);
+    console.error('若源目录不在默认位置,用环境变量指定: ICONS_SRC=<lucide-icons目录> node build-icons.js');
     process.exit(1);
   }
   // 压成单行;stroke=currentColor 随 CSS 变色,尺寸由 CSS 控制
@@ -47,4 +52,4 @@ out += 'const ICONS = {\n';
 for (const [k, v] of Object.entries(icons)) out += `  ${JSON.stringify(k)}: ${JSON.stringify(v)},\n`;
 out += '};\n';
 fs.writeFileSync(OUT, out, 'utf8');
-console.log(`已生成: ${OUT} (${NAMES.length} 个图标, ${(fs.statSync(OUT).size / 1024).toFixed(1)} KB)`);
+console.log(`已生成: ${OUT} (${UNIQUE_NAMES.length} 个图标, ${(fs.statSync(OUT).size / 1024).toFixed(1)} KB)`);

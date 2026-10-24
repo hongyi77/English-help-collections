@@ -25,14 +25,18 @@ for (const f of chunkFiles) {
   }
 }
 
-// 2. 合并(后写的覆盖先写的)
+// 2. 合并(后写的覆盖先写的;重名词打印出来,拼写相近的词被静默覆盖难以察觉)
 const merged = {};
-let dupCount = 0;
+const dups = [];
 for (const part of sandbox.VOCAB_EXTRA_PARTS) {
   for (const [w, memo] of Object.entries(part)) {
-    if (merged[w] !== undefined) dupCount++;
+    if (merged[w] !== undefined) dups.push(w);
     merged[w] = memo;
   }
+}
+if (dups.length) {
+  console.warn(`⚠ ${dups.length} 个词被后面的 chunk 覆盖(确认是有意修订再发布):`);
+  console.warn('  ' + dups.slice(0, 30).join(', ') + (dups.length > 30 ? ' …' : ''));
 }
 
 // 3. 校验
@@ -68,5 +72,5 @@ ${body}
 `;
 fs.writeFileSync(OUT, js, 'utf8');
 console.log(`✓ 已生成: ${OUT}`);
-console.log(`  难词覆盖: ${ordered.length}/${HARD_LIST.length} | 附加词: ${extras.length} | chunk 内重复覆盖: ${dupCount}`);
+console.log(`  难词覆盖: ${ordered.length}/${HARD_LIST.length} | 附加词: ${extras.length} | chunk 内重复覆盖: ${dups.length}`);
 console.log(`  大小: ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`);

@@ -15,6 +15,7 @@ const LEECH_THRESHOLD = 5; // 复习答错(lapse)累计到该次数 → 自动�
 
 const STATE_KEY = 'cet4_study_state_v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_RATE = 0.9;   // 发音缺省语速(Edge/TTS 各播放链共用的基准值)
 
 /* 设置缺省值(旧存档缺字段时合并;自由拼写/听写配置也存这里) */
 const DEFAULT_SETTINGS = {
@@ -25,7 +26,7 @@ const DEFAULT_SETTINGS = {
   dictDate: '',                                           // 听写:「按日期」范围选的日期
   dictWords: [],                                          // 听写自选词单
   dictKind: 'write',                                      // 听力练习类型:write 听音写词 / pick 听音辨义(两类共用范围/数量/自选词单)
-  dictPause: 1, dictRate: 0.9, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
+  dictPause: 1, dictRate: DEFAULT_RATE, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   quickScope: 'all', quickWords: [],                      // 快速复习/重建:范围 + 自选词单(两模式共用)
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   edgePack: null,                                         // Edge发音离线包元数据 {lib,voice,rate,words,ts},null=未下载(音频本体在 IndexedDB)
@@ -67,6 +68,17 @@ for (const k of Object.keys(LIBS)) {
 const LIB_DEF_MAPS = {};
 for (const k of Object.keys(LIBS)) {
   LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
+}
+
+/* 扩展词库装载(vocab-libs.js 延迟载入后调用):合并词库并补齐索引。
+ * 首屏只加载内置四级词库,1MB 的扩展词库不阻塞可交互(见文件底部 lazyLoadVocabLibs) */
+function registerVocabLibs(libsObj) {
+  if (!libsObj) return;
+  Object.assign(LIBS, libsObj);
+  for (const k of Object.keys(libsObj)) {
+    LIB_WORD_SETS[k] = new Set(LIBS[k].words.map(([w]) => w));
+    LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
+  }
 }
 
 /* 词库分组（设置页两级选择 UI：先选系列，再选具体词库）。
@@ -307,6 +319,9 @@ const defaultState = () => ({
 
 let state = loadState();
 
+/* 旧版「会话快照」键清理:断点续学已移除,别让废弃数据一直留在 localStorage */
+try { localStorage.removeItem('cet4_session_snapshot_v1'); } catch (e) { /* 忽略 */ }
+
 /* 当前词库 key（存档里没有或已失效时回落到内置四级） */
 function libKey() {
   const k = state.settings && state.settings.lib;
@@ -513,11 +528,34 @@ function loadState() {
   return s;
 }
 
-function saveState() {
-  try {
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
-  } catch (e) { /* 存储满/不可用，忽略 */ }
+/* 写盘防抖:state 含全部 history,全量 JSON 序列化的代价随使用量增长;
+ * 答题/拖选词单等高频调用只标记脏,合并成一次写盘(拖 500 行 = 1 次而非 500 次)。
+ * 页面隐藏/卸载时 flushState 强制落盘——突然杀进程最多丢最后一小段(Anki 同策略) */
+let saveTimer = null;
+const SAVE_DEBOUNCE_MS = 250;
+
+function writeStateNow() {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { /* 存储满/不可用，忽略 */ }
 }
+
+function saveState() {
+  if (saveTimer) return;   // 已有待写盘任务,合并
+  saveTimer = setTimeout(() => { saveTimer = null; writeStateNow(); }, SAVE_DEBOUNCE_MS);
+}
+
+/* 立即落盘:导入进度/重置等关键操作后,以及 pagehide/beforeunload/页面转入后台时 */
+function flushState() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  writeStateNow();
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('pagehide', flushState);
+  window.addEventListener('beforeunload', flushState);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushState();
+});
 
 /* ---------------- 进度导出 / 导入（跨设备同步） ---------------- */
 const EXPORT_VERSION = 2;
@@ -617,7 +655,7 @@ function importProgress(json) {
       }
     }
   }
-  saveState();
+  flushState();   // 导入是关键操作,立即落盘不等防抖
   return importedCount;
 }
 
@@ -802,7 +840,12 @@ function wordsInScope(scope, kind) {
 }
 
 function classCount(cls) {
-  return wordsByClass(cls).length;
+  const b = bucketCounts();
+  if (cls === 'unlearned') return b.unseen;
+  if (cls === 'mastered') return b.mastered;
+  if (cls === 'due') return b.due;
+  if (cls === 'leech') return b.leech;
+  return b.learning;
 }
 
 /* 单个单词的掌握状态描述 */
@@ -1016,15 +1059,32 @@ function makeQuestion(word, reverse) {
 }
 
 /* ---------------- 统计 ---------------- */
+/* 单次遍历产出全部分类计数:掌握情况页一轮要 5 个 tab 计数 + stats 各桶,
+ * 逐桶 filter 会全表扫描 8-9 次;这里一遍算清(与 wordsByClass 分类口径一致) */
+function bucketCounts() {
+  const now = Date.now();
+  const words = curWords();
+  const out = { unseen: 0, learning: 0, due: 0, mastered: 0, inBook: 0, leech: 0 };
+  for (const w of WORD_LIST) {
+    const r = words[w];
+    if (!r) { out.unseen++; continue; }
+    // 生词本/顽固词与学习阶段无关(stage-0 的纯标记记录也算,口径与 bookWords/leechWords 一致)
+    if (r.inBook) out.inBook++;
+    if (r.leech) out.leech++;
+    if (r.stage === 0) { out.unseen++; continue; }
+    if (r.stage >= STAGE_MASTERED) { out.mastered++; continue; }
+    out.learning++;
+    if (effectiveDue(r) <= now) out.due++;
+  }
+  return out;
+}
+
 function stats() {
+  const b = bucketCounts();
   const total = WORD_LIST.length;
   const seen = Object.keys(curWords()).length;
-  const mastered = masteredWords().length;
-  const inBook = bookWords().length;
-  const due = dueWords().length;
-  const unseen = total - seen;
   const L = curDaily();
-  return { total, seen, mastered, inBook, due, unseen, learning: classCount('learning'), learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
+  return { total, seen, mastered: b.mastered, inBook: b.inBook, due: b.due, unseen: total - seen, learning: b.learning, learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
 }
 
 /* ---------------- 每日目标 ----------------
@@ -1051,3 +1111,27 @@ function goalInfo() {
 /* ---------------- 启动 ---------------- */
 /* 按存档里的词库设置初始化词表（ui.js 加载后 refreshHome 依赖 WORD_LIST） */
 rebuildWordData();
+
+/* ---------------- 扩展词库延迟装载 ----------------
+ * vocab-libs.js(约 1MB,10 个词库)不再放首屏同步链路:index.html 已移除其
+ * <script> 引用,首屏渲染完成后由这里动态插入加载,装好后 registerVocabLibs
+ * 重建索引并回调 ui.js 的 onLibsReady 刷新界面。
+ * 单文件手机版/测试环境已内联 VOCAB_LIBS 时(装在 app.js 之前)自动跳过。 */
+(function lazyLoadVocabLibs() {
+  if (typeof VOCAB_LIBS !== 'undefined') return;                      // 已内联,无需动态加载
+  if (typeof document === 'undefined' || !document.head) return;      // 测试沙箱
+  if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+  const kick = () => {
+    if (typeof VOCAB_LIBS !== 'undefined') return;
+    const s = document.createElement('script');
+    s.src = 'vocab-libs.js';
+    s.onload = () => {
+      if (typeof VOCAB_LIBS === 'undefined') return;
+      registerVocabLibs(VOCAB_LIBS);
+      if (typeof onLibsReady === 'function') onLibsReady();
+    };
+    document.head.appendChild(s);
+  };
+  if (document.readyState === 'complete' || document.readyState === 'interactive') kick();
+  else window.addEventListener('DOMContentLoaded', kick);
+})();

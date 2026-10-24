@@ -2,9 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>英语词汇通</title>
-<!-- 安全加固:CSP 限制脚本只能来自本站(禁内联/外站脚本注入)、禁止插件/iframe 嵌入、http 自动升级 https -->
+<!-- 安全加固:CSP 限制脚本只能来自本站+内联(内联事件处理器仍依赖 unsafe-inline,
+     彻底收紧需先把 onclick 迁移为事件委托,见开发备忘) 、禁止插件/iframe 嵌入、http 自动升级 https -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' wss://speech.platform.bing.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
 <!-- PWA:添加到主屏幕后独立窗口运行,sw.js 提供离线缓存(需 https 或 localhost) -->
 <link rel="manifest" href="manifest.json">
@@ -20,7 +21,6 @@
     --card: #FFFCF5;
     --ink: #23283A;
     --ink-soft: #7A7666;
-    --muted: #7A7666;
     --ink-blue: #1F4E79;
     --ink-blue-deep: #163A5C;
     --pen-red: #C0442B;
@@ -172,7 +172,7 @@
   .set-row label { font-size: 15px; }
   .set-ctrl { display: flex; align-items: center; gap: 12px; }
   .set-ctrl button {
-    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--hairline);
+    width: 40px; height: 40px; border-radius: 9px; border: 1px solid var(--hairline);
     background: var(--card); font-size: 18px; cursor: pointer; color: var(--ink-blue);
   }
   .set-ctrl button:active { background: var(--paper); }
@@ -188,10 +188,10 @@
   }
   .data-btn:active { background: var(--blue-soft); }
 
-  /* ---------- 学习/复习答题 · 词卡 ---------- */
+  /* ---------- 学习/复习答题 · 词卡(紧凑化:手机一屏) ---------- */
   .quiz-card {
     position: relative; background: var(--card); border: 1px solid var(--hairline); border-radius: 18px;
-    box-shadow: var(--shadow); padding: 26px 20px 22px; margin-bottom: 16px;
+    box-shadow: var(--shadow); padding: 18px 16px 16px; margin-bottom: 16px;
     animation: rise .28s ease-out;
   }
   @keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -202,8 +202,8 @@
   }
   .quiz-type { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 10px; border-radius: 5px; background: var(--blue-soft); color: var(--ink-blue); }
   .quiz-type.rev { background: var(--amber-soft); color: var(--amber); }
-  .quiz-prompt { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--ink); margin: 16px 0 8px; word-break: break-word; }
-  .quiz-prompt.small { font-size: 24px; }
+  .quiz-prompt { font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--ink); margin: 12px 0 6px; word-break: break-word; }
+  .quiz-prompt.small { font-size: 21px; }
   .speak-btn { background: none; border: none; font-size: 18px; cursor: pointer; vertical-align: middle; margin-left: 8px; opacity: .7; padding: 2px 6px; }
   .speak-btn:hover { opacity: 1; }
   .speak-btn:active { transform: scale(.9); }
@@ -214,11 +214,11 @@
   }
   .master-search:focus { border-color: var(--ink-blue); box-shadow: 0 0 0 3px rgba(31, 78, 121, .12); }
   .progress-line { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 6px; }
-  .options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 18px; }
+  .options { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
   @media (min-width: 420px) { .options { grid-template-columns: 1fr 1fr; } }
   .opt {
-    padding: 15px 14px; border-radius: 11px; border: 1px solid var(--hairline);
-    background: var(--card); font-size: 16px; color: var(--ink); cursor: pointer; text-align: left;
+    padding: 12px; border-radius: 11px; border: 1px solid var(--hairline);
+    background: var(--card); font-size: 14.5px; color: var(--ink); cursor: pointer; text-align: left;
     transition: transform .12s, box-shadow .12s, border-color .12s;
   }
   .opt:active { transform: scale(.98); }
@@ -226,35 +226,36 @@
   .opt.wrong { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); animation: shake .25s; }
   @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
   .opt:disabled { cursor: default; }
-  .feedback { margin-top: 18px; padding: 16px; border-radius: 12px; font-size: 16px; line-height: 1.7; }
+  .feedback { margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
   .feedback.good { background: var(--green-soft); border-left: 4px solid var(--green); }
   .feedback.bad { background: var(--red-soft); border-left: 4px solid var(--pen-red); }
+  .fb-title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .feedback.good .fb-title { color: var(--green); }
+  .feedback.bad .fb-title { color: var(--pen-red); }
   .feedback .ans-word { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); }
   .feedback .ans-def { color: var(--ink-soft); margin-top: 4px; }
   .next-btn { width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 12px; background: var(--ink-blue); color: #fff; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(31, 78, 121, .25); }
   .next-btn:active { background: var(--ink-blue-deep); }
-  .book-toggle { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--card); font-size: 15px; cursor: pointer; color: var(--ink); }
+  .book-toggle { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border:  1px solid var(--hairline); background: var(--card); font-size: 15px; cursor: pointer; color: var(--ink); }
   .book-toggle.in-book { border-color: var(--pen-red); color: var(--pen-red); background: var(--red-soft); }
   .wrong-actions { display: flex; gap: 10px; margin-top: 10px; align-items: stretch; }
   .wrong-actions .book-toggle { flex: 1; margin-top: 0; }
   .wrong-actions .next-btn { flex: 1; margin-top: 0; }
-  .wrong-pair {
-    margin-top: 10px;
-    font-family: var(--serif);
-  }
-  .wrong-pair .wp-ans { display: block; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: .5px; }
-  .wrong-pair .wp-def { display: block; margin-top: 4px; font-size: 15px; color: var(--ink-soft); line-height: 1.6; }
+  .wrong-pair { margin-top: 8px; font-family: var(--serif); }
+  .wrong-pair .wp-ans { display: inline; font-size: 21px; font-weight: 700; color: var(--ink); letter-spacing: .5px; margin-right: 10px; }
+  .wrong-pair .wp-def { display: inline; font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+  .wrong-memo, .wrong-hint { font-size: 13px; padding: 6px 10px; margin-top: 8px; }
   .wrong-memo {
-    margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
-    border: 1px solid var(--hairline); font-size: 14px; color: var(--ink); line-height: 1.6;
+    border-radius: 8px; background: var(--paper);
+    border: 1px solid var(--hairline); color: var(--ink); line-height: 1.6;
   }
   .wrong-hint {
-    margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: var(--paper);
-    border: 1px dashed var(--hairline); font-size: 14px; color: var(--ink-soft); line-height: 1.6;
+    border-radius: 8px; background: var(--paper);
+    border: 1px dashed var(--hairline); color: var(--ink-soft); line-height: 1.6;
   }
 
   /* ---------- 学习：不会按钮 / 拼写 / 重学提示 ---------- */
-  .show-ans-wrap { text-align: center; margin-top: 14px; }
+  .show-ans-wrap { text-align: center; margin-top: 10px; }
   .show-ans-btn {
     padding: 10px 22px; border-radius: 999px; border: 1px dashed var(--ink-soft);
     background: transparent; color: var(--ink-soft); font-size: 14px; cursor: pointer;
@@ -264,11 +265,11 @@
     text-align: center; font-size: 13px; color: var(--amber); margin-top: 12px;
   }
   .spell-input-wrap {
-    display: flex; flex-direction: column; gap: 10px; margin-top: 18px;
+    display: flex; flex-direction: column; gap: 10px; margin-top: 12px;
   }
   .spell-input {
     flex: 1; padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--ink-blue);
-    background: var(--card); font-size: 19px; font-family: var(--serif); color: var(--ink);
+    background: var(--card); font-size: 17px; font-family: var(--serif); color: var(--ink);
     letter-spacing: 1px; outline: none;
   }
   .spell-input:focus { box-shadow: 0 0 0 3px rgba(31, 78, 121, .15); }
@@ -282,11 +283,18 @@
   .progress-bar > span { display: block; height: 100%; background: var(--ink-blue); transition: width .2s; }
   /* 自由拼写反馈里的「下一个」按钮全宽加大 */
   #spellFeedback .next-btn { width: 100%; padding: 13px 20px; font-size: 16px; }
-  .session-done { text-align: center; padding: 44px 0; }
+  .session-done { text-align: center; padding: 28px 0; }
   .session-done .icon { font-size: 46px; margin-bottom: 12px; }
   .session-done h2 { font-family: var(--serif); font-size: 24px; margin-bottom: 8px; color: var(--ink); }
   .session-done p { color: var(--ink-soft); margin-bottom: 24px; }
   .goal-done-note { color: var(--green); font-weight: 600; margin: -10px auto 16px; padding: 10px 14px; background: var(--green-soft); border-radius: 10px; display: inline-block; }
+  /* 答错出反馈后隐藏选项区(正确答案已在反馈里),避免页面超高 */
+  .quiz-card.with-ans .options, .quiz-card.with-ans .show-ans-wrap, .quiz-card.with-ans .spell-input-wrap { display: none; }
+  .done-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .done-list .list-card { margin-bottom: 0; }
+  .done-list .list-item { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
+  .done-list .list-word { font-size: 14.5px; min-width: 70px; }
+  .done-list .list-def { font-size: 11px; }
 
   /* ---------- 生词本 / 列表 ---------- */
   .list-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 10px; }
@@ -383,7 +391,7 @@
   .ba-txt b { font-size: 17px; color: var(--ink); }
   .ba-txt i { font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
   /* 小节标题(主页练习工具/设置分组共用) */
-  .sec-cap { font-size: 12px; color: var(--muted); margin: 6px 2px 10px; letter-spacing: .5px; }
+  .sec-cap { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 10px; letter-spacing: .5px; }
   /* 主页练习工具两列小卡 */
   .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tool-card { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer; text-align: left; }
@@ -407,39 +415,15 @@
   .list-speak { background: none; border: none; cursor: pointer; padding: 4px; opacity: .75; }
   .list-speak:active { opacity: 1; transform: scale(.9); }
   .list-del.in-book { color: var(--green); }
-
-  /* ---------- 答题卡紧凑化(手机一屏) ---------- */
-  .quiz-card { padding: 18px 16px 16px; }
-  .quiz-prompt { font-size: 26px; margin: 12px 0 6px; }
-  .quiz-prompt.small { font-size: 21px; }
-  .options { gap: 8px; margin-top: 12px; }
-  .opt { padding: 12px; font-size: 14.5px; }
-  .show-ans-wrap { margin-top: 10px; }
-  .feedback { margin-top: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.6; }
-  .wrong-pair { margin-top: 8px; }
-  .wrong-pair .wp-ans { font-size: 21px; display: inline; margin-right: 10px; }
-  .wrong-pair .wp-def { display: inline; font-size: 14px; }
-  .wrong-memo, .wrong-hint { font-size: 13px; padding: 6px 10px; margin-top: 8px; }
-  .fb-title { font-weight: 600; display: flex; align-items: center; gap: 6px; }
-  .feedback.good .fb-title { color: var(--green); }
-  .feedback.bad .fb-title { color: var(--pen-red); }
-  /* 答错出反馈后隐藏选项区(正确答案已在反馈里),避免页面超高 */
-  .quiz-card.with-ans .options, .quiz-card.with-ans .show-ans-wrap, .quiz-card.with-ans .spell-input-wrap { display: none; }
-  .spell-input { font-size: 17px; }
-  .spell-input-wrap { margin-top: 12px; }
-  .session-done { padding: 28px 0; }
-  .done-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .done-list .list-card { margin-bottom: 0; }
-  .done-list .list-item { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
-  .done-list .list-word { font-size: 14.5px; min-width: 70px; }
-  .done-list .list-def { font-size: 11px; }
+  /* 触控目标加大:小图标按钮命中区不足,用最小尺寸兜底(不改变视觉大小) */
+  .list-del, .list-speak, .list-memo-btn { min-width: 36px; min-height: 36px; }
 
   /* ---------- 自由拼写/听写：配置与播放状态 ---------- */
   .cfg-title { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin: 16px 0 8px; }
   /* 范围选择器层级分组:组名小字列 + 组内 chips */
   .cfg-scope-group { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
   .cfg-scope-group:last-child { margin-bottom: 0; }
-  .cfg-group-label { flex: none; width: 60px; font-size: 12px; line-height: 32px; color: var(--muted); }
+  .cfg-group-label { flex: none; width: 60px; font-size: 12px; line-height: 32px; color: var(--ink-soft); }
   .cfg-scope-group .cfg-chips { flex: 1; }
   .cfg-note { font-size: 13px; color: var(--ink-soft); line-height: 1.7; margin: 10px 0 4px; }
   .cfg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -453,7 +437,7 @@
   .cfg-date-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); font-size: 14px; color: var(--ink); }
   .cfg-date-btn svg { width: 13px; height: 13px; color: var(--ink-soft); transform: rotate(-90deg); }
   .cfg-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
-  .cfg-date-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .cfg-date-info { font-size: 12px; color: var(--ink-soft); font-family: var(--mono); }
   /* 可翻页月历：学过词=浅蓝底+墨蓝加粗，选中=红圈，没学=浅灰；‹ › 无限回翻历史月份 */
   .cfg-cal { margin-top: 8px; }
   .cfg-cal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -462,8 +446,8 @@
   .cfg-cal-nav svg { width: 14px; height: 14px; }
   .cfg-cal-nav.next svg { transform: rotate(180deg); }
   .cfg-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-  .cfg-cal-wd { font-size: 10px; color: var(--muted); text-align: center; font-family: var(--mono); padding: 2px 0; }
-  .cfg-cal-day { height: 34px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 12px; font-family: var(--mono); color: var(--muted); cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .cfg-cal-wd { font-size: 10px; color: var(--ink-soft); text-align: center; font-family: var(--mono); padding: 2px 0; }
+  .cfg-cal-day { height: 34px; border-radius: 8px; border: 1px solid transparent; background: none; font-size: 12px; font-family: var(--mono); color: var(--ink-soft); cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
   .cfg-cal-day.has { color: var(--ink-blue); background: var(--blue-soft); font-weight: 700; }
   .cfg-cal-day.sel { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); }
   .rate-row { display: flex; align-items: center; gap: 10px; }
@@ -472,7 +456,7 @@
   .listen-prompt { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0 4px; }
   .listen-prompt .speak-btn { width: 58px; height: 58px; border-radius: 50%; border: 1.5px solid var(--ink-blue); background: var(--blue-soft); color: var(--ink-blue); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
   .listen-prompt .speak-btn svg { width: 26px; height: 26px; }
-  .listen-tip { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+  .listen-tip { font-size: 13px; color: var(--ink-soft); font-family: var(--mono); }
   /* 学习热力图(GitHub 贡献图风格):墨蓝 5 档,0 档只有描边 */
   .hm-scroll { overflow-x: auto; padding: 2px 0; -webkit-overflow-scrolling: touch; }
   .hm-svg { display: block; }
@@ -490,10 +474,10 @@
     width: 84px; padding: 9px 6px; border: 1px solid var(--hairline); border-radius: 9px;
     background: var(--card); font-family: var(--serif); font-size: 17px; font-weight: 700;
     color: var(--ink); text-align: center; outline: none;
+    -moz-appearance: textfield; appearance: textfield;
   }
   .count-input:focus { border-color: var(--ink-blue); box-shadow: 0 0 0 3px rgba(31, 78, 121, .12); }
   .count-input::-webkit-outer-spin-button, .count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .count-input { -moz-appearance: textfield; appearance: textfield; }
   .dict-status { text-align: center; font-family: var(--mono); font-size: 14px; color: var(--ink-blue); margin: 14px 0 2px; min-height: 20px; }
   .dict-def-line { text-align: center; font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 2px 0 6px; }
   /* 选词器(自选具体单词) */
@@ -574,7 +558,7 @@
 <body>
 
 <div class="topbar">
-  <button class="back" id="topBack" onclick="topBack()" style="display:none" title="返回"><span data-icon="chevron-left"></span></button>
+  <button class="back" id="topBack" onclick="topBack()" style="display:none" title="返回" aria-label="返回"><span data-icon="chevron-left"></span></button>
   <span id="topTitle">英语词汇通</span>
   <span class="sub" id="topSub"></span>
 </div>
@@ -697,12 +681,14 @@
     <div class="settings-card">
       <h3>按分类查看并重置</h3>
       <div id="masterTabs"></div>
-      <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.7">
+      <p style="font-size:13px;color:var(--ink-soft);margin-top:12px;line-height:1.7">
         复习答错累计 5 次的词自动标记为「顽固词」，可单独查看或到自由拼写/听写里选「顽固词」范围专项练；<br>
         点击某个单词可重置它(回到未学习，顽固标记一并清除)；<br>
         点分类旁「重置全部」可清空该分类所有单词。
       </p>
     </div>
+    <!-- 搜索框静态化:输入时不重建(否则每键丢焦点/打断输入法组词),列表区单独渲染进 masterList -->
+    <div class="master-search-wrap"><input id="masterSearchInput" class="master-search" placeholder="搜索单词或释义…" oninput="onMasterSearch(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="在分类内搜索单词或释义"></div>
     <div id="masterList"></div>
   </div>
   <div class="wrap" id="seg-history" style="display:none;padding-top:0">
@@ -718,7 +704,7 @@
     <div class="settings-card">
       <h3>学习热力 <span class="mt-cnt" id="streakLine"></span></h3>
       <div id="heatmapBox"></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:8px">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin-top:8px">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</p>
     </div>
     <div id="historyDetail"></div>
   </div>
@@ -728,7 +714,7 @@
 <div class="screen tabbed" id="screen-dict">
   <div class="wrap">
     <div class="dict-search-wrap">
-      <input id="dictInput" class="master-search" placeholder="查单词或释义…" oninput="onDictInput(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input id="dictInput" class="master-search" placeholder="查单词或释义…" oninput="onDictInput(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="查单词或释义">
     </div>
     <p class="dict-hint" id="dictHint">跨全部词库查询 · 点小喇叭听发音</p>
     <div id="dictList"></div>
@@ -741,7 +727,7 @@
     <div class="settings-card">
       <h3>词库</h3>
       <div id="libList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:2px"></div>
-      <p id="libNote" style="font-size:13px;color:var(--muted);margin-top:10px;line-height:1.7"></p>
+      <p id="libNote" style="font-size:13px;color:var(--ink-soft);margin-top:10px;line-height:1.7"></p>
     </div>
     <div class="sec-cap">学习偏好</div>
     <div class="settings-card">
@@ -774,10 +760,10 @@
         <button class="master-tab" data-algo="ebbinghaus" onclick="setReviewAlgo('ebbinghaus')">经典间隔</button>
         <button class="master-tab" data-algo="fsrs" onclick="setReviewAlgo('fsrs')">FSRS 自适应</button>
       </div>
-      <p id="algoNote" style="font-size:12px;color:var(--muted);line-height:1.7;margin:10px 0 0"></p>
+      <p id="algoNote" style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin:10px 0 0"></p>
       <div id="fsrsRetentionRow" style="display:none;margin-top:12px">
         <div class="set-row">
-          <label>目标记忆保持率<br><span style="font-size:12px;color:var(--muted)">越高记得越牢，复习也越频繁</span></label>
+          <label>目标记忆保持率<br><span style="font-size:12px;color:var(--ink-soft)">越高记得越牢，复习也越频繁</span></label>
           <div class="set-ctrl" id="retentionChips" style="gap:8px">
             <button class="master-tab" data-ret="0.85" onclick="setFsrsRetention(0.85)">85%</button>
             <button class="master-tab" data-ret="0.9" onclick="setFsrsRetention(0.9)">90%</button>
@@ -795,7 +781,7 @@
           <button class="master-tab" data-src="tts" onclick="setVoiceSrc('tts')">设备TTS</button>
         </div>
       </div>
-      <p id="voiceSrcNote" style="font-size:12px;color:var(--muted);line-height:1.7;margin:-6px 0 14px"></p>
+      <p id="voiceSrcNote" style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin:-6px 0 14px"></p>
       <div class="set-row">
         <label>试听</label>
         <div class="set-ctrl" style="gap:8px">
@@ -804,17 +790,17 @@
         </div>
       </div>
       <div class="set-row edge-voice-row" style="display:none">
-        <label style="flex:1">Edge 英语音色<br><span style="font-size:12px;color:var(--muted)">微软朗读 · 男女声自选</span></label>
+        <label style="flex:1">Edge 英语音色<br><span style="font-size:12px;color:var(--ink-soft)">微软朗读 · 男女声自选</span></label>
         <select id="setEdgeVoiceEn" class="voice-select" onchange="onEdgeVoiceChange('en', this.value)"></select>
       </div>
       <div class="set-row edge-voice-row" style="display:none">
-        <label style="flex:1">Edge 普通话音色<br><span style="font-size:12px;color:var(--muted)">汉译朗读 · 男女声自选</span></label>
+        <label style="flex:1">Edge 普通话音色<br><span style="font-size:12px;color:var(--ink-soft)">汉译朗读 · 男女声自选</span></label>
         <select id="setEdgeVoiceZh" class="voice-select" onchange="onEdgeVoiceChange('zh', this.value)"></select>
       </div>
       <div class="edge-voice-row" style="display:none">
         <div style="flex:1">
           <div class="cfg-title" style="margin:0 0 6px">发音离线包 · 下载后秒播</div>
-          <p id="edgePackStatus" style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 8px">…</p>
+          <p id="edgePackStatus" style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin:0 0 8px">…</p>
           <div style="height:6px;border-radius:3px;background:var(--blue-soft);overflow:hidden;margin-bottom:10px">
             <div id="edgePackBar" style="height:100%;width:0%;background:var(--ink-blue);border-radius:3px;transition:width .3s"></div>
           </div>
@@ -822,18 +808,18 @@
             <button class="data-btn" id="edgePackBtn" onclick="edgePackToggle()">下载发音包</button>
             <button class="btn-ghost" id="edgePackStopBtn" onclick="edgePackStopJob()" style="display:none;padding:8px 14px;border-radius:10px">停止</button>
           </div>
-          <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">
+          <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.7">
             只含单词发音（每词约 6KB，不含汉译）。下载期间请保持页面在前台；中途退出不丢进度，已下的词立即秒播。
             换音色或词库后重新下载即可，旧包保留、切回不用重下。
           </p>
         </div>
       </div>
       <div class="set-row">
-        <label style="flex:1">设备TTS英语声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>
+        <label style="flex:1">设备TTS英语声音<br><span style="font-size:12px;color:var(--ink-soft)">音源降级时使用</span></label>
         <select id="setTtsEngVoice" class="voice-select" onchange="onTTSVoiceChange('en', this.value)"></select>
       </div>
       <div class="set-row">
-        <label style="flex:1">设备TTS普通话声音<br><span style="font-size:12px;color:var(--muted)">音源降级时使用</span></label>
+        <label style="flex:1">设备TTS普通话声音<br><span style="font-size:12px;color:var(--ink-soft)">音源降级时使用</span></label>
         <select id="setTtsZhVoice" class="voice-select" onchange="onTTSVoiceChange('zh', this.value)"></select>
       </div>
     </div>
@@ -852,19 +838,19 @@
       <p id="importMsg" style="font-size:13px;margin-top:10px;min-height:18px"></p>
       <div class="set-div"></div>
       <div class="cfg-title" style="margin:0 0 8px">数据诊断</div>
-      <div id="diagBody" style="font-size:13px;color:var(--muted);line-height:1.9">读取中…</div>
+      <div id="diagBody" style="font-size:13px;color:var(--ink-soft);line-height:1.9">读取中…</div>
       <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
-      <p style="font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
+      <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
     </div>
     <div class="settings-card">
       <h3>进度快速重建</h3>
-      <p style="font-size:13px;color:var(--muted);line-height:1.7;margin:0 0 10px">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</p>
+      <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0 0 10px">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</p>
       <button class="btn-ghost" style="padding:10px 16px;border-radius:10px" onclick="openQuickRebuild()">去重建进度（预选重建模式）</button>
     </div>
     <div class="sec-cap">关于</div>
     <div class="settings-card">
       <h3>关于</h3>
-      <p style="font-size:14px;color:var(--muted);line-height:1.8">
+      <p style="font-size:14px;color:var(--ink-soft);line-height:1.8">
         艾宾浩斯记忆曲线：1 / 2 / 4 / 7 / 15 天复习。<br>
         连续答对升级，答错降级并进生词本。<br>
         达到最高级后不再出现，即"完全记住"。<br>
@@ -885,7 +871,7 @@
 </nav>
 
 <!-- 词库切换确认 -->
-<div class="modal-mask" id="switchLibModal">
+<div class="modal-mask" id="switchLibModal" role="dialog" aria-modal="true" aria-labelledby="switchLibTitle">
   <div class="modal">
     <h3 id="switchLibTitle">切换词库？</h3>
     <p id="switchLibDesc"></p>
@@ -897,7 +883,7 @@
 </div>
 
 <!-- ==================== 重置确认弹窗 ==================== -->
-<div class="modal-mask" id="resetModal">
+<div class="modal-mask" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
   <div class="modal">
     <h3 id="resetTitle">确认重置？</h3>
     <p id="resetDesc">将清空全部学习进度、生词本和复习记录，所有词库的单词回到"未学习"状态。此操作不可恢复。</p>
@@ -909,7 +895,7 @@
 </div>
 
 <!-- 分类重置确认 -->
-<div class="modal-mask" id="resetClassModal">
+<div class="modal-mask" id="resetClassModal" role="dialog" aria-modal="true" aria-labelledby="resetClassTitle">
   <div class="modal">
     <h3 id="resetClassTitle">确认重置？</h3>
     <p id="resetClassDesc"></p>
@@ -920,12 +906,13 @@
   </div>
 </div>
 
-<script src="vocab-data.js"></script>
-<script src="vocab-libs.js"></script>
-<script src="vocab-extra.js"></script>
-<script src="icons.js"></script>
-<script src="fsrs.js"></script>
-<script src="app.js"></script>
-<script src="ui.js"></script>
+<!-- vocab-libs.js(约1MB,10个扩展词库)不进首屏同步链路:app.js 在首屏渲染后动态插入加载,
+     装好后重建词库索引并刷新设置/词典界面(单文件版由构建脚本内联) -->
+<script src="vocab-data.js" defer></script>
+<script src="vocab-extra.js" defer></script>
+<script src="icons.js" defer></script>
+<script src="fsrs.js" defer></script>
+<script src="app.js" defer></script>
+<script src="ui.js" defer></script>
 </body>
 </html>

@@ -19,8 +19,10 @@ const SCREEN_TITLES = {
 const TAB_SCREENS = ['screen-home', 'screen-vocab', 'screen-dict', 'screen-settings'];
 
 function go(id) {
+  const target = document.getElementById(id);
+  if (!target) return;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  target.classList.add('active');
   const t = SCREEN_TITLES[id] || '';
   document.getElementById('topTitle').textContent = t;
   const tabbed = TAB_SCREENS.includes(id);
@@ -113,7 +115,9 @@ function renderGoalCard() {
   }
 }
 
-/* 未完成会话不再弹首页横幅提示:快照静默保留当天,跨天自动失效(loadSessionSnapshot 里重置) */
+/* 会话快照(断点续学)机制已移除:答题进度即时写入学习记录,刷新/关闭丢失的
+ * 只是"本组卡片做到第几个",不值得每次答题多一次全量序列化;旧档残留的快照键
+ * 由 app.js 启动时清理 */
 
 /* ---------------- 设置 ---------------- */
 function refreshSettings() {
@@ -337,10 +341,13 @@ function renderVocab() {
 
 /* ---------------- 词典 Tab ---------------- */
 let dictQ = '';   // 保留搜索词，答题等操作返回后可恢复结果
+let dictSearchTimer = null;
 
 function onDictInput(v) {
   dictQ = v;
-  renderDictResults();
+  // 防抖:全词库约 1.6 万词扫描+排序+50 行渲染,连续键入只做最后一次
+  if (dictSearchTimer) clearTimeout(dictSearchTimer);
+  dictSearchTimer = setTimeout(renderDictResults, 180);
 }
 
 function renderDictResults() {
@@ -387,9 +394,9 @@ function renderDictResults() {
       <span class="list-word">${escapeHtml(r.w)}</span>
       <span class="dict-lib">${escapeHtml(libTag)}</span>
       <span class="list-def">${escapeHtml(r.def)}</span>
-      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(r.w)}')">${icon('volume-2')}</button>
-      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? icon('bookmark-check') : icon('bookmark-plus')}</button>` : ''}
+      ${memoOf(r.w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(r.w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(r.w)}" onclick="speakWord('${escapeAttr(r.w)}')">${icon('volume-2')}</button>
+      ${inCur ? `<button class="list-del ${inBookNow ? 'in-book' : ''}" title="${inBookNow ? '从生词本移除' : '加入生词本'}" aria-label="${inBookNow ? '从生词本移除' : '加入生词本'}" onclick="toggleDictBook('${escapeAttr(r.w)}')">${inBookNow ? icon('bookmark-check') : icon('bookmark-plus')}</button>` : ''}
     </div></div>`;
   }).join('');
 }
@@ -403,7 +410,7 @@ let pendingLib = null;
 function confirmSwitchLib(key) {
   if (key === libKey() || !LIBS[key]) return;
   pendingLib = key;
-  const hasSession = hasSnapshot();
+  const hasSession = !!session;
   document.getElementById('switchLibTitle').textContent = `切换到「${LIBS[key].name}」？`;
   document.getElementById('switchLibDesc').textContent = hasSession
     ? '进行中的学习会话将被放弃。各词库进度独立，切换后原词库进度保留，可随时切回。'
@@ -418,7 +425,6 @@ function doSwitchLib() {
   if (pendingLib && LIBS[pendingLib]) {
     // 放弃进行中的会话（队列属于旧词库，切过去无法继续）
     session = null;
-    clearSessionSnapshot();
     setLibrary(pendingLib);
     refreshSettings();   // 设置页 chips 高亮与说明刷新
     refreshHome();       // 首页统计与 tab 徽章同步
@@ -460,19 +466,23 @@ function doReset() {
 
 /* ---------------- 导出 / 导入进度 ---------------- */
 function exportProgressFile() {
-  const json = exportProgress();
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  a.href = url;
-  a.download = `英语词汇通_进度_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  setImportMsg('已导出进度文件，把它发到另一台设备即可', 'ok');
+  try {
+    const json = exportProgress();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    a.href = url;
+    a.download = `英语词汇通_进度_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setImportMsg('已导出进度文件，把它发到另一台设备即可', 'ok');
+  } catch (e) {
+    setImportMsg('导出失败：' + e.message, 'err');
+  }
 }
 
 function handleImport(event) {
@@ -501,12 +511,14 @@ function handleImport(event) {
   event.target.value = ''; // 允许重复选择同一文件
 }
 
+let importMsgTimer = null;
 function setImportMsg(text, kind) {
   const el = document.getElementById('importMsg');
   if (!el) return;
   el.textContent = text;
   el.style.color = kind === 'ok' ? 'var(--green)' : 'var(--pen-red)';
-  setTimeout(() => { el.textContent = ''; }, 6000);
+  if (importMsgTimer) clearTimeout(importMsgTimer);   // 连续操作时旧定时器会提前清掉新消息
+  importMsgTimer = setTimeout(() => { el.textContent = ''; importMsgTimer = null; }, 6000);
 }
 
 /* ============================================================
@@ -529,74 +541,35 @@ let session = null;
  */
 const RECOG_REQUIRED = 3;   // 错词重新出现后需累计答对次数（多次）
 const SPELL_REQUIRED = 2;   // 拼写需连续答对次数
-const ERROR_POOL = 3;       // 错词延迟：约每3个新词后重新出现一次
 
 function makeRecord() { return { errors: 0, corrects: 0, spellCorrects: 0, done: false }; }
 
-/* ---------------- 会话快照（断点续学） ----------------
- * 每次答题后把当前 session 进度存入 localStorage，
- * 刷新/关闭后可从上次中断处继续。
- */
-const SESSION_KEY = 'cet4_session_snapshot_v1';
-
-function saveSessionSnapshot() {
-  if (!session) return;
-  try {
-    const snap = {
-      mode: session.mode,
-      day: dateKey(),          // 快照归属日:跨天自动失效(次日重置)
-      queue: session.queue,
-      pending: session.pending || [],
-      retries: session.retries || [],
-      sinceRetry: session.sinceRetry || 0,
-      idx: session.idx || 0,
-      correct: session.correct || 0,
-      wrong: session.wrong || 0,
-      spellOn: !!session.spellOn,
-      phase: session.phase || 'recognize',
-      spellRetries: session.spellRetries || [],
-      sinceSpellRetry: session.sinceSpellRetry || 0,
-      records: Array.from((session.records || new Map()).entries()).map(([w, r]) => [w, {
-        errors: r.errors, corrects: r.corrects, spellCorrects: r.spellCorrects, done: !!r.done,
-      }]),
-    };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
-  } catch (e) { /* 忽略 */ }
+/* 练习会话公共骨架(自由拼写/听写/听音辨义共用):队列/错词池/计数/记录表 */
+function makePracticeSession(mode, phase, picked) {
+  return {
+    mode, phase,
+    queue: picked,
+    spellRetries: [],          // 拼写/选择错词池(稍后穿插重现)
+    sinceSpellRetry: 0,        // 距上次穿插错词的间隔
+    idx: 0,
+    correct: 0, wrong: 0,
+    records: new Map(picked.map(w => [w, makeRecord()])),
+  };
 }
 
-function clearSessionSnapshot() {
-  try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* 忽略 */ }
-}
-
-function loadSessionSnapshot() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const snap = JSON.parse(raw);
-    if (!snap || !Array.isArray(snap.queue) || !snap.queue.length) return null;
-    // 跨天快照失效:未完成的会话只保留当天,第二天自动清除重置
-    if (snap.day && snap.day !== dateKey()) {
-      clearSessionSnapshot();
-      return null;
-    }
-    // 恢复 records
-    const records = new Map();
-    (snap.records || []).forEach(([w, r]) => {
-      records.set(w, {
-        errors: r.errors || 0, corrects: r.corrects || 0,
-        spellCorrects: r.spellCorrects || 0, done: !!r.done,
-      });
-    });
-    snap.records = records;
-    return snap;
-  } catch (e) { return null; }
-}
-
-function hasSnapshot() {
-  return !!loadSessionSnapshot();
+/* 学习/复习会话:练习骨架 + 识别队列与错词重记池 */
+function makeSession(mode, picked) {
+  return Object.assign(makePracticeSession(mode, 'recognize', picked), {
+    pending: picked.slice(),   // 待识别队列
+    retries: [],               // 答错待重记队列
+    sinceRetry: 0,             // 距上次穿插错词的间隔
+    spellOn: false,
+  });
 }
 
 function startStudy() {
+  session = null; quickRebuild = null;   // 互斥:清掉旧会话/快扫,防残留状态接管键盘
+  document.getElementById('reviewQuiz').innerHTML = '';   // 清复习屏残留旧题卡,防隐藏屏 .opt 被数字键误触(串答)
   const g = goalInfo();
   if (g.allDone) {
     const el = document.getElementById('studyQuiz');
@@ -613,19 +586,7 @@ function startStudy() {
   const unseen = unseenWords();
   const n = Math.min(g.remaining, unseen.length);
   const picked = pickRandom(unseen, n);
-  const records = new Map();
-  picked.forEach(w => records.set(w, makeRecord()));
-  session = {
-    mode: 'study',
-    queue: picked,             // 全部新学单词
-    pending: picked.slice(),   // 待识别队列
-    retries: [],               // 答错待重记队列
-    sinceRetry: 0,             // 距上次穿插错词的间隔
-    idx: 0,
-    correct: 0, wrong: 0,
-    records, spellOn: false, phase: 'recognize',
-  };
-  clearSessionSnapshot();
+  session = makeSession('study', picked);
   go('screen-study');
   renderStudyRecognize();
 }
@@ -659,6 +620,8 @@ function allLearnedHtml() {
 }
 
 function startReview() {
+  session = null; quickRebuild = null;   // 互斥:清掉旧会话/快扫,防残留状态接管键盘
+  document.getElementById('studyQuiz').innerHTML = '';   // 清学习屏残留旧题卡,防隐藏屏 .opt 被数字键误触(串答)
   const due = dueWords();
   if (!due.length) {
     // 无到期复习：给出友好提示，不创建空会话
@@ -669,19 +632,7 @@ function startReview() {
   }
   const n = Math.min(state.settings.dailyReview, due.length);
   const picked = pickRandom(due, n);
-  const records = new Map();
-  picked.forEach(w => records.set(w, makeRecord()));
-  session = {
-    mode: 'review',
-    queue: picked,
-    pending: picked.slice(),
-    retries: [],
-    sinceRetry: 0,
-    idx: 0,
-    correct: 0, wrong: 0,
-    records, spellOn: false, phase: 'recognize',
-  };
-  clearSessionSnapshot();
+  session = makeSession('review', picked);
   go('screen-review');
   renderStudyRecognize();
 }
@@ -787,7 +738,9 @@ function recognizeAnswer(idx, btnEl) {
   const isCorrect = session.q.options[idx].isAnswer;
   const rec = session.records.get(word) || makeRecord();
 
-  document.querySelectorAll('.opt').forEach(b => {
+  // 只圈当前屏的选项(全局 .opt 会命中另一屏残留的旧题卡,见 startStudy/startReview)
+  const host = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
+  host.querySelectorAll('.opt').forEach(b => {
     if (b.dataset.ans === 'true') b.classList.add('correct');
   });
   if (!isCorrect) btnEl.classList.add('wrong');
@@ -804,7 +757,6 @@ function recognizeAnswer(idx, btnEl) {
       else reviewCorrect(word);
     }
     // 答对即刷新到下一个词，不停留
-    saveSessionSnapshot();
     session.answered = false;
     renderStudyRecognize();
     return;
@@ -819,7 +771,6 @@ function recognizeAnswer(idx, btnEl) {
   else reviewWrong(word, false);
   addToRetries(word);
   session.sinceRetry = 0;  // 答错后重新开始计数，避免错词紧跟重现
-  saveSessionSnapshot();
   showWrongFeedback(word, session.q.options[idx].text);
 }
 
@@ -980,7 +931,7 @@ function prefetchUpcomingAudio() {
   if (!canUseEdgeVoice() || !session) return;
   const ahead = (list) => list.filter(w => w && w !== session.word).slice(0, PREFETCH_AHEAD);
   if (session.mode === 'dict') {
-    const rate = state.settings.dictRate || 0.9;
+    const rate = state.settings.dictRate || DEFAULT_RATE;
     const rem = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
     for (const w of ahead(rem)) {
       edgePrefetch(w, edgeVoiceOf('en-US'), rate);
@@ -989,13 +940,13 @@ function prefetchUpcomingAudio() {
   } else if (session.mode === 'listen') {
     // 听音辨义:题干是单词读音,预取后续词的单词音频
     const rem = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
-    for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
+    for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), DEFAULT_RATE);
   } else if (session.mode === 'spell' || (session.phase === 'spell')) {
     const rem = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
-    for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
+    for (const w of ahead(rem)) edgePrefetch(w, edgeVoiceOf('en-US'), DEFAULT_RATE);
   } else {
     // 学习/复习识别阶段:自动发音只读单词
-    for (const w of ahead(session.pending || [])) edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
+    for (const w of ahead(session.pending || [])) edgePrefetch(w, edgeVoiceOf('en-US'), DEFAULT_RATE);
   }
 }
 
@@ -1006,7 +957,7 @@ function prefetchUpcomingAudio() {
  * 重试即成功 → 每词最多重试 3 次(1s/2s/4s 指数退避+抖动);并发压到 2 防撞 IP 级限流。
  * 已缓存的词走三级查找秒过,中断/失败后再点 = 断点续传只补缺的。
  * 元数据存 settings.edgePack:{lib,voice,rate,words,ts},换音色/词库后提示重新下载(旧包保留)。 */
-const EDGE_PACK_RATE = 0.9;        // 包内语速:与 speakWord 缺省一致(播放端 playbackRate 还可再变速)
+const EDGE_PACK_RATE = DEFAULT_RATE;        // 包内语速:与 speakWord 缺省一致(播放端 playbackRate 还可再变速)
 const EDGE_PACK_RETRIES = 3;       // 单词最大重试次数
 const EDGE_PACK_LIMIT_START = 3;   // 起步并发数
 const EDGE_PACK_LIMIT_MAX = 6;     // 并发上限:连续成功逐步爬到这一档
@@ -1032,22 +983,35 @@ function edgePackSleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-/* 数当前词库在当前英音色下已缓存多少个单词音频(一个事务批量 get,几千词几百毫秒) */
+/* 数当前词库在当前英音色下已缓存多少个单词音频(一个事务批量 get,几千词几百毫秒)。
+ * 结果按(词库,音色)缓存:设置页每次微调都会走这里,不该每次都发几千个 IDB 请求;
+ * 下载任务收尾/停止时失效重查(edgePackFinish/edgePackStopJob) */
+let edgePackCountCache = null;   // {lib, voice, count}
+
 function edgePackCachedCount() {
+  const lib = libKey();
+  const voice = edgeVoiceOf('en-US');
+  if (edgePackCountCache && edgePackCountCache.lib === lib && edgePackCountCache.voice === voice) {
+    return Promise.resolve(edgePackCountCache.count);
+  }
   return edgeIdbOpen().then(db => new Promise(resolve => {
     const total = WORD_LIST.length;
-    if (!db || !total) return resolve(0);
-    const voice = edgeVoiceOf('en-US');
+    if (!db || !total) { edgePackCountCache = { lib, voice, count: 0 }; return resolve(0); }
     try {
       const store = db.transaction('audio').objectStore('audio');
       let done = 0, hit = 0;
-      const step = () => { if (++done === total) resolve(hit); };
+      const step = () => {
+        if (++done === total) {
+          edgePackCountCache = { lib, voice, count: hit };
+          resolve(hit);
+        }
+      };
       for (const w of WORD_LIST) {
         const r = store.get(edgePackKeyOf(w, voice));
         r.onsuccess = () => { if (r.result) hit++; step(); };
         r.onerror = step;
       }
-    } catch (e) { resolve(0); }
+    } catch (e) { edgePackCountCache = { lib, voice, count: 0 }; resolve(0); }
   }));
 }
 
@@ -1140,6 +1104,7 @@ function edgePackToggle() {
 function edgePackStopJob() {
   if (!edgePackJob) return;
   edgePackJob = null;
+  edgePackCountCache = null;   // 在途合成还会陆续落缓存,计数作废待重查
   updateEdgePackUI();
 }
 
@@ -1205,6 +1170,7 @@ function edgePackMaybeFinish(job) {
 function edgePackFinish(job) {
   if (edgePackJob !== job) return;
   edgePackJob = null;
+  edgePackCountCache = null;   // 缓存数已变,作废重查
   state.settings.edgePack = { lib: job.lib, voice: job.voice, rate: EDGE_PACK_RATE, words: job.list.length, ts: Date.now() };
   saveState();
   updateEdgePackUI();
@@ -1391,7 +1357,7 @@ function resolveTTSVoice(name, lang) {
 /* 单词播报（火后不理）：Edge 朗读（若启用）→ 设备TTS */
 function speakWord(word, rate) {
   unlockPlayback();
-  speakTextFireForget(word, 'en-US', rate || 0.9);
+  speakTextFireForget(word, 'en-US', rate || DEFAULT_RATE);
 }
 
 async function speakTextFireForget(text, lang, rate) {
@@ -1402,12 +1368,12 @@ async function speakTextFireForget(text, lang, rate) {
   if (/^zh/.test(lang)) {
     await speakAwait(text, lang, rate);
   } else {
-    speakWordTTS(text);
+    speakWordTTS(text, rate);
   }
 }
 
-/* 设备TTS播单词（原 speechSynthesis 逻辑 + 声音优选） */
-function speakWordTTS(word) {
+/* 设备TTS播单词（原 speechSynthesis 逻辑 + 声音优选；rate 透传听写语速设置） */
+function speakWordTTS(word, rate) {
   if (!ttsSupported()) return;
   unlockTTS();
   try {
@@ -1417,7 +1383,7 @@ function speakWordTTS(word) {
     u.lang = 'en-US';
     const v = resolveTTSVoice(state.settings.ttsEngVoiceName, 'en-US');
     if (v) { u.voice = v; u.lang = v.lang; }
-    u.rate = 0.9;
+    u.rate = rate || DEFAULT_RATE;
     let started = false;
     u.onstart = () => { started = true; };
     u.onerror = () => { started = true; };   // 出错也算已处理，避免无意义重试
@@ -1480,6 +1446,26 @@ function showWrongFeedback(word, wrongText) {
   el.querySelectorAll('.opt').forEach(b => b.disabled = true);
 }
 
+/* 拼写/听写/听音辨义共用的「答错反馈」模板:错词对+巧记+生词本按钮+下一步 */
+function wrongFeedbackHtml(word, title, nextFn) {
+  const inBook = !!(curWords()[word] && curWords()[word].inBook);
+  return `
+    <div class="feedback bad">
+      <div class="fb-title">${icon('circle-x')} ${title}</div>
+      <div class="wrong-pair">
+        <span class="wp-ans">${escapeHtml(word)}</span>
+        <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
+      </div>
+      ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
+    </div>
+    <div class="wrong-actions">
+      <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
+        ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
+      </button>
+      <button class="next-btn" onclick="${nextFn}()">下一个 →</button>
+    </div>`;
+}
+
 /* 点错误选项标签 → 展开该选项释义对应的英文单词（再点收起） */
 function toggleDefChip(btn, optIdx) {
   if (!session || !session.q || !session.q.options[optIdx]) return;
@@ -1527,7 +1513,6 @@ function showAnswer() {
   else reviewWrong(word, false);
   addToRetries(word);
   session.sinceRetry = 0;  // 点「不会」同答错，重新开始穿插计数
-  saveSessionSnapshot();
   showWrongFeedback(word);
 }
 
@@ -1545,10 +1530,8 @@ function removeFromQueue(word) {
 
 /* ---------- 拼写询问（可选） ---------- */
 function spellAskHtml() {
-  const elId = session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz';
   const total = session.queue.length;
   const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
-  const btn = session.mode === 'study' ? '开始拼写' : '开始拼写';
   return `
     <div class="quiz-card session-done">
       <div class="icon">${icon("keyboard")}</div>
@@ -1556,11 +1539,38 @@ function spellAskHtml() {
       <p>共 ${total} 词 · 答错 ${session.wrong} · ${hard} 个需重记</p>
       <p style="margin-top:6px;font-size:14px;color:var(--ink-soft)">要不要基于刚才的单词练习拼写？可跳过。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
-        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} ${btn}</button>
+        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} 开始拼写</button>
         <button class="btn-ghost" onclick="finishSession()">跳过，直接完成</button>
       </div>
     </div>
   `;
+}
+
+/* 错词穿插取词(四类练习共用):先剔除已完成词,错词池非空且距上次穿插
+ * ≥RETRY_INTERVAL 时取队首错词并轮转,否则取未进池的新词(全进池则取全部剩余) */
+function pickInterleaved(remaining, enabled) {
+  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
+  const retries = session.spellRetries;
+  if ((enabled === undefined || enabled) && retries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
+    session.sinceSpellRetry = 0;
+    rotateSpellRetries();
+    return retries[0];
+  }
+  const fresh = remaining.filter(w => !retries.includes(w));
+  const pool = fresh.length ? fresh : remaining;
+  session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
+  return pool[session.idx % pool.length];
+}
+
+/* 拼写输入框统一绑定:延迟聚焦(等 innerHTML 落地) + 挂键盘处理 */
+function bindSpellInput(onKey) {
+  setTimeout(() => {
+    const inp = document.getElementById('spellInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', onKey);
+    }
+  }, 120);
 }
 
 function startSpellStage() {
@@ -1581,22 +1591,7 @@ function renderSpellStage() {
     return;
   }
   // 拼写错词穿插：与识别阶段一致，每拼 RETRY_INTERVAL 个词穿插重现 1 个拼写错词
-  if (session.spellRetries) {
-    session.spellRetries = session.spellRetries.filter(w => !(session.records.get(w) || makeRecord()).done);
-  }
-  const spellRetries = session.spellRetries || [];
-  let word;
-  if (spellRetries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
-    word = spellRetries[0];
-    session.sinceSpellRetry = 0;
-    rotateSpellRetries();
-  } else {
-    // 优先出未拼错的词（拼错进池的稍后再出，避免紧跟重现）
-    const fresh = remaining.filter(w => !spellRetries.includes(w));
-    const pool = fresh.length ? fresh : remaining;
-    word = pool[session.idx % pool.length];
-    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
-  }
+  const word = pickInterleaved(remaining);
   session.word = word;
   session.answered = false;
   prefetchUpcomingAudio();
@@ -1613,30 +1608,25 @@ function renderSpellStage() {
       <div id="spellFeedback"></div>
     </div>
   `;
-  setTimeout(() => {
-    const inp = document.getElementById('spellInput');
-    if (inp) {
-      inp.focus();
-      inp.addEventListener('keydown', e => {
-        if (e.key !== 'Enter') return;
-        e.stopPropagation();  // 防止全局快捷键重复响应
-        if (session.answered) {
-          // 已出反馈：Enter 前进（答对→下一个；答错→下一个，错词稍后重现）
-          const good = document.querySelector('#spellFeedback .feedback.good');
-          if (good) nextSpell(); else advanceSpellAfterWrong();
-        } else {
-          checkSpell();
-        }
-      });
+  bindSpellInput(e => {
+    if (e.key !== 'Enter') return;
+    e.stopPropagation();  // 防止全局快捷键重复响应
+    if (session.answered) {
+      // 已出反馈：Enter 前进（答对→下一个；答错→下一个，错词稍后重现）
+      const good = document.querySelector('#spellFeedback .feedback.good');
+      if (good) nextSpell(); else advanceSpellAfterWrong();
+    } else {
+      checkSpell();
     }
-  }, 120);
+  });
 }
 
 function checkSpell() {
   if (session.answered) return;
   session.answered = true;
   const word = session.word;
-  const val = (document.getElementById('spellInput') && document.getElementById('spellInput').value || '').trim().toLowerCase();
+  const inp = document.getElementById('spellInput');
+  const val = ((inp && inp.value) || '').trim().toLowerCase();
   const isCorrect = val === word.toLowerCase();
   const rec = session.records.get(word) || makeRecord();
 
@@ -1650,31 +1640,19 @@ function checkSpell() {
       session.records.set(word, rec);
       // 已拼写达标 → 移出错词池（若在里面）
       if (session.spellRetries) session.spellRetries = session.spellRetries.filter(w => w !== word);
-      // 识别阶段已提交学习/复习结果，拼写是纯练习，不再重复提交
-      saveSessionSnapshot();
-      if (state.settings.autoSpeak) speakWord(word);
-      const card = fbEl.closest('.quiz-card');
-      if (card) card.classList.add('with-ans');
-      fbEl.innerHTML = `
-        <div class="feedback good">
-          <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
-          <div class="ans-word">${escapeHtml(word)}</div>
-        </div>
-        <button class="next-btn" onclick="nextSpell()">下一个 →</button>
-      `;
-    } else {
-      if (state.settings.autoSpeak) speakWord(word);   // 第一次拼对也朗读，音形同步加深记忆
-      const card = fbEl.closest('.quiz-card');
-      if (card) card.classList.add('with-ans');
-      saveSessionSnapshot();
-      fbEl.innerHTML = `
-        <div class="feedback good">
-          <div class="fb-title">${icon('circle-check')} 拼写正确！再写一次加深记忆</div>
-          <div class="ans-word">${escapeHtml(word)}</div>
-        </div>
-        <button class="next-btn" onclick="nextSpell()">下一个 →</button>
-      `;
     }
+    // 识别阶段已提交学习/复习结果，拼写是纯练习，不再重复提交
+    if (state.settings.autoSpeak) speakWord(word);   // 拼对朗读，音形同步加深记忆
+    const card = fbEl.closest('.quiz-card');
+    if (card) card.classList.add('with-ans');
+    const again = rec.spellCorrects < SPELL_REQUIRED ? '！再写一次加深记忆' : '！';
+    fbEl.innerHTML = `
+      <div class="feedback good">
+        <div class="fb-title">${icon('circle-check')} 拼写正确${again}</div>
+        <div class="ans-word">${escapeHtml(word)}</div>
+      </div>
+      <button class="next-btn" onclick="nextSpell()">下一个 →</button>
+    `;
   } else {
     rec.spellCorrects = 0;
     rec.errors++;
@@ -1686,49 +1664,18 @@ function checkSpell() {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;  // 答错后重新计数，避免错词紧跟重现
     if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音，对照反馈听音纠错
-    saveSessionSnapshot();
-    const inBook = curWords()[word] && curWords()[word].inBook;
     const card = fbEl.closest('.quiz-card');
     if (card) card.classList.add('with-ans');
-    fbEl.innerHTML = `
-      <div class="feedback bad">
-        <div class="fb-title">${icon('circle-x')} 拼错了，稍后会再考你</div>
-        <div class="wrong-pair">
-          <span class="wp-ans">${escapeHtml(word)}</span>
-          <span class="wp-def">${escapeHtml(WORD_MAP.get(word))}</span>
-        </div>
-        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
-      </div>
-      <div class="wrong-actions">
-        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
-        </button>
-        <button class="next-btn" onclick="advanceSpellAfterWrong()">下一个 →</button>
-      </div>
-    `;
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，稍后会再考你', 'advanceSpellAfterWrong');
   }
 }
 
 function nextSpell() {
   session.idx++;
   renderSpellStage();
-  // 全部拼完 → 清除快照（已完成）
-  const remaining = session.queue.filter(w => {
-    const rec = session.records.get(w) || makeRecord();
-    return !rec.done;
-  });
-  if (!remaining.length) clearSessionSnapshot();
 }
-/* 拼写答错后前进：不卡住，先出下一个词，拼错的词稍后穿插重现 */
-function advanceSpellAfterWrong() {
-  session.idx++;
-  renderSpellStage();
-  const remaining = session.queue.filter(w => {
-    const rec = session.records.get(w) || makeRecord();
-    return !rec.done;
-  });
-  if (!remaining.length) clearSessionSnapshot();
-}
+/* 拼写答错后前进：与答对一致推进（错词由穿插逻辑稍后重现） */
+function advanceSpellAfterWrong() { nextSpell(); }
 /* 轮转拼写错词队列：把刚出题的错词移到队尾，让多个错词交替重现 */
 function rotateSpellRetries() {
   if (session.spellRetries && session.spellRetries.length > 1) {
@@ -1738,9 +1685,9 @@ function rotateSpellRetries() {
 
 /* ---------- 完成页 ---------- */
 function finishSession() {
-  clearSessionSnapshot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   el.innerHTML = doneHtml();
+  session = null;   // 会话结束,清空防止键盘快捷键继续响应旧会话
 }
 
 function doneHtml() {
@@ -2086,16 +2033,8 @@ function startCustomSpell() {
   const custom = normScope(state.settings.spellScope) === 'custom';
   // 自选词单：全部采用（顺序随机）；其他范围：按数量抽选
   const picked = custom ? shuffle(pool) : pickRandom(pool, Math.min(state.settings.spellCount || 20, pool.length));
-  session = {
-    mode: 'spell',
-    phase: 'cspell',          // 避开全局快捷键对复习拼写阶段的接管
-    queue: picked,
-    spellRetries: [],
-    sinceSpellRetry: 0,
-    idx: 0,
-    correct: 0, wrong: 0,
-    records: new Map(picked.map(w => [w, makeRecord()])),
-  };
+  session = makePracticeSession('spell', 'cspell', picked);   // phase 'cspell' 避开全局快捷键对复习拼写的接管
+  quickRebuild = null;
   renderCustomSpell();
 }
 
@@ -2106,19 +2045,7 @@ function renderCustomSpell() {
     el.innerHTML = practiceDoneHtml('拼写练习', '自由拼写');
     return;
   }
-  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
-  const spellRetries = session.spellRetries;
-  let word;
-  if (spellRetries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
-    word = spellRetries[0];
-    session.sinceSpellRetry = 0;
-    rotateSpellRetries();
-  } else {
-    const fresh = remaining.filter(w => !spellRetries.includes(w));
-    const pool2 = fresh.length ? fresh : remaining;
-    word = pool2[session.idx % pool2.length];
-    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
-  }
+  const word = pickInterleaved(remaining);
   session.word = word;
   session.answered = false;
   prefetchUpcomingAudio();
@@ -2138,31 +2065,25 @@ function renderCustomSpell() {
       <div id="spellFeedback"></div>
     </div>
   `;
-  setTimeout(() => {
-    const inp = document.getElementById('spellInput');
-    if (inp) {
-      inp.focus();
-      inp.addEventListener('keydown', e => {
-        if (session.answered && e.key === ' ') { e.preventDefault(); customSpellNext(); return; }
-        if (e.key !== 'Enter') return;
-        e.stopPropagation();
-        if (session.answered) customSpellNext(); else customSpellCheck();
-      });
-    }
-  }, 120);
+  bindSpellInput(e => {
+    if (session.answered && e.key === ' ') { e.preventDefault(); customSpellNext(); return; }
+    if (e.key !== 'Enter') return;
+    e.stopPropagation();
+    if (session.answered) customSpellNext(); else customSpellCheck();
+  });
 }
 
 function customSpellCheck() {
   if (session.answered) return;
   session.answered = true;
   const word = session.word;
-  const val = ((document.getElementById('spellInput') && document.getElementById('spellInput').value) || '').trim().toLowerCase();
+  const inp = document.getElementById('spellInput');
+  const val = ((inp && inp.value) || '').trim().toLowerCase();
   const isCorrect = val === word.toLowerCase();
   const rec = session.records.get(word) || makeRecord();
   const fbEl = document.getElementById('spellFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  const inBook = curWords()[word] && curWords()[word].inBook;
   if (isCorrect) {
     rec.done = true;   // 宽松规则:重现后答对 1 次即完成
     session.records.set(word, rec);
@@ -2185,22 +2106,7 @@ function customSpellCheck() {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音
-    fbEl.innerHTML = `
-      <div class="feedback bad">
-        <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
-        <div class="wrong-pair">
-          <span class="wp-ans">${escapeHtml(word)}</span>
-          <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
-        </div>
-        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
-      </div>
-      <div class="wrong-actions">
-        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
-        </button>
-        <button class="next-btn" onclick="customSpellNext()">下一个 →</button>
-      </div>
-    `;
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你', 'customSpellNext');
   }
 }
 
@@ -2282,13 +2188,11 @@ function pickerPool() {
   return words;
 }
 
-function renderWordPicker() {
-  const el = document.getElementById(pickerKind + 'Quiz');
-  if (!el || !pickerKind) return;
-  const picked = practicePicked(pickerKind);
-  const pickedSet = new Set(picked);
+/* 列表区渲染(搜索/加载更多只刷这里):输入框在头部不被重建,焦点与输入法组词不中断 */
+function pickerListHtml() {
   const words = pickerPool();
   const shown = words.slice(0, pickerLimit);
+  const pickedSet = new Set(practicePicked(pickerKind));
   const rows = shown.map(w => {
     const sel = pickedSet.has(w);
     return `<div class="list-card picker-row ${sel ? 'picked' : ''}" data-w="${escapeHtml(w)}" onclick="pickerToggleWord('${escapeAttr(w)}', this)">
@@ -2300,8 +2204,27 @@ function renderWordPicker() {
     </div>`;
   }).join('');
   const moreBtn = words.length > shown.length
-    ? `<div style="text-align:center;margin:10px 0"><button class="toolbar-btn" onclick="pickerLimit += 200; renderWordPicker()">显示更多（还有 ${words.length - shown.length} 个）</button></div>`
+    ? `<div style="text-align:center;margin:10px 0"><button class="toolbar-btn" onclick="pickerLimit += 200; pickerRenderList()">显示更多（还有 ${words.length - shown.length} 个）</button></div>`
     : '';
+  return (rows || '<div class="empty-tip" style="padding:24px 0">没有匹配的单词</div>') + moreBtn;
+}
+
+/* 刷新列表区 + 头部「已选」计数 */
+function pickerRenderList() {
+  const listEl = document.getElementById('pickerList');
+  if (listEl) listEl.innerHTML = pickerListHtml();
+  const chip = document.getElementById('pickerPickedChip');
+  if (chip) {
+    const n = practicePicked(pickerKind).length;
+    chip.textContent = '已选 ' + n;
+    chip.classList.toggle('active', pickerFilter === 'picked');
+  }
+}
+
+function renderWordPicker() {
+  const el = document.getElementById(pickerKind + 'Quiz');
+  if (!el || !pickerKind) return;
+  const picked = practicePicked(pickerKind);
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left">
       <span class="quiz-type">${icon('list-plus')} 选定单词</span>
@@ -2310,9 +2233,9 @@ function renderWordPicker() {
         <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
         <div class="cfg-chips">${SCOPES.map(s =>
           `<button class="master-tab ${pickerFilter === s.key ? 'active' : ''}" onclick="setPickerFilter('${s.key}')">${s.label}</button>`
-        ).join('')}<button class="master-tab ${pickerFilter === 'picked' ? 'active' : ''}" onclick="setPickerFilter('picked')">已选 ${picked.length}</button></div>
+        ).join('')}<button class="master-tab" id="pickerPickedChip" onclick="setPickerFilter('picked')">已选 ${picked.length}</button></div>
       </div>
-      <div id="pickerList">${rows || '<div class="empty-tip" style="padding:24px 0">没有匹配的单词</div>'}${moreBtn}</div>
+      <div id="pickerList">${pickerListHtml()}</div>
     </div>
     <div class="picker-foot">
       <span class="picker-count">已选 <b id="pickerCount">${picked.length}</b> 个</span>
@@ -2342,6 +2265,7 @@ function attachPickerGestures(el) {
   el.addEventListener('pointerdown', e => {
     const row = e.target.closest('.picker-row');
     if (!row || !row.dataset.w) return;
+    clearTimeout(pickerDragTimer);   // 多指按压:新手指下来先掐掉旧手指的长按计时,防到点误触发旧行
     pickerDrag = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, apply: !pickerRowPicked(row), active: false };
     pickerDragTimer = setTimeout(() => {
       if (!pickerDrag) return;
@@ -2454,13 +2378,13 @@ function pickerApplyRow(row, pick) {
   if (pickerRowPicked(row) !== pick) pickerToggleWord(row.dataset.w, row);
 }
 
+let pickerSearchTimer = null;
 function onPickerSearch(v) {
   pickerSearch = v.trim();
   pickerLimit = 100;
-  renderWordPicker();
-  // 重渲染会重建输入框，恢复焦点和光标位置
-  const inp = document.getElementById('pickerSearchInput');
-  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  // 防抖 + 只重绘列表区:输入框不重建,焦点/光标/输入法组词不中断
+  if (pickerSearchTimer) clearTimeout(pickerSearchTimer);
+  pickerSearchTimer = setTimeout(() => { pickerSearchTimer = null; pickerRenderList(); }, 150);
 }
 
 function setPickerFilter(f) { pickerFilter = f; pickerLimit = 100; renderWordPicker(); }
@@ -2472,7 +2396,7 @@ function pickerToggleWord(w, rowEl) {
   const i = list.indexOf(w);
   const nowPicked = i < 0;
   if (nowPicked) list.push(w); else list.splice(i, 1);
-  saveState();
+  saveState();   // 已防抖:拖选划过 N 行只落一次盘
   // 就地更新行样式与计数，不整页重渲染（保住滚动位置）
   if (rowEl) {
     rowEl.classList.toggle('picked', nowPicked);
@@ -2481,6 +2405,8 @@ function pickerToggleWord(w, rowEl) {
   }
   const cnt = document.getElementById('pickerCount');
   if (cnt) cnt.textContent = practicePicked(pickerKind).length;
+  const chip = document.getElementById('pickerPickedChip');
+  if (chip) chip.textContent = '已选 ' + practicePicked(pickerKind).length;
   // 「已选」筛选下取消勾选 → 直接移除该行
   if (pickerFilter === 'picked' && !nowPicked && rowEl) rowEl.remove();
 }
@@ -2495,9 +2421,9 @@ function pickerClear() {
 function pickerSelectAll() {
   const key = pickerKind + 'Words';
   const list = Array.isArray(state.settings[key]) ? state.settings[key] : (state.settings[key] = []);
-  for (const w of pickerPool()) {
-    if (!list.includes(w)) list.push(w);
-  }
+  const set = new Set(list);              // Set 去重合并:4500 词全选不再是 O(n²)
+  for (const w of pickerPool()) set.add(w);
+  state.settings[key] = Array.from(set);
   saveState();
   renderWordPicker();
 }
@@ -2538,7 +2464,7 @@ function renderDictConfig() {
   const mode = normDictMode(state.settings.dictMode);
   const pool = practicePool('dict');
   const s = state.settings;
-  const rate = s.dictRate || 0.9;
+  const rate = s.dictRate || DEFAULT_RATE;
   const pause = s.dictPause == null ? 1 : s.dictPause;
   // 分组顺序:练习类型 → 该类型专属设置 → 共用范围/数量,底部固定开始栏(practiceFootHtml)
   el.innerHTML = `
@@ -2594,7 +2520,7 @@ function startDictPractice() {
 }
 
 function onDictRate(v) {
-  const r = Math.max(0.5, Math.min(1.5, parseFloat(v) || 0.9));
+  const r = Math.max(0.5, Math.min(1.5, parseFloat(v) || DEFAULT_RATE));
   state.settings.dictRate = r;
   saveState();
   const label = document.getElementById('rateLabel');
@@ -2608,20 +2534,13 @@ function startDictation() {
   const n = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
   const picked = state.settings.dictOrder === 'seq' ? pool.slice(0, n) : shuffle(pool).slice(0, n);
   const mode = normDictMode(state.settings.dictMode);
-  session = {
-    mode: 'dict',
-    phase: 'dictate',
-    queue: picked,
+  session = Object.assign(makePracticeSession('dict', 'dictate', picked), {
     judge: mode === 'judge',
     auto: mode === 'auto',
-    spellRetries: [],
-    sinceSpellRetry: 0,
-    idx: 0,
-    correct: 0, wrong: 0,
     loopN: 1,
     gen: 0,          // 播报代际号：切词/重听/离开页面时 +1，旧播报链自动作废
-    records: new Map(picked.map(w => [w, makeRecord()])),
-  };
+  });
+  quickRebuild = null;
   renderDictWord();
 }
 
@@ -2675,7 +2594,7 @@ async function speakDictText(text, lang, rate) {
   await speakAwait(text, lang, rate);
 }
 
-function dictSleep(ms, sess, gen) {
+function dictSleep(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
 
@@ -2703,7 +2622,7 @@ function clearDictMediaSession() {
 function prefetchDictAudio(word) {
   if (!canUseEdgeVoice()) return;
   try {
-    const rate = state.settings.dictRate || 0.9;
+    const rate = state.settings.dictRate || DEFAULT_RATE;
     edgeSynthesize(word, edgeVoiceOf('en-US'), rate);
     edgeSynthesize(speakableDef(word) || word, edgeVoiceOf('zh-CN'), Math.min(1.2, rate + 0.1));
   } catch (e) { /* 忽略 */ }
@@ -2712,7 +2631,7 @@ function prefetchDictAudio(word) {
 /* 播一个词的两轮：每轮 = 单词 ×2 + 汉译 ×1，轮间停顿可设 */
 async function playDictCycle(sess, gen) {
   const word = sess.word;
-  const rate = state.settings.dictRate || 0.9;
+  const rate = state.settings.dictRate || DEFAULT_RATE;
   const pause = Math.max(0.5, (state.settings.dictPause == null ? 1 : state.settings.dictPause)) * 1000;
   dictStatus(icon('volume-2') + ' 正在播放…');
   for (let round = 1; round <= 2; round++) {
@@ -2766,18 +2685,8 @@ function renderDictWord() {
     el.innerHTML = practiceDoneHtml('听写', '听写');
     return;
   }
-  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
-  let word;
-  if (session.judge && session.spellRetries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
-    word = session.spellRetries[0];
-    session.sinceSpellRetry = 0;
-    rotateSpellRetries();
-  } else {
-    const fresh = remaining.filter(w => !session.spellRetries.includes(w));
-    const pool2 = fresh.length ? fresh : remaining;
-    word = pool2[session.idx % pool2.length];
-    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
-  }
+  // 判分模式才有错词穿插(自查/轮播一播到底)
+  const word = pickInterleaved(remaining, session.judge);
   session.word = word;
   session.answered = false;
   prefetchUpcomingAudio();
@@ -2813,17 +2722,11 @@ function renderDictWord() {
   updateDictMediaSession(word);
   playDictCycle(sess, gen);
   if (session.judge) {
-    setTimeout(() => {
-      const inp = document.getElementById('spellInput');
-      if (inp) {
-        inp.focus();
-        inp.addEventListener('keydown', e => {
-          if (e.key !== 'Enter') return;
-          e.stopPropagation();
-          if (session.answered) dictNext(); else dictCheck();
-        });
-      }
-    }, 120);
+    bindSpellInput(e => {
+      if (e.key !== 'Enter') return;
+      e.stopPropagation();
+      if (session.answered) dictNext(); else dictCheck();
+    });
   }
 }
 
@@ -2839,13 +2742,13 @@ function dictCheck() {
   session.answered = true;
   stopDictPlayback();
   const word = session.word;
-  const val = ((document.getElementById('spellInput') && document.getElementById('spellInput').value) || '').trim().toLowerCase();
+  const inp = document.getElementById('spellInput');
+  const val = ((inp && inp.value) || '').trim().toLowerCase();
   const isCorrect = val === word.toLowerCase();
   const rec = session.records.get(word) || makeRecord();
   const fbEl = document.getElementById('spellFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  const inBook = curWords()[word] && curWords()[word].inBook;
   if (isCorrect) {
     rec.done = true;
     session.records.set(word, rec);
@@ -2867,22 +2770,7 @@ function dictCheck() {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 判分拼错时补听一遍正确发音
-    fbEl.innerHTML = `
-      <div class="feedback bad">
-        <div class="fb-title">${icon('circle-x')} 拼错了，过几个词再考你</div>
-        <div class="wrong-pair">
-          <span class="wp-ans">${escapeHtml(word)}</span>
-          <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
-        </div>
-        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
-      </div>
-      <div class="wrong-actions">
-        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
-        </button>
-        <button class="next-btn" onclick="dictNext()">下一个 →</button>
-      </div>
-    `;
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你', 'dictNext');
   }
 }
 
@@ -2919,16 +2807,8 @@ function startListen() {
   const custom = normScope(state.settings.dictScope) === 'custom';
   const n = custom ? pool.length : Math.min(state.settings.dictCount || 10, pool.length);
   const picked = shuffle(pool).slice(0, n);   // 听音为主，顺序随机
-  session = {
-    mode: 'listen',
-    phase: 'clist',           // 避开全局快捷键对识别阶段的接管
-    queue: picked,
-    spellRetries: [],
-    sinceSpellRetry: 0,
-    idx: 0,
-    correct: 0, wrong: 0,
-    records: new Map(picked.map(w => [w, makeRecord()])),
-  };
+  session = makePracticeSession('listen', 'clist', picked);   // phase 'clist' 避开全局快捷键对识别阶段的接管
+  quickRebuild = null;
   renderListenWord();
 }
 
@@ -2940,19 +2820,7 @@ function renderListenWord() {
     return;
   }
   // 错词穿插：每答 RETRY_INTERVAL 个词重现 1 个错词（与自由拼写一致）
-  session.spellRetries = (session.spellRetries || []).filter(w => !(session.records.get(w) || makeRecord()).done);
-  const retries = session.spellRetries;
-  let word;
-  if (retries.length && (session.sinceSpellRetry || 0) >= RETRY_INTERVAL) {
-    word = retries[0];
-    session.sinceSpellRetry = 0;
-    rotateSpellRetries();
-  } else {
-    const fresh = remaining.filter(w => !retries.includes(w));
-    const pool2 = fresh.length ? fresh : remaining;
-    word = pool2[session.idx % pool2.length];
-    session.sinceSpellRetry = (session.sinceSpellRetry || 0) + 1;
-  }
+  const word = pickInterleaved(remaining);
   session.word = word;
   session.answered = false;
   session.q = makeQuestion(word);
@@ -2966,7 +2834,7 @@ function renderListenWord() {
     <div class="quiz-card">
       <span class="quiz-type">${icon('volume-2')} 听音辨义</span>
       <div class="listen-prompt">
-        <button class="speak-btn" title="重听" onclick="speakWord('${escapeAttr(word)}')">${icon('volume-2')}</button>
+        <button class="speak-btn" title="重听" aria-label="重听发音" onclick="speakWord('${escapeAttr(word)}')">${icon('volume-2')}</button>
         <span class="listen-tip">听发音，选释义</span>
       </div>
       <div class="progress-line">剩余 ${remaining.length} 词　·　✓ ${session.correct} ✗ ${session.wrong}</div>
@@ -3014,23 +2882,7 @@ function listenAnswer(idx, btnEl) {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 揭底时补听一遍单词，音形义对上
-    const inBook = curWords()[word] && curWords()[word].inBook;
-    fbEl.innerHTML = `
-      <div class="feedback bad">
-        <div class="fb-title">${icon('circle-x')} 答错了，过几个词再考你</div>
-        <div class="wrong-pair">
-          <span class="wp-ans">${escapeHtml(word)}</span>
-          <span class="wp-def">${escapeHtml(def)}</span>
-        </div>
-        ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
-      </div>
-      <div class="wrong-actions">
-        <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-          ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
-        </button>
-        <button class="next-btn" onclick="listenNext()">下一个 →</button>
-      </div>
-    `;
+    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，过几个词再考你', 'listenNext');
   }
 }
 
@@ -3054,9 +2906,9 @@ function renderBook() {
     `<div class="list-card"><div class="list-item">
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
-      <button class="list-speak" title="发音" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-del" title="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
+      <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
+      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-del" title="移出生词本" aria-label="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
     </div></div>`
   ).join('');
 }
@@ -3082,15 +2934,16 @@ let masterSearch = '';   // 分类内搜索关键词
 let masterLimit = 100;   // 每次渲染条数上限（未学习分类可达 4543 条，全量渲染会卡）
 
 function renderMaster() {
-  const s = stats();
-  document.getElementById('mUnlearned').textContent = s.unseen;
-  document.getElementById('mLearning').textContent = s.learning;
-  document.getElementById('mDue').textContent = s.due;
-  document.getElementById('mMastered').textContent = s.mastered;
+  // 单次遍历产出全部分类计数(此前 stats+5 个 tab 计数会全表扫 8-9 次)
+  const b = bucketCounts();
+  document.getElementById('mUnlearned').textContent = b.unseen;
+  document.getElementById('mLearning').textContent = b.learning;
+  document.getElementById('mDue').textContent = b.due;
+  document.getElementById('mMastered').textContent = b.mastered;
 
   // 顶部 tab
   document.getElementById('masterTabs').innerHTML = MASTER_TABS.map(t => {
-    const n = classCount(t.cls);
+    const n = t.cls === 'leech' ? b.leech : b[t.cls];
     const act = masterTab === t.cls ? 'active' : '';
     return `<div class="master-tab ${act}" data-cls="${t.cls}" onclick="setMasterTab('${t.cls}')">
       ${t.label} <span class="mt-cnt">${n}</span>
@@ -3104,16 +2957,18 @@ function setMasterTab(cls) {
   masterTab = cls;
   masterSearch = '';
   masterLimit = 100;
+  const inp = document.getElementById('masterSearchInput');
+  if (inp) inp.value = '';   // 搜索框是静态元素,切分类时手动清空
   renderMaster();
 }
 
+let masterSearchTimer = null;
 function onMasterSearch(v) {
   masterSearch = v.trim();
   masterLimit = 100;
-  renderMasterList();
-  // 重渲染会重建输入框，恢复焦点和光标位置
-  const inp = document.getElementById('masterSearchInput');
-  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  // 防抖 + 搜索框静态化(index.html):不再每键重建输入框,焦点/输入法组词不中断
+  if (masterSearchTimer) clearTimeout(masterSearchTimer);
+  masterSearchTimer = setTimeout(() => { masterSearchTimer = null; renderMasterList(); }, 150);
 }
 
 function renderMasterList() {
@@ -3131,8 +2986,7 @@ function renderMasterList() {
   const shown = words.slice(0, masterLimit);
 
   if (!words.length) {
-    el.innerHTML = `<div class="master-search-wrap"><input id="masterSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(masterSearch)}" oninput="onMasterSearch(this.value)"></div>
-      <div class="empty-tip">${masterSearch ? `没有匹配「${escapeHtml(masterSearch)}」的单词` : `「${label}」分类暂无单词`}</div>`;
+    el.innerHTML = `<div class="empty-tip">${masterSearch ? `没有匹配「${escapeHtml(masterSearch)}」的单词` : `「${label}」分类暂无单词`}</div>`;
     return;
   }
 
@@ -3149,8 +3003,8 @@ function renderMasterList() {
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
       ${leechBadge}
       <span class="ms-badge ${badgeCls}">${st.label}</span>
-      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
-      <button class="list-del" title="重置此单词" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
+      ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
+      <button class="list-del" title="重置此单词" aria-label="重置 ${escapeHtml(w)}" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
     </div></div>`;
   }).join('');
 
@@ -3159,7 +3013,6 @@ function renderMasterList() {
     : '';
 
   el.innerHTML = `
-    <div class="master-search-wrap"><input id="masterSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(masterSearch)}" oninput="onMasterSearch(this.value)"></div>
     <div class="list-card master-toolbar">
       <span style="font-size:14px;color:var(--muted)">${label} · 共 ${totalInClass} 词${masterSearch ? ` · 匹配 ${words.length} 个` : ''}</span>
       <button class="toolbar-btn" onclick="confirmResetClass('${masterTab}')">重置本分类全部</button>
@@ -3315,6 +3168,7 @@ function renderHistoryDetail(rec) {
     const rows = list.map(e => {
       // 条目兼容:[词库key, 单词] 新格式 / 旧版纯字符串(按词库包含关系归属)
       const norm = normHistEntry(e);
+      if (!norm && Array.isArray(e)) return '';   // 词库未装载(延迟加载窗口期)或已下架:跳过而非显示脏数据
       const w = norm ? norm[1] : String(e);
       const lib = norm ? norm[0] : null;
       const libTag = lib ? `<span class="dict-lib">${escapeHtml(LIBS[lib].name.replace('词汇', ''))}</span>` : '';
@@ -3365,8 +3219,15 @@ function escapeAttr(s) {
 /* ---------------- 桌面端键盘快捷键 ----------------
  * 识别阶段：数字键 1-4 选选项；出反馈后 Enter 进下一个
  * 拼写阶段：出反馈后 Enter/空格 进下一个（输入框内的按键由输入框自身处理）
+ * Esc 关闭已打开的弹窗
  */
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    // 关掉最上层弹窗(不触发其确认动作,等同于点「取消」后的隐藏)
+    const open = document.querySelectorAll('.modal-mask.show');
+    if (open.length) open[open.length - 1].classList.remove('show');
+    return;
+  }
   if (!session) return;
   if (document.querySelector('.modal-mask.show')) return;   // 弹窗打开时不响应
   const tag = (e.target && e.target.tagName) || '';
@@ -3376,7 +3237,9 @@ document.addEventListener('keydown', e => {
     if (!session.answered && !inInput) {
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 4) {
-        const opts = document.querySelectorAll('#screen-study .opt, #screen-review .opt');
+        // 只取当前会话所在屏的选项:另一屏残留的旧题卡会被误触(串答)
+        const sel = session.mode === 'study' ? '#studyQuiz' : '#reviewQuiz';
+        const opts = document.querySelectorAll(sel + ' .opt');
         if (opts[n - 1]) opts[n - 1].click();
       }
     } else if (session.answered && e.key === 'Enter' && !inInput) {
@@ -3392,7 +3255,7 @@ document.addEventListener('keydown', e => {
     if (!session.answered && !inInput) {
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= 4) {
-        const opts = document.querySelectorAll('#screen-dictate .opt');
+        const opts = document.querySelectorAll('#dictQuiz .opt');
         if (opts[n - 1]) opts[n - 1].click();
       }
     } else if (session.answered && e.key === 'Enter' && !inInput) {
@@ -3496,6 +3359,7 @@ function renderQuickConfig() {
 }
 
 function startQuickSweep() {
+  session = null;   // 快扫没有 session:清掉可能残留的学习会话,防全局键盘快捷键把快扫卡片覆盖成答题卡
   let list = practicePool('quick');
   if (quickMode === 'rebuild') list = list.filter(w => !curWords()[w]);
   if (!list.length) return;
@@ -3515,7 +3379,7 @@ function prefetchQuickAudio() {
   if (!canUseEdgeVoice() || !quickRebuild) return;
   const q = quickRebuild;
   for (const w of q.list.slice(q.i + 1, q.i + 1 + PREFETCH_AHEAD)) {
-    edgePrefetch(w, edgeVoiceOf('en-US'), 0.9);
+    edgePrefetch(w, edgeVoiceOf('en-US'), DEFAULT_RATE);
   }
 }
 
@@ -3615,7 +3479,7 @@ function renderDiag() {
     'SW：<b>' + escapeHtml(swName) + '</b>　（这是手机当前实际运行的版本）<br>' +
     '存档：' + (raw ? rawLen + ' 字符 · 解析' + (parseOk ? '正常' : '<b style="color:var(--pen-red)">失败</b>') : '<b style="color:var(--pen-red)">不存在</b>') + '<br>' +
     '词记录（' + escapeHtml(lib) + '）：<b>' + words + '</b> 个　历史：<b>' + days + '</b> 天<br>' +
-    '损坏备份键：' + (hasBackup ? '有' : '无') + '　会话快照：' + (hasSnap ? '有' : '无');
+    '损坏备份键：' + (hasBackup ? '有' : '无');
   if (window.caches && caches.keys) {
     caches.keys().then(ks => {
       const tag = document.getElementById('diagBody');
@@ -3643,18 +3507,11 @@ function forceSwUpdate() {
   }
 }
 
-/* 强制更新:注销 SW+清代码缓存后重载。只碰程序缓存,localStorage 学习数据不受影响 */
-function forceSwUpdate() {
-  if (!confirm('将注销缓存并重新拉取最新版代码，学习数据不受影响。继续？')) return;
-  const done = () => location.reload();
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.getRegistrations()
-      .then(rs => Promise.all(rs.map(r => r.unregister())))
-      .then(() => (window.caches && caches.keys ? caches.keys() : Promise.resolve([])))
-      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
-      .then(done)
-      .catch(done);
-  } else {
-    done();
-  }
+/* 扩展词库延迟装载完成(app.js 的 lazyLoadVocabLibs 回调):
+ * 刷新词库选择器/快扫题库行;停在词典页且有搜索词时重跑跨库搜索 */
+function onLibsReady() {
+  renderLibPicker();
+  if (dictQ) renderDictResults();
+  renderQuickEntry();
 }
+

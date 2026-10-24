@@ -1,4 +1,4 @@
-/* 打包脚本：把 4 个文件合并成单文件手机版
+/* 打包脚本：把全部文件合并成单文件手机版
  * 用法：node build-single.js
  * 产出：英语词汇通_手机版.html（自包含，可发到手机直接打开）
  */
@@ -8,7 +8,12 @@ const path = require('path');
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'index.html');
 const OUT = path.join(ROOT, '英语词汇通_手机版.html');
-const FILES = ['vocab-data.js', 'vocab-libs.js', 'vocab-extra.js', 'icons.js', 'fsrs.js', 'app.js', 'ui.js', 'pwa-register.js'];
+/* index.html 里仍有 <script src> 引用的文件(按出现顺序内联)。
+ * vocab-libs.js 已改为延迟加载(index.html 无标签):单文件版把它内联到词表数据
+ * 之后,保证 app.js 执行时 VOCAB_LIBS 已就绪——app.js 的延迟装载器检测到已
+ * 定义会自动跳过动态加载,file:// 下不存在 404 问题 */
+const FILES = ['vocab-data.js', 'vocab-extra.js', 'icons.js', 'fsrs.js', 'app.js', 'ui.js', 'pwa-register.js'];
+const LIBS_FILE = 'vocab-libs.js';
 
 let html = fs.readFileSync(SRC, 'utf8');
 
@@ -19,18 +24,30 @@ if (html.includes('Content-Security-Policy')) {
   process.exit(1);
 }
 
+// 单文件版无 manifest/图标文件,剥离 PWA 引用(file:// 下全是 404)
+html = html.replace(/<link rel="manifest"[^>]*>\s*/, '');
+html = html.replace(/<link rel="apple-touch-icon"[^>]*>\s*/, '');
+if (html.includes('manifest.json') || html.includes('apple-touch-icon')) {
+  console.error('PWA 引用剥离失败,请检查 link 标签格式');
+  process.exit(1);
+}
+
+const inlineJs = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/<\/script>/gi, '<\\/script>');
+
 // 用占位符替换 script 引用，避免脚本内容里的 </script> 干扰
 for (const f of FILES) {
-  const js = fs.readFileSync(path.join(ROOT, f), 'utf8');
-  // 把内容里的 </script> 转义（JS 字符串中几乎不会出现，但保险）
-  const safe = js.replace(/<\/script>/gi, '<\\/script>');
+  const safe = inlineJs(f);
   const tag = new RegExp(`<script src="${f}"[^>]*></script>`);
-  const hit = html.match(tag);
-  if (!hit) {
+  if (!tag.test(html)) {
     console.error('未找到引用: script src=' + f);
     process.exit(1);
   }
-  html = html.replace(tag, () => `<script>\n${safe}\n</script>`);
+  let replacement = `<script>\n${safe}\n</script>`;
+  if (f === 'vocab-data.js') {
+    // 扩展词库紧跟词表数据内联(见顶部 FILES 注释)
+    replacement += `\n<script>\n${inlineJs(LIBS_FILE)}\n</script>`;
+  }
+  html = html.replace(tag, () => replacement);
 }
 
 // 顶部加个说明注释
