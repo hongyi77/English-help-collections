@@ -1130,9 +1130,11 @@ function bucketCounts() {
 function stats() {
   const b = bucketCounts();
   const total = WORD_LIST.length;
-  const seen = Object.keys(curWords()).length;
   const L = curDaily();
-  return { total, seen, mastered: b.mastered, inBook: b.inBook, due: b.due, unseen: total - seen, learning: b.learning, learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
+  /* unseen 用"阶段口径"(无记录或 stage=0,与 unseenWords/掌握情况 tab 一致);
+   * 此前用"有无记录"口径,学习会话答错会产生 stage-0 记录,首页与掌握情况的
+   * 未学习数会差 1——用户可见的不一致 bug */
+  return { total, seen: total - b.unseen, mastered: b.mastered, inBook: b.inBook, due: b.due, unseen: b.unseen, learning: b.learning, learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
 }
 
 /* ---------------- 每日目标 ----------------

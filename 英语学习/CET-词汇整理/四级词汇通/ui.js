@@ -324,8 +324,8 @@ function renderLibPicker() {
   const cur = libKey();
   const groupOf = {};
   LIB_GROUPS.forEach(g => g.libs.forEach(k => { groupOf[k] = g.label; }));
-  const curGroup = groupOf[cur];
-  const open = (libGroupOpen === undefined) ? curGroup : libGroupOpen;
+  const curGroup = groupOf[cur];   // 当前词库所在组(分组行高亮用)
+  const open = (libGroupOpen === undefined) ? '' : libGroupOpen;   // 默认全部收起(点组名再展开)
   el.innerHTML = LIB_GROUPS.filter(g => g.libs.some(k => LIBS[k])).map(g => {
     const isCurGroup = g.label === curGroup;
     const isOpen = g.label === open;
@@ -1619,17 +1619,20 @@ function optionPairOf(q, o) {
   return { w: o.isAnswer ? q.answer : (reverseDefToWord(o.text, q.answer) || ''), d: o.text };
 }
 
-/* 答错后的选项区 HTML:chosenIdx=所选错项(点「不会」传 -1,无所选项) */
+/* 答错后的选项区 HTML:chosenIdx=所选错项(点「不会」传 -1,无所选项)。
+ * 正确项只上色打勾、保持原样(题干就是它的单词,展开双行是重复信息);
+ * 所选错项展开"单词+汉译"双行;其余折叠,点击展开 */
 function revealOptionsHtml(q, chosenIdx) {
   return q.options.map((o, i) => {
-    if (o.isAnswer || i === chosenIdx) {
+    if (o.isAnswer) {
+      return `<div class="opt correct shown">${escapeHtml(o.text)}<span class="opt-mark">${icon('circle-check')}</span></div>`;
+    }
+    if (i === chosenIdx) {
       const p = optionPairOf(q, o);
-      const cls = o.isAnswer ? 'opt correct shown' : 'opt wrong shown';
-      const mark = o.isAnswer ? icon('circle-check') : icon('circle-x');
-      return `<div class="${cls}">
+      return `<div class="opt wrong shown">
         <span class="opt-w">${escapeHtml(p.w)}</span>
         <span class="opt-d">${escapeHtml(p.d)}</span>
-        <span class="opt-mark">${mark}</span>
+        <span class="opt-mark">${icon('circle-x')}</span>
       </div>`;
     }
     return `<button class="opt dim" onclick="revealOpt(this, ${i})"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}<span class="opt-tap">${icon('eye')}</span></button>`;
@@ -1653,34 +1656,15 @@ function revealOpt(btn, i) {
   if (btn.removeAttribute) btn.removeAttribute('onclick');
 }
 
-/* 答错轻量条:巧记(有才显示,点开面板)+生词本按钮;不再有红色大反馈框 */
+/* 答错轻量条:巧记直接显示(有才渲染)+生词本按钮;不再有红色大反馈框 */
 function wrongStripHtml(word) {
   const inBook = !!(curWords()[word] && curWords()[word].inBook);
   return `<div class="wrong-strip">
-    ${memoOf(word) ? `<button class="strip-memo" onclick="toggleStripMemo('${escapeAttr(word)}', this)">${icon('lightbulb')} 巧记</button>` : ''}
+    ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
     <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
       ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
     </button>
   </div>`;
-}
-
-/* 巧记按钮:再点收起 */
-function toggleStripMemo(word, btn) {
-  const opened = btn.dataset && btn.dataset.open === '1';
-  let panel = document.getElementById('stripMemoPanel');
-  if (opened) {
-    if (panel) panel.remove();
-    btn.dataset.open = '';
-    return;
-  }
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'stripMemoPanel';
-    panel.className = 'wrong-memo';
-  }
-  panel.innerHTML = icon('lightbulb') + ' ' + escapeHtml(memoOf(word));
-  if (btn.parentNode) btn.parentNode.insertBefore(panel, btn.parentNode.nextSibling);
-  btn.dataset.open = '1';
 }
 
 function showWrongFeedback(word, wrongText) {

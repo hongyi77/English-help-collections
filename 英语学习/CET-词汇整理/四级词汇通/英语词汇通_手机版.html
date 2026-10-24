@@ -224,15 +224,9 @@
   .quiz-card.with-ans .opt.dim { opacity: .55; }
   .opt-tap { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: inline-flex; opacity: .55; }
   .opt-tap svg { width: 15px; height: 15px; }
-  /* 答错轻量条(替代原红色大反馈框):巧记+生词本 */
-  .wrong-strip { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
-  .wrong-strip .book-toggle { width: auto; margin-top: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
-  .strip-memo {
-    flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 10px 14px;
-    border-radius: 12px; border: 1px dashed var(--amber); background: transparent;
-    color: var(--amber); font-size: 14px; cursor: pointer;
-  }
-  .strip-memo svg { width: 15px; height: 15px; }
+  /* 答错轻量条(替代原红色大反馈框):巧记直接显示+生词本 */
+  .wrong-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .wrong-strip .wrong-memo { margin-top: 0; }
   /* 桌面端数字键提示(键盘 1-4 可选);触屏不显示 */
   .opt-key { display: none; }
   @media (hover: hover) {
@@ -872,9 +866,8 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="sec-cap">外观</div>
-    <div class="settings-card">
+      <div class="set-div"></div>
+      <div class="cfg-title" style="margin:0 0 8px">外观</div>
       <div class="set-row">
         <label style="flex:1">深色模式<br><span style="font-size:12px;color:var(--ink-soft)">跟随系统或手动锁定</span></label>
         <div class="set-ctrl" id="themeChips" style="gap:8px">
@@ -28476,9 +28469,11 @@ function bucketCounts() {
 function stats() {
   const b = bucketCounts();
   const total = WORD_LIST.length;
-  const seen = Object.keys(curWords()).length;
   const L = curDaily();
-  return { total, seen, mastered: b.mastered, inBook: b.inBook, due: b.due, unseen: total - seen, learning: b.learning, learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
+  /* unseen 用"阶段口径"(无记录或 stage=0,与 unseenWords/掌握情况 tab 一致);
+   * 此前用"有无记录"口径,学习会话答错会产生 stage-0 记录,首页与掌握情况的
+   * 未学习数会差 1——用户可见的不一致 bug */
+  return { total, seen: total - b.unseen, mastered: b.mastered, inBook: b.inBook, due: b.due, unseen: b.unseen, learning: b.learning, learnedToday: L.learnedToday.length, reviewedToday: L.reviewedToday.length };
 }
 
 /* ---------------- 每日目标 ----------------
@@ -28858,8 +28853,8 @@ function renderLibPicker() {
   const cur = libKey();
   const groupOf = {};
   LIB_GROUPS.forEach(g => g.libs.forEach(k => { groupOf[k] = g.label; }));
-  const curGroup = groupOf[cur];
-  const open = (libGroupOpen === undefined) ? curGroup : libGroupOpen;
+  const curGroup = groupOf[cur];   // 当前词库所在组(分组行高亮用)
+  const open = (libGroupOpen === undefined) ? '' : libGroupOpen;   // 默认全部收起(点组名再展开)
   el.innerHTML = LIB_GROUPS.filter(g => g.libs.some(k => LIBS[k])).map(g => {
     const isCurGroup = g.label === curGroup;
     const isOpen = g.label === open;
@@ -30153,17 +30148,20 @@ function optionPairOf(q, o) {
   return { w: o.isAnswer ? q.answer : (reverseDefToWord(o.text, q.answer) || ''), d: o.text };
 }
 
-/* 答错后的选项区 HTML:chosenIdx=所选错项(点「不会」传 -1,无所选项) */
+/* 答错后的选项区 HTML:chosenIdx=所选错项(点「不会」传 -1,无所选项)。
+ * 正确项只上色打勾、保持原样(题干就是它的单词,展开双行是重复信息);
+ * 所选错项展开"单词+汉译"双行;其余折叠,点击展开 */
 function revealOptionsHtml(q, chosenIdx) {
   return q.options.map((o, i) => {
-    if (o.isAnswer || i === chosenIdx) {
+    if (o.isAnswer) {
+      return `<div class="opt correct shown">${escapeHtml(o.text)}<span class="opt-mark">${icon('circle-check')}</span></div>`;
+    }
+    if (i === chosenIdx) {
       const p = optionPairOf(q, o);
-      const cls = o.isAnswer ? 'opt correct shown' : 'opt wrong shown';
-      const mark = o.isAnswer ? icon('circle-check') : icon('circle-x');
-      return `<div class="${cls}">
+      return `<div class="opt wrong shown">
         <span class="opt-w">${escapeHtml(p.w)}</span>
         <span class="opt-d">${escapeHtml(p.d)}</span>
-        <span class="opt-mark">${mark}</span>
+        <span class="opt-mark">${icon('circle-x')}</span>
       </div>`;
     }
     return `<button class="opt dim" onclick="revealOpt(this, ${i})"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}<span class="opt-tap">${icon('eye')}</span></button>`;
@@ -30187,34 +30185,15 @@ function revealOpt(btn, i) {
   if (btn.removeAttribute) btn.removeAttribute('onclick');
 }
 
-/* 答错轻量条:巧记(有才显示,点开面板)+生词本按钮;不再有红色大反馈框 */
+/* 答错轻量条:巧记直接显示(有才渲染)+生词本按钮;不再有红色大反馈框 */
 function wrongStripHtml(word) {
   const inBook = !!(curWords()[word] && curWords()[word].inBook);
   return `<div class="wrong-strip">
-    ${memoOf(word) ? `<button class="strip-memo" onclick="toggleStripMemo('${escapeAttr(word)}', this)">${icon('lightbulb')} 巧记</button>` : ''}
+    ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
     <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
       ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
     </button>
   </div>`;
-}
-
-/* 巧记按钮:再点收起 */
-function toggleStripMemo(word, btn) {
-  const opened = btn.dataset && btn.dataset.open === '1';
-  let panel = document.getElementById('stripMemoPanel');
-  if (opened) {
-    if (panel) panel.remove();
-    btn.dataset.open = '';
-    return;
-  }
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'stripMemoPanel';
-    panel.className = 'wrong-memo';
-  }
-  panel.innerHTML = icon('lightbulb') + ' ' + escapeHtml(memoOf(word));
-  if (btn.parentNode) btn.parentNode.insertBefore(panel, btn.parentNode.nextSibling);
-  btn.dataset.open = '1';
 }
 
 function showWrongFeedback(word, wrongText) {

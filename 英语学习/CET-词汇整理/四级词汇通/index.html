@@ -198,15 +198,9 @@
   .quiz-card.with-ans .opt.dim { opacity: .55; }
   .opt-tap { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: inline-flex; opacity: .55; }
   .opt-tap svg { width: 15px; height: 15px; }
-  /* 答错轻量条(替代原红色大反馈框):巧记+生词本 */
-  .wrong-strip { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
-  .wrong-strip .book-toggle { width: auto; margin-top: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
-  .strip-memo {
-    flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 10px 14px;
-    border-radius: 12px; border: 1px dashed var(--amber); background: transparent;
-    color: var(--amber); font-size: 14px; cursor: pointer;
-  }
-  .strip-memo svg { width: 15px; height: 15px; }
+  /* 答错轻量条(替代原红色大反馈框):巧记直接显示+生词本 */
+  .wrong-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .wrong-strip .wrong-memo { margin-top: 0; }
   /* 桌面端数字键提示(键盘 1-4 可选);触屏不显示 */
   .opt-key { display: none; }
   @media (hover: hover) {
@@ -846,9 +840,8 @@
           </div>
         </div>
       </div>
-    </div>
-    <div class="sec-cap">外观</div>
-    <div class="settings-card">
+      <div class="set-div"></div>
+      <div class="cfg-title" style="margin:0 0 8px">外观</div>
       <div class="set-row">
         <label style="flex:1">深色模式<br><span style="font-size:12px;color:var(--ink-soft)">跟随系统或手动锁定</span></label>
         <div class="set-ctrl" id="themeChips" style="gap:8px">

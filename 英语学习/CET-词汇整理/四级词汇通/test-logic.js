@@ -377,7 +377,7 @@ console.log('\n[15] 巧记：数据接入、答错反馈、列表查看');
   fbZone.innerHTML = '';
   g(`showWrongFeedback('negotiate', null)`);
   ok(!fbZone.innerHTML.includes('wp-sep'), '答错对照为叠层布局（无 / 分隔符）');
-  ok(fbZone.innerHTML.includes('strip-memo'), '答错轻量条含巧记入口(negotiate 有巧记)');
+  ok(fbZone.innerHTML.includes('wrong-memo'), '答错轻量条直接显示巧记(negotiate 有巧记)');
   ok(fbZone.innerHTML.includes('wrongBookBtn'), '答错轻量条含生词本按钮');
   // 简单词答错不显示巧记行
   fbZone.innerHTML = '';
@@ -452,8 +452,11 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   g('libGroupOpen = undefined; refreshHome()');
   const libHtml = documentStub.getElementById('libList').innerHTML;
   ok(libHtml.includes('四六级') && libHtml.includes('学段词汇') && libHtml.includes('蝶变系列'), '渲染 3 个系列分组行');
-  ok((libHtml.match(/confirmSwitchLib/g) || []).length === 6, `默认只展开当前分组（四六级 6 个 chip，共 ${g('Object.keys(LIBS).length')} 库）`);
-  ok(libHtml.includes('master-tab active'), '当前词库 chip 高亮');
+  ok((libHtml.match(/confirmSwitchLib/g) || []).length === 0, '默认全部收起(点组名再展开,不再自动展开当前组)');
+  g("toggleLibGroup('四六级')");
+  const cetHtml = documentStub.getElementById('libList').innerHTML;
+  ok((cetHtml.match(/confirmSwitchLib/g) || []).length === 6, '展开四六级 6 个 chip');
+  ok(cetHtml.includes('master-tab active'), '当前词库 chip 高亮');
   // 展开蝶变系列：小学版（原 diebian 改名）+ 初中版
   ok(g("LIBS['diebian'].name").includes('小学版'), '原蝶变单词已改名（小学版），key 不变保进度');
   ok(g("LIBS['diebian_junior'].words.length") === 1887, '蝶变初中版入库 1887 词（2018 行同词合并释义）');
@@ -488,11 +491,10 @@ console.log('\n[18] 答错选项揭示:正确/所选项展开双行,其余可点
   ok(!fb.includes('feedback bad'), '红色大反馈框已取消');
   // 揭示后的选项(纯函数):正确项+所选项展开"单词+汉译"双行,其余 2 项折叠可点看
   const html = g(`revealOptionsHtml(session.q, ${badIdx})`);
-  ok(html.includes('opt correct') && html.includes('opt wrong'), '正确项与所选项展开高亮');
-  ok((html.match(/opt-w/g) || []).length === 2, '2 个展开项含"单词+汉译"双行');
+  ok(html.includes('opt correct') && html.includes('opt wrong'), '正确项与所选项高亮');
+  ok((html.match(/opt-w/g) || []).length === 1, '仅所选项展开"单词+汉译"双行(正确项保持原样)');
   ok((html.match(/opt dim/g) || []).length === 2, '其余 2 个干扰项折叠');
   ok(html.includes('revealOpt('), '折叠项绑定"点看汉译"');
-  ok(g(`revealOptionsHtml(session.q, ${badIdx}).includes(session.q.answer)`) === true, '正确项双行含答案单词');
   ok(g(`revealOptionsHtml(session.q, ${badIdx}).indexOf(session.q.options[${badIdx}].text) >= 0`) === true, '所选项双行含其释义');
   // 点「不会」:无所选项,仅正确项展开,3 个干扰项折叠
   g('state = defaultState(); saveState();');
@@ -503,8 +505,9 @@ console.log('\n[18] 答错选项揭示:正确/所选项展开双行,其余可点
   // 释义反查仍可用(展开项的单词来源)
   const def = g(`WORD_MAP.get('${w}')`);
   ok(g(`reverseDefToWord(${JSON.stringify(def)}, null)`) !== null, 'reverseDefToWord 能反查单词');
-  // 汉译英方向:选项是单词,展开补汉译
-  const revHtml = g(`revealOptionsHtml(makeQuestion('${w}', true), 0)`);
+  // 汉译英方向:选项是单词,所选错项展开补汉译(固定同一题对象避免随机排序抖动)
+  g(`globalThis.__revQ = makeQuestion('${w}', true); globalThis.__revBad = __revQ.options.findIndex(o => !o.isAnswer);`);
+  const revHtml = g('revealOptionsHtml(__revQ, __revBad)');
   ok(revHtml.includes('opt-w') && revHtml.includes('opt dim'), '汉译英方向同样展开双行');
   // 旧点看标签机制已删
   ok(g('typeof toggleDefChip') === 'undefined', 'def-chips 点看机制已移除(由选项内点看替代)');
