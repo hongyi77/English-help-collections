@@ -1685,6 +1685,120 @@ console.log('\n[41] bucketCounts 与逐桶过滤口径一致');
   g('state = defaultState(); saveState();');
 })();
 
+/* ================= 42. 拼写选择计入 + 错词重练 + 快扫两段式 + 主题 ================= */
+console.log('\n[42] 拼写阶段选择计入进度');
+(() => {
+  g('state = defaultState(); state.settings.dailyNew = 1; saveState();');
+  g('startStudy()');
+  // 识别阶段答对 1 次 → 进入拼写询问
+  let guard = 0;
+  while (g('session && session.phase') === 'recognize' && guard++ < 50) {
+    g(`(() => {
+      const goodIdx = session.q.options.findIndex(o => o.isAnswer);
+      recognizeAnswer(goodIdx, null);
+    })()`);
+  }
+  ok(g('session && session.phase') === 'spellAsk', '识别完成进入拼写询问');
+  const w = g('session.queue[0]');
+  g('startSpellStage()');
+  ok(g('session.spellCounts') === true, '选择开始拼写=会话标记计入');
+  ok(g('session.phase') === 'spell', '进入拼写阶段');
+  // 拼错一次 → 按复习答错计入:stage 保持 1(下限)、due≈10分钟后、lapse 累计、history 记答错
+  documentStub.getElementById('spellInput').value = 'zzz-错的';
+  g('checkSpell()');
+  const rec1 = g(`curWords()['${w}']`);
+  ok(rec1.lapses === 1, '拼错计入 lapse(顽固词计数)');
+  ok(Math.abs(rec1.due - (Date.now() + 10 * 60 * 1000)) < 5000, '拼错 due 排到约 10 分钟后(回到复习队列)');
+  ok(g(`(state.history[dateKey()].wrongs || []).some(e => Array.isArray(e) && e[1] === '${w}')`) === true, '拼错写入当天 history 答错');
+  // 反馈后前进 → 错词重现,连拼对 2 次完成;拼对不重复提交(due 保持 ≈10分钟后,stage 不升)
+  guard = 0;
+  while (g('session && session.phase') === 'spell' && g(`!(session.records.get('${w}')||{}).done`) && guard++ < 50) {
+    if (g('session.answered')) { g('advanceSpellAfterWrong()'); continue; }
+    documentStub.getElementById('spellInput').value = g('session.word');
+    g('checkSpell()');
+  }
+  const rec2 = g(`curWords()['${w}']`);
+  ok(rec2.stage === 1, '拼对不重复提交(stage 仍为识别时提交的 1,不连升)');
+  ok(Math.abs(rec2.due - (Date.now() + 10 * 60 * 1000)) < 5000, '拼对不改 due(10 分钟重试排期保留)');
+  g('state = defaultState(); saveState();');
+})();
+
+console.log('\n[43] 错词重练(昨日答错→复习会话)');
+(() => {
+  g('state = defaultState(); saveState();');
+  // 昨天:cet4 错 hello、cet6 错同名词(跨库不计)、今天错的也不计
+  g(`(() => {
+    const yd = dateKey(Date.now() - DAY_MS);
+    state.history[yd] = { learned: [], reviewed: [], wrongs: [['cet4','hello'],['cet6','hello']] };
+    state.history[dateKey()] = { learned: [], reviewed: [], wrongs: [['cet4',' abandon']] };
+    saveState();
+  })()`);
+  const bl = g('yesterdayWrongWords()');
+  ok(bl.length === 1 && bl[0] === 'hello', '昨日错词只取当前词库的词(他库/今天的都不算)');
+  // 开重练会话:复习语义,答对升 stage
+  g(`learnWord('hello'); startWrongReview()`);
+  ok(g('session && session.mode') === 'review' && g('session.wrongRe') === true, '错词重练创建复习会话(带来源标记)');
+  ok(g('session.queue') !== null && g(`session.queue.includes('hello')`), '队列含昨日错词');
+  g(`(() => { const i = session.q.options.findIndex(o => o.isAnswer); recognizeAnswer(i, null); })()`);
+  ok(g(`curWords()['hello'].stage`) === 2, '重练答对按复习计入(stage 1→2)');
+  g('state = defaultState(); saveState();');
+})();
+
+console.log('\n[44] 快扫两段式(自评→翻面→记错了改判)');
+(() => {
+  // 练习模式·两段式默认开
+  g(`state = defaultState(); state.settings.quickScope = 'all'; saveState(); quickMode = 'practice'; startQuickSweep()`);
+  const q0 = g('quickRebuild');
+  ok(q0.verify === true && q0.revealed === false, '两段式:第一段未翻面');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('先凭记忆自评'), '第一段只显单词(提示自评)');
+  // 自评不落账
+  g('quickSelfAssess(true)');
+  ok(g('quickRebuild.revealed') === true, '自评后翻面');
+  ok(g('quickRebuild.known') === 0 && g('quickRebuild.unknown') === 0, '自评阶段不计数');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('qs-flip'), '第二段揭示汉译面板');
+  g('quickConfirmNext()');
+  ok(g('quickRebuild.known') === 1 && g('quickRebuild.i') === 1 && g('quickRebuild.revealed') === false, '「下一个」自评生效并复位');
+  // 记错了:按不认识 + 该词追加队尾重现
+  const beforeLen = g('quickRebuild.list.length');
+  const w2 = g('quickRebuild.list[quickRebuild.i]');
+  g('quickSelfAssess(true); quickMarkWrong()');
+  ok(g('quickRebuild.unknown') === 1 && g('quickRebuild.retried') === 1, '「记错了」按不认识计次并累计改判数');
+  ok(g('quickRebuild.list.length') === beforeLen + 1 && g(`quickRebuild.list[quickRebuild.list.length-1]`) === w2, '记错的词追加队尾稍后重现');
+  g('quickExit()');
+  // 重建模式·确认才写入
+  g(`state = defaultState(); state.settings.quickScope = 'all'; saveState(); quickMode = 'rebuild'; startQuickSweep()`);
+  const wr = g('quickRebuild.list[0]');
+  g('quickSelfAssess(true)');
+  ok(g(`curWords()['${wr}']`) === undefined, '自评阶段不写入(翻面前)');
+  g('quickConfirmNext()');
+  ok(g(`curWords()['${wr}'] && curWords()['${wr}'].stage`) === 2, '确认后按认识写入(stage 2/2天后)');
+  const wr2 = g('quickRebuild.list[quickRebuild.i]');
+  g('quickSelfAssess(false); quickConfirmNext()');
+  ok(g(`curWords()['${wr2}'].stage`) === 1, '自评不认识确认后写入(stage 1/明天)');
+  g('quickExit()');
+  // 开关关:回到单段模式
+  g(`setQuickVerify(false)`);
+  ok(g('state.settings.quickVerify') === false, '答案校验开关可关闭');
+  g(`quickMode = 'practice'; startQuickSweep()`);
+  ok(g('quickRebuild.verify') === false, '关闭后快扫为单段模式');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('这个词认识吗'), '单段模式单词汉译同屏');
+  g('quickExit()');
+  g('state = defaultState(); saveState();');
+})();
+
+console.log('\n[45] 外观主题(深色模式)设置');
+(() => {
+  ok(g('themeIsDark("auto", true)') === true && g('themeIsDark("auto", false)') === false, 'auto 跟随系统');
+  ok(g('themeIsDark("dark", false)') === true && g('themeIsDark("light", true)') === false, '手动锁定优先于系统');
+  ok(g('normTheme("bogus")') === 'auto' && g('normTheme(undefined)') === 'auto', '非法主题值回落 auto');
+  // 存档归一
+  g(`state.settings.theme = '不存在的'; flushState(); state = loadState();`);
+  ok(g('state.settings.theme') === 'auto', '旧档/非法档主题归一为 auto');
+  g('setTheme("dark")');
+  ok(g('state.settings.theme') === 'dark', 'setTheme 存档记住选择');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

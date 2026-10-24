@@ -58,6 +58,14 @@ function refreshHome() {
   // tab 徽章:待复习数 / 生词本数
   setTabBadge('tabBadgeStudy', s.due);
   setTabBadge('tabBadgeBook', s.inBook);
+  // 错词重练入口:昨天有答错才显示(走复习语义计入进度)
+  const wre = document.getElementById('wrongReEntry');
+  if (wre) {
+    const n = yesterdayWrongWords().length;
+    wre.style.display = n ? 'flex' : 'none';
+    const cnt = document.getElementById('wrongReCount');
+    if (cnt) cnt.textContent = n;
+  }
   // 听力练习(听写+听音辨义)依赖发音能力:Edge朗读/在线音源(音频元素)/系统 TTS 任一即可;微信/QQ 内置等无 TTS 仍可用在线音源
   const dictEntry = document.getElementById('dictationEntry');
   if (dictEntry) dictEntry.style.display = canSpeakHere() ? 'flex' : 'none';
@@ -125,6 +133,7 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  renderThemeSettings();
   renderAlgoSettings();
   renderVoiceSettings();
   renderLibPicker();
@@ -171,6 +180,23 @@ function setFsrsRetention(v) {
   state.settings.fsrsRetention = v;
   saveState();
   refreshSettings();
+}
+
+/* ---------------- 外观主题（深色模式） ----------------
+ * 三态:跟随系统/浅色/深色;html 上的 dark-vars 类驱动全部 CSS 变量切换,
+ * theme-color meta 跟随,系统主题变化时(auto 模式)实时跟随 */
+function setTheme(v) {
+  state.settings.theme = normTheme(v);
+  saveState();
+  applyTheme();
+  refreshSettings();
+}
+
+function renderThemeSettings() {
+  const cur = normTheme(state.settings.theme);
+  document.querySelectorAll('#themeChips button[data-theme]').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === cur);
+  });
 }
 
 /* ---------------- 发音设置（音源/试听/Edge音色/设备TTS声音选择器） ---------------- */
@@ -649,6 +675,21 @@ function noReviewHtml() {
       </div>
     </div>
   `;
+}
+
+/* ---------------- 错词重练（首页入口） ----------------
+ * 昨天 history 里答错过的词(当前词库)直接开一个复习会话:
+ * 答对 reviewCorrect / 答错 reviewWrong,全程计入进度;拼写阶段受「选择计入」规则约束 */
+function startWrongReview() {
+  const list = yesterdayWrongWords();
+  if (!list.length) return;
+  session = null; quickRebuild = null;
+  document.getElementById('studyQuiz').innerHTML = '';
+  document.getElementById('reviewQuiz').innerHTML = '';
+  session = makeSession('review', shuffle(list));
+  session.wrongRe = true;   // 来源标记:完成页文案区分
+  go('screen-review');
+  renderStudyRecognize();
 }
 
 /* ---------- 识别阶段（学习/复习共用） ----------
@@ -1528,7 +1569,7 @@ function removeFromQueue(word) {
   if (session.retries) session.retries = session.retries.filter(w => w !== word);
 }
 
-/* ---------- 拼写询问（可选） ---------- */
+/* ---------- 拼写询问（可选,计入与否由选择决定） ---------- */
 function spellAskHtml() {
   const total = session.queue.length;
   const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
@@ -1537,9 +1578,9 @@ function spellAskHtml() {
       <div class="icon">${icon("keyboard")}</div>
       <h2>识别完成！</h2>
       <p>共 ${total} 词 · 答错 ${session.wrong} · ${hard} 个需重记</p>
-      <p style="margin-top:6px;font-size:14px;color:var(--ink-soft)">要不要基于刚才的单词练习拼写？可跳过。</p>
+      <p style="margin-top:6px;font-size:14px;color:var(--ink-soft);line-height:1.7">拼错会按「复习答错」计入进度（降级、10 分钟后回到复习队列、累计顽固词）；<br>拼对不重复计分。跳过则完全不影响。</p>
       <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
-        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} 开始拼写</button>
+        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} 开始拼写（计入）</button>
         <button class="btn-ghost" onclick="finishSession()">跳过，直接完成</button>
       </div>
     </div>
@@ -1575,6 +1616,7 @@ function bindSpellInput(onKey) {
 
 function startSpellStage() {
   session.spellOn = true;
+  session.spellCounts = true;   // 选择拼写=接受计入:拼错按复习答错处理,拼对不重复提交(识别已提交)
   session.phase = 'spell';
   session.idx = 0;
   renderSpellStage();
@@ -1658,7 +1700,8 @@ function checkSpell() {
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
-    // 拼写是纯练习，不改学习状态（识别阶段已提交）
+    // 计入:拼错=复习答错(降级/10分钟重试/lapse/答错记录;生词本仍由按钮手动决定)
+    if (session.spellCounts) reviewWrong(word, false);
     // 答错不卡住：进拼写错词池，稍后穿插重现
     if (!session.spellRetries) session.spellRetries = [];
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
@@ -1691,7 +1734,7 @@ function finishSession() {
 }
 
 function doneHtml() {
-  const mode = session.mode === 'study' ? '学习' : '复习';
+  const mode = session.mode === 'study' ? '学习' : (session.wrongRe ? '错词重练' : '复习');
   const total = session.queue.length;
   const hardCount = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const g = goalInfo();
@@ -3014,7 +3057,7 @@ function renderMasterList() {
 
   el.innerHTML = `
     <div class="list-card master-toolbar">
-      <span style="font-size:14px;color:var(--muted)">${label} · 共 ${totalInClass} 词${masterSearch ? ` · 匹配 ${words.length} 个` : ''}</span>
+      <span style="font-size:14px;color:var(--ink-soft)">${label} · 共 ${totalInClass} 词${masterSearch ? ` · 匹配 ${words.length} 个` : ''}</span>
       <button class="toolbar-btn" onclick="confirmResetClass('${masterTab}')">重置本分类全部</button>
     </div>
     ${rows}
@@ -3328,6 +3371,12 @@ function setQuickMode(v) {
   quickMode = v;
   renderQuickConfig();
 }
+/* 答案校验开关:开=两段式(自评→翻面可改判),关=单段(单词汉译同屏直接点) */
+function setQuickVerify(v) {
+  state.settings.quickVerify = !!v;
+  saveState();
+  renderQuickConfig();
+}
 
 function renderQuickConfig() {
   const el = document.getElementById('quickQuiz');
@@ -3347,6 +3396,11 @@ function renderQuickConfig() {
         <button class="master-tab ${mode === 'practice' ? 'active' : ''}" onclick="setQuickMode('practice')">复习练习(不改数据)</button>
         <button class="master-tab ${mode === 'rebuild' ? 'active' : ''}" onclick="setQuickMode('rebuild')">进度重建(写入)</button>
       </div>
+      <div class="cfg-title">答案校验 <span class="mt-cnt">先自评再翻面，可改判「记错了」</span></div>
+      <div class="cfg-chips" style="margin-bottom:2px">
+        <button class="master-tab ${state.settings.quickVerify !== false ? 'active' : ''}" onclick="setQuickVerify(true)">开（两段式）</button>
+        <button class="master-tab ${state.settings.quickVerify === false ? 'active' : ''}" onclick="setQuickVerify(false)">关（单词汉译同屏）</button>
+      </div>
       <div class="cfg-title">题库</div>
       <div class="cfg-chips" style="margin-bottom:2px">${libChips}</div>
       ${scopeCfgHtml('quick')}
@@ -3363,7 +3417,11 @@ function startQuickSweep() {
   let list = practicePool('quick');
   if (quickMode === 'rebuild') list = list.filter(w => !curWords()[w]);
   if (!list.length) return;
-  quickRebuild = { list: shuffle(list), i: 0, known: 0, unknown: 0, write: quickMode === 'rebuild' };
+  quickRebuild = {
+    list: shuffle(list), i: 0, known: 0, unknown: 0, write: quickMode === 'rebuild',
+    verify: state.settings.quickVerify !== false,   // 两段式:先自评再翻面校验
+    revealed: false, selfKnown: false, retried: 0,
+  };
   go('screen-study');
   renderQuickRebuild();
 }
@@ -3383,6 +3441,10 @@ function prefetchQuickAudio() {
   }
 }
 
+/* 快扫卡片。两段式(答案校验开,默认):
+ *   第一段只显单词 → 自评「认识/不认识」(此时不写入)
+ *   第二段揭示汉译 → 「记错了」按不认识处理且该词稍后重现 / 「下一个」自评生效
+ * 校验关(自信用户): 单词+汉译同屏,点认识/不认识直接生效——回到单段模式 */
 function renderQuickRebuild() {
   const el = document.getElementById('studyQuiz');
   if (!el) return;
@@ -3393,7 +3455,7 @@ function renderQuickRebuild() {
       <div class="quiz-card session-done">
         <div class="icon">${icon('circle-check')}</div>
         <h2>${q.write ? '这一轮扫完了' : '本轮结束'}</h2>
-        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词<br>${q.write
+        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词${q.retried ? ` · 改判记错 ${q.retried} 次` : ''}<br>${q.write
           ? '不认识的词明天会出现在复习里,反复过几轮就补回来了。'
           : '纯练习,学习数据没有任何变化。'}</p>
         <button class="next-btn" onclick="startQuickSweep()">再来一轮</button>
@@ -3403,37 +3465,107 @@ function renderQuickRebuild() {
   }
   const w = q.list[q.i];
   const def = WORD_MAP.get(w) || '';
-  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" onclick="speakQuickWord()">${icon('volume-2')}</button>` : '';
-  el.innerHTML = `
-    <div class="quiz-card">
-      <span class="quiz-type">${icon('sparkles')} ${q.write ? '进度重建' : '快速复习'} ${q.i + 1} / ${q.list.length}</span>
-      <p class="quiz-prompt">${escapeHtml(w)}${speakBtn}</p>
-      <p style="text-align:center;color:var(--muted);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
-      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.write
-        ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
-        : '这个词认识吗？（纯练习，不影响进度）'}</p>
-      <div class="wrong-actions">
-        <button class="next-btn" style="background:var(--amber)" onclick="quickAnswer(false)">不认识</button>
-        <button class="next-btn" style="background:var(--green)" onclick="quickAnswer(true)">认识</button>
-      </div>
-      <div class="wrong-actions" style="margin-top:0">
-        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickSkip()">跳过</button>
-        <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束</button>
-      </div>
+  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" aria-label="朗读" onclick="speakQuickWord()">${icon('volume-2')}</button>` : '';
+  const head = `<span class="quiz-type">${icon('sparkles')} ${q.write ? '进度重建' : '快速复习'} ${q.i + 1} / ${q.list.length}</span>`;
+  const prompt = `<p class="quiz-prompt">${escapeHtml(w)}${speakBtn}</p>`;
+  const skipRow = `
+    <div class="wrong-actions" style="margin-top:10px">
+      <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickSkip()">跳过</button>
+      <button class="btn-ghost" style="flex:1;padding:10px 0;border-radius:12px" onclick="quickExit()">结束</button>
     </div>`;
+
+  if (!q.verify) {
+    // 单段模式(现状): 单词+汉译同屏,自评即生效
+    el.innerHTML = `
+      <div class="quiz-card">
+        ${head}
+        ${prompt}
+        <p style="text-align:center;color:var(--ink-soft);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
+        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.write
+          ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
+          : '这个词认识吗？（纯练习，不影响进度）'}</p>
+        <div class="wrong-actions">
+          <button class="next-btn" style="background:var(--amber)" onclick="quickAnswer(false)">不认识</button>
+          <button class="next-btn" style="background:var(--green)" onclick="quickAnswer(true)">认识</button>
+        </div>
+        ${skipRow}
+      </div>`;
+  } else if (!q.revealed) {
+    // 第一段:只显单词,先凭记忆自评(不写入)
+    el.innerHTML = `
+      <div class="quiz-card">
+        ${head}
+        ${prompt}
+        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">先凭记忆自评，下一屏揭示汉译</p>
+        <div class="wrong-actions">
+          <button class="next-btn" style="background:var(--amber)" onclick="quickSelfAssess(false)">不认识</button>
+          <button class="next-btn" style="background:var(--green)" onclick="quickSelfAssess(true)">认识</button>
+        </div>
+        ${skipRow}
+      </div>`;
+  } else {
+    // 第二段:揭示汉译。自评「认识」的给「记错了」改判(按不认识且稍后重现);自评「不认识」的直接下一个
+    const flipCls = q.selfKnown ? 'qs-flip known' : 'qs-flip unknown';
+    const actions = q.selfKnown
+      ? `<button class="next-btn" style="background:var(--amber)" onclick="quickMarkWrong()">${icon('rotate-ccw')} 记错了</button>
+         <button class="next-btn" style="background:var(--green)" onclick="quickConfirmNext()">下一个</button>`
+      : `<button class="next-btn" style="background:var(--green)" onclick="quickConfirmNext()">下一个</button>`;
+    el.innerHTML = `
+      <div class="quiz-card">
+        ${head}
+        ${prompt}
+        <div class="${flipCls}">${escapeHtml(def)}</div>
+        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.selfKnown
+          ? '和你记的一样吗？不一样就点「记错了」，这个词稍后会再出现'
+          : '对照汉译记住它，点下一个继续'}</p>
+        <div class="wrong-actions">${actions}</div>
+        ${skipRow}
+      </div>`;
+  }
   prefetchQuickAudio();
   if (state.settings.autoSpeak) speakWord(w);
 }
 
-function quickAnswer(known) {
+/* 两段式·第一段:记下自评并翻面(不写入任何数据) */
+function quickSelfAssess(known) {
+  const q = quickRebuild;
+  if (!q) return;
+  q.selfKnown = !!known;
+  q.revealed = true;
+  renderQuickRebuild();
+}
+
+/* 两段式·第二段「下一个」:自评生效 */
+function quickConfirmNext() {
+  const q = quickRebuild;
+  if (!q) return;
+  quickApplyAnswer(q.selfKnown);
+}
+
+/* 两段式·第二段「记错了」:自评作废按不认识处理,该词追加到队尾稍后重现 */
+function quickMarkWrong() {
+  const q = quickRebuild;
+  if (!q) return;
+  const w = q.list[q.i];
+  quickApplyAnswer(false);
+  q.list.push(w);
+  q.retried++;
+}
+
+/* 快扫作答落账:重建模式写进度,练习模式只计次;单段模式的 quickAnswer 与
+ * 两段式确认走同一入口 */
+function quickApplyAnswer(known) {
   const q = quickRebuild;
   if (!q) return;
   const w = q.list[q.i];
   if (q.write) quickMark(w, known);
   if (known) q.known++; else q.unknown++;
   q.i++;
+  q.revealed = false;
   renderQuickRebuild();
 }
+
+function quickAnswer(known) { quickApplyAnswer(known); }
 
 function quickSkip() {
   const q = quickRebuild;
@@ -3449,8 +3581,18 @@ function quickExit() {
 
 /* ---------------- 初始化 ---------------- */
 renderIcons();
+applyTheme();          // 尽早套用主题,避免浅色闪屏(设置存档在 app.js 已就绪)
 refreshHome();
 refreshSettings();
+/* auto 模式下系统主题切换实时跟随(手动锁定时不跟随) */
+(function () {
+  if (typeof window === 'undefined' || !window.matchMedia || !window.matchMedia.addEventListener) return;
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (normTheme(state.settings.theme) === 'auto') applyTheme();
+    });
+  } catch (e) { /* 老浏览器忽略 */ }
+})();
 
 /* ---------------- 数据诊断面板(2026-10-02 清档事故排查工具) ----------------
  * 展示:SW 缓存版本 / 原始存档大小与解析状态 / 词记录数 / 历史天数 / 备份键。

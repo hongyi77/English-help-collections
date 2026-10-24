@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS = {
   dictKind: 'write',                                      // 听力练习类型:write 听音写词 / pick 听音辨义(两类共用范围/数量/自选词单)
   dictPause: 1, dictRate: DEFAULT_RATE, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   quickScope: 'all', quickWords: [],                      // 快速复习/重建:范围 + 自选词单(两模式共用)
+  quickVerify: true,                                       // 快扫答案校验(两段式):先自评再翻面,可改判「记错了」
+  theme: 'auto',                                           // 外观:auto 跟随系统 / light / dark
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   edgePack: null,                                         // Edge发音离线包元数据 {lib,voice,rate,words,ts},null=未下载(音频本体在 IndexedDB)
   ttsEngVoiceName: '', ttsZhVoiceName: '',                // 设备TTS声音(空=自动优选),音源降级时用
@@ -504,6 +506,9 @@ function loadState() {
     // 复习算法与 FSRS 保持率缺省校验
     if (!['ebbinghaus', 'fsrs'].includes(s.settings.reviewAlgo)) s.settings.reviewAlgo = 'ebbinghaus';
     if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
+    // 快扫答案校验与外观主题缺省校验
+    s.settings.quickVerify = s.settings.quickVerify !== false;
+    if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
     // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')。
     // 注意:这里必须用字面量数组,不能引用文件后段(line ~770)的 DATE_CATS——
     // 冷启动时它还没初始化,引用即 TDZ 异常,而本函数在带存档时必然执行
@@ -811,6 +816,36 @@ function wordsTouchedOn(dk, cat) {
 }
 
 /* scope='date' 时按模式读各自选的日期（spellDate/dictDate）与当天内容分类（spellDateCat/dictDateCat） */
+/* 昨天答错过、且属于当前词库的词(首页「错词重练」入口取词;跨库错词在各自词库下练) */
+function yesterdayWrongWords() {
+  return wordsTouchedOn(dateKey(Date.now() - DAY_MS), 'wrong');
+}
+
+/* ---------------- 外观主题 ----------------
+ * settings.theme: 'auto' 跟随系统 / 'light' / 'dark'。
+ * themeIsDark 纯函数(可测);applyTheme 落到 <html> 的 dark-vars 类与 theme-color meta。 */
+function normTheme(v) {
+  return (v === 'light' || v === 'dark') ? v : 'auto';
+}
+
+function themeIsDark(mode, systemDark) {
+  const m = normTheme(mode);
+  return m === 'dark' || (m === 'auto' && !!systemDark);
+}
+
+const THEME_COLORS = { light: '#F6F0E4', dark: '#17191F' };
+
+function applyTheme() {
+  const root = typeof document !== 'undefined' ? document.documentElement : null;
+  if (!root || !root.classList) return;   // 测试沙箱无 documentElement
+  const systemDark = !!(typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const dark = themeIsDark(state.settings.theme, systemDark);
+  root.classList.toggle('dark-vars', dark);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta && meta.setAttribute) meta.setAttribute('content', dark ? THEME_COLORS.dark : THEME_COLORS.light);
+}
+
 function practiceDateOf(kind) {
   return state.settings[(kind || 'spell') + 'Date'] || '';
 }

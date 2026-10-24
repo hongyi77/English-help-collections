@@ -553,6 +553,50 @@
   .show-ans-btn svg { width: 15px; height: 15px; }
   .book-toggle svg { width: 15px; height: 15px; }
   .master-tab svg { width: 14px; height: 14px; }
+
+  /* ---------- 首页·错词重练入口 ---------- */
+  .big-action.wrong-re .ba-ico { background: var(--red-soft); color: var(--pen-red); }
+
+  /* ---------- 快扫两段式·翻面揭示的汉译 ---------- */
+  .qs-flip {
+    margin: 4px 0 10px; padding: 12px 14px; border-radius: 10px; text-align: center;
+    font-size: 16px; line-height: 1.6; background: var(--blue-soft); color: var(--ink);
+    animation: rise .2s ease-out;
+  }
+  .qs-flip.unknown { background: var(--amber-soft); }
+
+  /* ---------- 深色模式(html.dark-vars 由 ui.js 按设置/系统切换) ----------
+   * 换一套 CSS 变量即可覆盖绝大部分观感;个别"浅底白字"按钮在深色下反转为"浅底深字"保对比度 */
+  :root.dark-vars {
+    --paper: #17191F;
+    --card: #1F232C;
+    --ink: #E9E4D8;
+    --ink-soft: #9C9686;
+    --ink-blue: #82B4E3;
+    --ink-blue-deep: #A6CAEE;   /* 深色下 hover 提亮(浅色语义是加深) */
+    --pen-red: #E5806A;
+    --green: #82C79F;
+    --amber: #D9A84E;
+    --hairline: #333844;
+    --blue-soft: #263547;
+    --red-soft: #3D2A26;
+    --green-soft: #22352B;
+    --amber-soft: #383023;
+    --shadow: 0 3px 12px rgba(0, 0, 0, .35);
+  }
+  :root.dark-vars body { background-image: radial-gradient(rgba(130, 180, 227, .06) 1px, transparent 1px); }
+  /* 浅色底强调按钮:深色下改深字,保持对比度 */
+  :root.dark-vars .next-btn,
+  :root.dark-vars .spell-check,
+  :root.dark-vars .master-tab.active,
+  :root.dark-vars .tabbar .tab-badge { color: #0D1B2A; }
+  :root.dark-vars .btn-danger { color: #2B1005; }
+  :root.dark-vars .ico-slate { background: #333A4C; }
+  /* 热力图墨蓝加深色底对比不足,换亮蓝梯度 */
+  :root.dark-vars .hm-1 { fill: rgba(130, 180, 227, .22); }
+  :root.dark-vars .hm-2 { fill: rgba(130, 180, 227, .45); }
+  :root.dark-vars .hm-3 { fill: rgba(130, 180, 227, .7); }
+  :root.dark-vars .hm-4 { fill: var(--ink-blue); }
 </style>
 </head>
 <body>
@@ -604,6 +648,11 @@
         <span class="ba-ico" data-icon="repeat"></span>
         <span class="ba-txt"><b>复习单词</b><i>到期单词按记忆曲线重现</i></span>
         <span class="badge rev" id="badgeReview">0</span>
+      </button>
+      <button class="big-action wrong-re" id="wrongReEntry" onclick="startWrongReview()" style="display:none">
+        <span class="ba-ico" data-icon="rotate-ccw"></span>
+        <span class="ba-txt"><b>错词重练 <span class="mt-cnt" id="wrongReCount">0</span></b><i>昨天答错的词 · 按复习计入进度</i></span>
+        <span class="arrow">›</span>
       </button>
       <div class="sec-cap">练习工具 · 纯练习不改进度</div>
       <div class="tool-grid">
@@ -769,6 +818,17 @@
             <button class="master-tab" data-ret="0.9" onclick="setFsrsRetention(0.9)">90%</button>
             <button class="master-tab" data-ret="0.95" onclick="setFsrsRetention(0.95)">95%</button>
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="sec-cap">外观</div>
+    <div class="settings-card">
+      <div class="set-row">
+        <label style="flex:1">深色模式<br><span style="font-size:12px;color:var(--ink-soft)">跟随系统或手动锁定</span></label>
+        <div class="set-ctrl" id="themeChips" style="gap:8px">
+          <button class="master-tab" data-theme="auto" onclick="setTheme('auto')">跟随系统</button>
+          <button class="master-tab" data-theme="light" onclick="setTheme('light')">浅色</button>
+          <button class="master-tab" data-theme="dark" onclick="setTheme('dark')">深色</button>
         </div>
       </div>
     </div>
