@@ -327,7 +327,6 @@
     .toolbar-btn:hover, .data-btn:hover, .btn-ghost:hover { background: var(--blue-soft); }
     .list-speak:hover, .list-memo-btn:hover, .list-del:hover { opacity: 1; }
     .show-ans-btn:hover { background: var(--paper); }
-    .big-action:hover, .tool-card:hover { border-color: var(--ink-blue); }
     .def-chip:hover { color: var(--ink-blue); border-color: var(--ink-blue); }
   }
 
@@ -368,7 +367,8 @@
     background: var(--card); box-shadow: var(--shadow); cursor: pointer; text-align: left;
   }
   .big-action:active { background: var(--paper); }
-  .big-action.primary { border-color: var(--ink-blue); }
+  /* 主操作用蓝色标题标识——不用边框色,避免与悬停/选中态撞色(误以为"一直被悬停") */
+  .big-action.primary .ba-txt b { color: var(--ink-blue); }
   .ba-ico { width: 44px; height: 44px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: var(--blue-soft); }
   .big-action.rev .ba-ico { background: var(--amber-soft); }
   .big-action.grn .ba-ico { background: var(--green-soft); }
