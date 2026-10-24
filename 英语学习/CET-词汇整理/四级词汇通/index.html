@@ -19,6 +19,12 @@
   :root {
     color-scheme: light;   /* 原生控件(日期/下拉/滚动条)跟随浅色;dark-vars 下切深色 */
     --top-h: calc(54px + env(safe-area-inset-top, 0px));   /* 顶栏高:含刘海安全区(PWA独立窗口) */
+    /* 间距令牌(8pt 网格):卡片间距用 --sp-4,卡内节奏 --sp-2/--sp-3,区块分隔 --sp-5 */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
     --paper: #F6F0E4;
     --card: #FFFCF5;
     --ink: #23283A;
@@ -75,22 +81,32 @@
   body.kbd-open .practice-foot { bottom: var(--kb-h, 0px); }
   .wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; }
 
-  /* ---------- 统计 · 账本行 ---------- */
-  .stats-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
-    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
+  /* ---------- 首页 · 账本行(纯文字概览,不再套卡片盒) ---------- */
+  .ledger-row {
+    display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap;
+    gap: var(--sp-1); padding: var(--sp-1) 0 14px;
+    font-size: 13px; color: var(--ink-soft);
   }
-  .stat-card { padding: 14px 4px; text-align: center; border-right: 1px solid var(--hairline); }
-  .stat-card:last-child { border-right: none; }
+  .ledger-row b { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin-left: 2px; }
+  .ledger-row i { font-style: normal; opacity: .45; }
+
+  /* ---------- 统计 · 2×2 账本格(词汇页) ---------- */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
+    overflow: hidden; margin-bottom: var(--sp-4);
+  }
+  .stat-card { padding: var(--sp-4) var(--sp-2) 13px; text-align: center; }
+  .stat-card:nth-child(odd) { border-right: 1px solid var(--hairline); }
+  .stat-card:nth-child(-n+2) { border-bottom: 1px solid var(--hairline); }
   .stat-card .num { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--ink-blue); line-height: 1.1; }
-  .stat-card .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .stat-card .lbl { font-size: 12px; color: var(--ink-soft); margin-top: var(--sp-1); }
   .stat-card .num.green { color: var(--green); }
   .stat-card .num.amber { color: var(--amber); }
   .stat-card .num.red { color: var(--pen-red); }
 
   /* ---------- 今日目标卡片 ---------- */
-  .goal-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 16px 14px; margin-bottom: 16px; }
+  .goal-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; padding: var(--sp-4) var(--sp-4) 14px; margin-bottom: var(--sp-4); }
   .goal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .goal-title { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); letter-spacing: .5px; }
   .goal-date { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
@@ -112,7 +128,7 @@
   .badge.book { background: var(--red-soft); color: var(--pen-red); }
 
   /* ---------- 设置 ---------- */
-  .settings-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+  .settings-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; padding: var(--sp-4); margin-bottom: 14px; }
   .settings-card h3 { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--ink-blue); margin-bottom: 12px; letter-spacing: .5px; }
   .set-div { height: 1px; background: var(--hairline); margin: 14px 0; }
   .set-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -245,7 +261,7 @@
   .done-list .list-def { font-size: 11px; }
 
   /* ---------- 生词本 / 列表 ---------- */
-  .list-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 10px; }
+  .list-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; margin-bottom: var(--sp-3); }
   .list-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--hairline); gap: 12px; }
   .list-item:last-child { border-bottom: none; }
   .list-word { font-family: var(--serif); font-weight: 700; font-size: 18px; color: var(--ink); min-width: 100px; }
@@ -351,17 +367,15 @@
   .ba-txt b { font-size: 17px; color: var(--ink); }
   .ba-txt i { font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
   /* 小节标题(主页练习工具/设置分组共用) */
-  .sec-cap { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 10px; letter-spacing: .5px; }
-  /* 主页练习工具两列小卡 */
-  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .tool-card { display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer; text-align: left; }
+  .sec-cap { font-size: 12px; color: var(--ink-soft); margin: var(--sp-3) 2px 10px; letter-spacing: .5px; }
+  /* 主页练习工具:三列等宽紧凑卡(图标+标题,消灭两列三卡的孤儿行) */
+  .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+  .tool-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-1); background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: var(--shadow); cursor: pointer; text-align: center; }
   .tool-card:active { background: var(--paper); }
   .tool-ico { width: 36px; height: 36px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--blue-soft); }
   .tool-card.grn .tool-ico { background: var(--green-soft); }
   .tool-ico svg { width: 19px; height: 19px; }
-  .tool-txt { display: flex; flex-direction: column; }
-  .tool-txt b { font-size: 14px; color: var(--ink); }
-  .tool-txt i { font-style: normal; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .tool-txt b { font-size: 13px; color: var(--ink); }
 
   /* ---------- 词汇页 · 分段控制 ---------- */
   .seg-tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--hairline); border-radius: 12px; padding: 4px; margin-bottom: 14px; box-shadow: var(--shadow); }
@@ -569,11 +583,10 @@
 <!-- ==================== Tab1 · 学习 ==================== -->
 <div class="screen active tabbed" id="screen-home">
   <div class="wrap">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">总词数</div></div>
-      <div class="stat-card"><div class="num green" id="statMastered">0</div><div class="lbl">已掌握</div></div>
-      <div class="stat-card"><div class="num amber" id="statDue">0</div><div class="lbl">待复习</div></div>
-      <div class="stat-card"><div class="num" id="statUnseen">0</div><div class="lbl">未学习</div></div>
+    <div class="ledger-row" aria-label="词库概览">
+      <span>总词数 <b id="statTotal">0</b></span><i>·</i>
+      <span>已掌握 <b id="statMastered">0</b></span><i>·</i>
+      <span>未学习 <b id="statUnseen">0</b></span>
     </div>
     <div class="goal-card">
       <div class="goal-head">
@@ -610,22 +623,22 @@
       </button>
       <button class="big-action wrong-re" id="wrongReEntry" onclick="startWrongReview()" style="display:none">
         <span class="ba-ico" data-icon="rotate-ccw"></span>
-        <span class="ba-txt"><b>错词重练 <span class="mt-cnt" id="wrongReCount">0</span></b><i>昨天答错的词 · 按复习计入进度</i></span>
+        <span class="ba-txt"><b>错词重练 <span class="mt-cnt" id="wrongReCount">0</span></b><i>昨天答错的词 · 专练巩固，不改进度</i></span>
         <span class="arrow">›</span>
       </button>
       <div class="sec-cap">练习工具 · 纯练习不改进度</div>
       <div class="tool-grid">
       <button class="tool-card grn" onclick="go('screen-spell')">
           <span class="tool-ico" data-icon="pencil-line"></span>
-          <span class="tool-txt"><b>自由拼写</b><i>看释义拼单词</i></span>
+          <span class="tool-txt"><b>自由拼写</b></span>
         </button>
         <button class="tool-card" id="dictationEntry" onclick="go('screen-dictate')">
           <span class="tool-ico" data-icon="ear"></span>
-          <span class="tool-txt"><b>听力练习</b><i>听音写词/辨义</i></span>
+          <span class="tool-txt"><b>听力练习</b></span>
         </button>
         <button class="tool-card grn" onclick="openQuickPractice()">
           <span class="tool-ico" data-icon="sparkles"></span>
-          <span class="tool-txt"><b>快速复习</b><i>快扫自测</i></span>
+          <span class="tool-txt"><b>快速复习</b></span>
         </button>
       </div>
     </div>

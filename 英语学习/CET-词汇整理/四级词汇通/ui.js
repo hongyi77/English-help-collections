@@ -49,9 +49,9 @@ function goHome() { go('screen-home'); }
 /* ---------------- 首页（学习 Tab） ---------------- */
 function refreshHome() {
   const s = stats();
+  // 首页账本行(纯文字):总词数/已掌握/未学习;「待复习」由今日目标卡的复习行承担
   document.getElementById('statTotal').textContent = s.total;
   document.getElementById('statMastered').textContent = s.mastered;
-  document.getElementById('statDue').textContent = s.due;
   document.getElementById('statUnseen').textContent = s.unseen;
   document.getElementById('badgeNew').textContent = Math.min(s.unseen, state.settings.dailyNew);
   document.getElementById('badgeReview').textContent = s.due;
@@ -677,19 +677,96 @@ function noReviewHtml() {
   `;
 }
 
-/* ---------------- 错词重练（首页入口） ----------------
- * 昨天 history 里答错过的词(当前词库)直接开一个复习会话:
- * 答对 reviewCorrect / 答错 reviewWrong,全程计入进度;拼写阶段受「选择计入」规则约束 */
+/* ---------------- 错词重练（首页入口,纯练习） ----------------
+ * 昨天答错的词单独过一遍:不写学习状态/复习排期/每日计数(history 也不动),
+ * 会话有自己的进度(进度条+剩余计数+完成页),与正常复习互不干扰——
+ * "复习管排期,重练管巩固",两边各过一遍记得更牢 */
 function startWrongReview() {
   const list = yesterdayWrongWords();
   if (!list.length) return;
   session = null; quickRebuild = null;
   document.getElementById('studyQuiz').innerHTML = '';
-  document.getElementById('reviewQuiz').innerHTML = '';
-  session = makeSession('review', shuffle(list));
-  session.wrongRe = true;   // 来源标记:完成页文案区分
+  session = makePracticeSession('wrongre', 'wrlist', shuffle(list));
   go('screen-review');
-  renderStudyRecognize();
+  renderWrongReOne();
+}
+
+function renderWrongReOne() {
+  const el = document.getElementById('reviewQuiz');
+  const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
+  if (!remaining.length) {
+    el.innerHTML = practiceDoneHtml('错词重练', '错词重练');
+    return;
+  }
+  const word = pickInterleaved(remaining);   // 错词穿插重现,与其他练习一致
+  session.word = word;
+  session.answered = false;
+  session.q = makeQuestion(word);
+  prefetchUpcomingAudio();
+  const rec = session.records.get(word) || makeRecord();
+  const retryNote = rec.errors > 0 ? `<div class="retry-note">重记词 · 答对 1 次即完成</div>` : '';
+  const pct = Math.round((session.queue.length - remaining.length) / session.queue.length * 100);
+  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" aria-label="朗读" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
+  const optionsHtml = session.q.options.map((o, i) =>
+    `<button class="opt" data-ans="${o.isAnswer}" onclick="wrongReAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
+  ).join('');
+  el.innerHTML = `
+    <div class="quiz-card">
+      <span class="quiz-type">${icon('rotate-ccw')} 错词重练</span>
+      <div class="progress-bar"><span style="width:${pct}%"></span></div>
+      <div class="quiz-prompt">${escapeHtml(word)}${speakBtn}</div>
+      <div class="progress-line">剩余 ${remaining.length} 词 · ✓ ${session.correct} ✗ ${session.wrong} · 纯练习不改进度</div>
+      <div class="options">${optionsHtml}</div>
+      ${retryNote}
+      <div id="wrongReFeedback"></div>
+    </div>
+  `;
+  if (state.settings.autoSpeak) speakWord(word);
+}
+
+/* 错词重练作答:对=完成该词;错=进错词池稍后重现(不写任何学习数据) */
+function wrongReAnswer(idx, btnEl) {
+  if (!session || session.mode !== 'wrongre' || session.answered) return;
+  session.answered = true;
+  const word = session.word;
+  const isCorrect = session.q.options[idx].isAnswer;
+  const rec = session.records.get(word) || makeRecord();
+  const fbEl = document.getElementById('wrongReFeedback');
+  const card = fbEl.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  document.querySelectorAll('#reviewQuiz .opt').forEach(b => {
+    if (b.dataset.ans === 'true') b.classList.add('correct');
+  });
+  if (!isCorrect && btnEl) btnEl.classList.add('wrong');
+  if (isCorrect) {
+    rec.done = true;
+    session.records.set(word, rec);
+    session.correct++;
+    session.spellRetries = (session.spellRetries || []).filter(w => w !== word);
+    if (state.settings.autoSpeak) speakWord(word);
+    fbEl.innerHTML = `
+      <div class="feedback good">
+        <div class="fb-title">${icon('circle-check')} 答对了！</div>
+        <div class="ans-word">${escapeHtml(word)}</div>
+        <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      </div>
+      <button class="next-btn" onclick="wrongReNext()">下一个 →</button>
+    `;
+  } else {
+    rec.errors++;
+    session.wrong++;
+    session.records.set(word, rec);
+    if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
+    session.sinceSpellRetry = 0;
+    if (state.settings.autoSpeak) speakWord(word);
+    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，稍后再考你', 'wrongReNext');
+  }
+}
+
+function wrongReNext() {
+  session.answered = false;
+  session.idx++;
+  renderWrongReOne();
 }
 
 /* ---------- 识别阶段（学习/复习共用） ----------
@@ -1734,7 +1811,7 @@ function finishSession() {
 }
 
 function doneHtml() {
-  const mode = session.mode === 'study' ? '学习' : (session.wrongRe ? '错词重练' : '复习');
+  const mode = session.mode === 'study' ? '学习' : '复习';
   const total = session.queue.length;
   const hardCount = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const g = goalInfo();
@@ -2159,9 +2236,9 @@ function customSpellNext() {
   renderCustomSpell();
 }
 
-/* 练习完成页（自由拼写 / 听写共用；纯练习不写学习状态） */
+/* 练习完成页（自由拼写 / 听写 / 错词重练共用；纯练习不写学习状态） */
 function practiceDoneHtml(title, typeName) {
-  practiceMode = session.mode === 'spell' ? 'spell' : 'dict';
+  practiceMode = session.mode === 'spell' ? 'spell' : (session.mode === 'wrongre' ? 'wrongre' : 'dict');
   const total = session.queue.length;
   const hard = session.queue.filter(w => (session.records.get(w) || {}).errors > 0).length;
   const list = session.queue.map(w => {
@@ -2172,6 +2249,10 @@ function practiceDoneHtml(title, typeName) {
       ${err ? '<span class="ms-badge ms-due">曾出错</span>' : ''}
     </div></div>`;
   }).join('');
+  // 错词重练无配置页:「再来一组」直接重抽昨天的错词
+  const againBtn = session.mode === 'wrongre'
+    ? `<button class="next-btn" onclick="startWrongReview()">再来一组</button>`
+    : `<button class="next-btn" onclick="practiceAgain()">再来一组</button>`;
   return `
     <div class="quiz-card session-done" style="text-align:left">
       <div style="text-align:center">
@@ -2184,7 +2265,7 @@ function practiceDoneHtml(title, typeName) {
         ${list}
       </div>
       <div class="modal-btns" style="max-width:320px;margin:18px auto 0;flex-direction:column;gap:10px">
-        <button class="next-btn" onclick="practiceAgain()">再来一组</button>
+        ${againBtn}
         <button class="btn-ghost" onclick="goHome()">回到首页</button>
       </div>
     </div>
@@ -3303,6 +3384,17 @@ document.addEventListener('keydown', e => {
       }
     } else if (session.answered && e.key === 'Enter' && !inInput) {
       listenNext();
+    }
+  } else if (session.phase === 'wrlist') {
+    // 错词重练:数字键 1-4 选选项;出反馈后 Enter 进下一个
+    if (!session.answered && !inInput) {
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 4) {
+        const opts = document.querySelectorAll('#reviewQuiz .opt');
+        if (opts[n - 1]) opts[n - 1].click();
+      }
+    } else if (session.answered && e.key === 'Enter' && !inInput) {
+      wrongReNext();
     }
   } else if (session.phase === 'cspell') {
     // 自由拼写:出反馈后 Enter/空格 进下一个(输入框内由输入框自身处理)

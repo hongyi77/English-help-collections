@@ -1729,17 +1729,35 @@ console.log('\n[43] 错词重练(昨日答错→复习会话)');
   g(`(() => {
     const yd = learningDayKey(Date.now() - DAY_MS);
     state.history[yd] = { learned: [], reviewed: [], wrongs: [['cet4','hello'],['cet6','hello']] };
-    state.history[dateKey()] = { learned: [], reviewed: [], wrongs: [['cet4',' abandon']] };
+    state.history[learningDayKey()] = { learned: [], reviewed: [], wrongs: [['cet4','abandon']] };
     saveState();
   })()`);
   const bl = g('yesterdayWrongWords()');
   ok(bl.length === 1 && bl[0] === 'hello', '昨日错词只取当前词库的词(他库/今天的都不算)');
-  // 开重练会话:复习语义,答对升 stage
+  // 开专练会话:不写任何学习数据
   g(`learnWord('hello'); startWrongReview()`);
-  ok(g('session && session.mode') === 'review' && g('session.wrongRe') === true, '错词重练创建复习会话(带来源标记)');
-  ok(g('session.queue') !== null && g(`session.queue.includes('hello')`), '队列含昨日错词');
-  g(`(() => { const i = session.q.options.findIndex(o => o.isAnswer); recognizeAnswer(i, null); })()`);
-  ok(g(`curWords()['hello'].stage`) === 2, '重练答对按复习计入(stage 1→2)');
+  ok(g('session && session.mode') === 'wrongre' && g('session.phase') === 'wrlist', '错词重练创建专练会话(wrongre)');
+  ok(g(`session.queue.includes('hello')`), '队列含昨日错词');
+  ok(documentStub.getElementById('reviewQuiz').innerHTML.includes('纯练习不改进度'), '卡片带专练进度与"不改进度"标识');
+  // 答对:会话进度推进,学习状态/history 完全不动
+  g(`const __w = JSON.stringify(curWords()['hello']); const __h = JSON.stringify(state.history); const __d = JSON.stringify(curDaily());`);
+  g(`(() => { const i = session.q.options.findIndex(o => o.isAnswer); wrongReAnswer(i, null); })()`);
+  ok(g('session.correct') === 1 && g(`(session.records.get('hello')||{}).done`) === true, '答对计会话进度(该词完成)');
+  ok(g(`JSON.stringify(curWords()['hello'])`) === g('__w') && g('JSON.stringify(state.history)') === g('__h') && g('JSON.stringify(curDaily())') === g('__d'), '答对零写入:学习状态/history/每日计数都不动');
+  // 答错:进会话错词池稍后重现,同样零写入
+  g('wrongReNext()');
+  g(`(() => { const i = session.q.options.findIndex(o => !o.isAnswer); wrongReAnswer(i, null); })()`);
+  ok(g('session.wrong') === 1 && g('session.spellRetries.length') === 1, '答错进会话错词池(稍后穿插重现)');
+  ok(g('JSON.stringify(state.history)') === g('__h'), '答错同样零写入 history');
+  // 全部答对 → 完成页(专练自己的总结)
+  let guard = 0;
+  while (g('session && [...session.records.values()].some(r => !r.done)') && guard++ < 100) {
+    if (g('session.answered')) { g('wrongReNext()'); continue; }
+    g(`(() => { const i = session.q.options.findIndex(o => o.isAnswer); wrongReAnswer(i, null); })()`);
+  }
+  g('wrongReNext()');
+  ok(guard < 100 && documentStub.getElementById('reviewQuiz').innerHTML.includes('错词重练完成'), `全部完成出专练总结页(循环 ${guard} 次)`);
+  ok(documentStub.getElementById('reviewQuiz').innerHTML.includes('startWrongReview()'), '总结页「再来一组」直接重抽错词(无配置页)');
   g('state = defaultState(); saveState();');
 })();
 
