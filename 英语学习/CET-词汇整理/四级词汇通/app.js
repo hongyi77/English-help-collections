@@ -15,6 +15,9 @@ const LEECH_THRESHOLD = 5; // 复习答错(lapse)累计到该次数 → 自动�
 
 const STATE_KEY = 'cet4_study_state_v1';
 const DAY_MS = 24 * 60 * 60 * 1000;
+/* 学习日边界:早上 5 点。凌晨 0~5 点的学习计入"前一天"的学习日——
+ * 每日目标/今日计数/学习记录桶/streak 都按学习日划分,夜猫子过午夜进度不清零 */
+const DAY_CUTOFF_MS = 5 * 60 * 60 * 1000;
 const DEFAULT_RATE = 0.9;   // 发音缺省语速(Edge/TTS 各播放链共用的基准值)
 
 /* 设置缺省值(旧存档缺字段时合并;自由拼写/听写配置也存这里) */
@@ -358,19 +361,26 @@ function setLibrary(key) {
 }
 
 function todayStr() {
-  return new Date().toDateString();
+  // 学习日字符串(与存档 state.today 比较):锚点后移 5 小时,凌晨 0~5 点仍属前一学习日
+  return new Date(Date.now() - DAY_CUTOFF_MS).toDateString();
 }
 
-/* 日期 key：YYYY-MM-DD（用于 history） */
+/* 日期 key：YYYY-MM-DD（纯格式化,月历/热力图格子按日历日取键,与学习日桶天然对齐） */
 function dateKey(ts) {
   const d = ts ? new Date(ts) : new Date();
   const p = n => String(n).padStart(2, '0');
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 
+/* 学习日 key:时刻所在"学习日"的日历日期(凌晨 0~5 点归前一天)。
+ * 今日学习记录的写入桶、每日计数重建、streak、昨日错词都用它 */
+function learningDayKey(ts) {
+  return dateKey((ts || Date.now()) - DAY_CUTOFF_MS);
+}
+
 /* 当日 history 记录（懒创建） */
 function todayRecord() {
-  const k = dateKey();
+  const k = learningDayKey();
   if (!state.history) state.history = {};
   if (!state.history[k]) state.history[k] = { learned: [], reviewed: [], wrongs: [] };
   return state.history[k];
@@ -424,8 +434,8 @@ function streakInfo() {
   };
   let n = 0;
   let t = Date.now();
-  if (!hasAct(dateKey(t))) t -= DAY_MS;
-  while (hasAct(dateKey(t))) {
+  if (!hasAct(learningDayKey(t))) t -= DAY_MS;
+  while (hasAct(learningDayKey(t))) {
     n++;
     t -= DAY_MS;
   }
@@ -442,7 +452,7 @@ function reconcileDailyFromHistory(s) {
     libs[k].learnedToday = [];
     libs[k].reviewedToday = [];
   }
-  const rec = s.history && s.history[dateKey()];
+  const rec = s.history && s.history[learningDayKey()];
   if (!rec) return;
   const fill = (list, field) => {
     for (const e of (list || [])) {
@@ -816,9 +826,10 @@ function wordsTouchedOn(dk, cat) {
 }
 
 /* scope='date' 时按模式读各自选的日期（spellDate/dictDate）与当天内容分类（spellDateCat/dictDateCat） */
-/* 昨天答错过、且属于当前词库的词(首页「错词重练」入口取词;跨库错词在各自词库下练) */
+/* 昨天答错过、且属于当前词库的词(首页「错词重练」入口取词;跨库错词在各自词库下练)。
+ * "昨天"=上一个完整学习日(5 点切割) */
 function yesterdayWrongWords() {
-  return wordsTouchedOn(dateKey(Date.now() - DAY_MS), 'wrong');
+  return wordsTouchedOn(learningDayKey(Date.now() - DAY_MS), 'wrong');
 }
 
 /* ---------------- 外观主题 ----------------

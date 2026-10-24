@@ -547,7 +547,7 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
     ok(ch.includes('cfg-scope-summary') && !ch.includes('cfg-scope-group'), '配置页范围默认折叠:摘要行可见、分组 chips 隐藏');
   }
   g(`
-    const yd = dateKey(Date.now() - DAY_MS), dby = dateKey(Date.now() - 2 * DAY_MS);
+    const yd = learningDayKey(Date.now() - DAY_MS), dby = learningDayKey(Date.now() - 2 * DAY_MS);
     const w2 = LIBS.cet4.words[0][0];
     state.history[yd] = { learned: [['cet4','hello'],['cet6','cancel']], reviewed: [], wrongs: [] };
     state.history[dby] = { learned: [['cet4', w2]], reviewed: [], wrongs: [] };
@@ -555,16 +555,16 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   `);
   g(`setPracticeCfg('spellScope','date')`);
   ok(g('normScope(state.settings.spellScope)') === 'date', '范围切到「按日期」');
-  ok(g('state.settings.spellDate') === g("dateKey(Date.now() - DAY_MS)"), '未选过日期时默认昨天');
+  ok(g('state.settings.spellDate') === g("learningDayKey(Date.now() - DAY_MS)"), '未选过日期时默认昨天(学习日)');
   ok(g("wordsInScope('date','spell').join()") === 'hello', '按日期=昨天:只取当天当前词库新学的词(他库词过滤)');
   ok(g("practicePool('spell').join()") === 'hello', '自由拼写取词池按日期取词');
-  g(`setPracticeDate('spell', dateKey(Date.now() - 2 * DAY_MS))`);
+  g(`setPracticeDate('spell', learningDayKey(Date.now() - 2 * DAY_MS))`);
   ok(g("practicePool('spell').join()") === g("LIBS.cet4.words[0][0]"), '改选前天后取词跟随');
-  g(`setPracticeCfg('dictScope','date'); setPracticeDate('dict', dateKey(Date.now() - DAY_MS))`);
-  ok(g('state.settings.dictDate') === g("dateKey(Date.now() - DAY_MS)") && g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '听写与自由拼写的日期各自独立记忆');
+  g(`setPracticeCfg('dictScope','date'); setPracticeDate('dict', learningDayKey(Date.now() - DAY_MS))`);
+  ok(g('state.settings.dictDate') === g("learningDayKey(Date.now() - DAY_MS)") && g('state.settings.spellDate') === g("learningDayKey(Date.now() - 2 * DAY_MS)"), '听写与自由拼写的日期各自独立记忆');
   ok(g("practicePool('dict').join()") === 'hello', '听写取词池按自己的日期取词');
   g(`setPracticeDate('spell','')`);
-  ok(g('state.settings.spellDate') === g("dateKey(Date.now() - 2 * DAY_MS)"), '清空/非法日期被忽略,保留原选择');
+  ok(g('state.settings.spellDate') === g("learningDayKey(Date.now() - 2 * DAY_MS)"), '清空/非法日期被忽略,保留原选择');
   g('cfgScopeOpen.spell = true;');
   g('renderSpellConfig()');
   const cfgHtml = documentStub.getElementById('spellQuiz').innerHTML;
@@ -573,7 +573,7 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(cfgHtml.includes('按日期'), '范围 chips 含「按日期」');
   ok(!cfgHtml.includes('>昨天<') && !cfgHtml.includes('>前天<'), '不再有昨天/前天快捷 chip');
   // 可翻页月历:学过词的高亮、选中的红圈、‹›导航(前天必在当前月或上月,选前天让月历跟过去)
-  g(`setPracticeDate('spell', dateKey(Date.now() - 2 * DAY_MS))`);
+  g(`setPracticeDate('spell', learningDayKey(Date.now() - 2 * DAY_MS))`);
   const calHtml = documentStub.getElementById('spellQuiz').innerHTML;
   ok((calHtml.match(/calShift/g) || []).length === 2, '月历带上/下月导航(可无限回翻)');
   ok(calHtml.includes('年') && calHtml.includes('cfg-cal-wd'), '月历渲染年月标题与星期头');
@@ -651,7 +651,7 @@ console.log('\n[21] 学习记录:条目带词库/旧字符串兼容/按词库查
 (() => {
   g('state = defaultState(); saveState();');
   g("learnWord('hello')");
-  const today = g('dateKey()');
+  const today = g('learningDayKey()');
   let entry = g(`state.history['${today}'].learned[state.history['${today}'].learned.length - 1]`);
   ok(Array.isArray(entry) && entry[0] === 'cet4' && entry[1] === 'hello', `新记录为 [词库, 单词] 条目（${JSON.stringify(entry)}）`);
   // 切到六级学一个词 → 记录归属六级
@@ -969,13 +969,12 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
   g('startStudy()');
   ok(documentStub.getElementById('studyQuiz').innerHTML.includes('今日新学目标已完成'), '四级显示目标完成页（按库阻断）');
   // 每日计数对账：一律按当天 history 重建（条目自带词库归属，混库的顶层计数废弃）
-  const todayK = new Date();
-  const p2 = n => String(n).padStart(2, '0');
-  const todayKey = todayK.getFullYear() + '-' + p2(todayK.getMonth()+1) + '-' + p2(todayK.getDate());
+  const todayKey = g('learningDayKey()');   // 学习日桶(5点切割)
+  const todayStrVal = g('todayStr()');
   storage.set('cet4_study_state_v1', JSON.stringify({
     settings: { dailyNew: 5, lib: 'senior' },
     libs: { senior: { words: {} } },
-    today: new Date().toDateString(),
+    today: todayStrVal,
     learnedToday: ['realistic'], reviewedToday: ['cancel'],   // 旧版混库顶层计数 → 废弃
     history: { [todayKey]: { learned: [['senior','realistic'],['cet4','hello']], reviewed: [['cet6','cancel']], wrongs: [] } },
   }));
@@ -996,7 +995,7 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
   // 跨天重置：昨天有计数、今天还没学 → 启动对账后计数为 0
   g(`state = defaultState(); saveState();`);
   g(`
-    const ydC = dateKey(Date.now() - DAY_MS);
+    const ydC = learningDayKey(Date.now() - DAY_MS);
     state.history[ydC] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
     curDaily().learnedToday = ['hello'];
     state.today = 'Wed Jan 01 2025';
@@ -1063,7 +1062,7 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
   // 学习记录类型筛选:全部/新学/复习/答错
   g('state = defaultState(); saveState();');
   g(`
-    const tK29 = dateKey();
+    const tK29 = learningDayKey();
     state.history[tK29] = { learned: [['cet4','hello']], reviewed: [['cet4','${w0}']], wrongs: [['cet4','${w0}']] };
     saveState();
   `);
@@ -1081,7 +1080,7 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
   // 筛选跨日期保留:带着「复习」筛选翻到昨天(昨天没复习) → 针对性空提示
   g(`setHistoryFilter('reviewed');`);
   g(`
-    const yd29 = dateKey(Date.now() - DAY_MS);
+    const yd29 = learningDayKey(Date.now() - DAY_MS);
     state.history[yd29] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
     saveState(); setHistoryDay(yd29);
   `);
@@ -1118,9 +1117,9 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   // ---- streak 连续学习天数 ----
   g('state = defaultState(); saveState();');
   ok(g('streakInfo()') === 0, '无记录 streak=0');
-  const dkT = g('dateKey()');
-  const dkY = g('dateKey(Date.now() - DAY_MS)');
-  const dkY2 = g('dateKey(Date.now() - 2 * DAY_MS)');
+  const dkT = g('learningDayKey()');
+  const dkY = g('learningDayKey(Date.now() - DAY_MS)');
+  const dkY2 = g('learningDayKey(Date.now() - 2 * DAY_MS)');
   g(`
     state.history['${dkT}'] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
     state.history['${dkY}'] = { learned: [], reviewed: [['cet4','${w0}']], wrongs: [] };
@@ -1355,7 +1354,7 @@ console.log('\n[33] 配置页布局优化');
   ok(documentStub.getElementById('spellQuiz').innerHTML.includes(`${now33.getFullYear()}年${now33.getMonth() + 1}月`), '当前月时下月翻页被阻止');
   const lastDay33 = new Date(now33.getFullYear(), now33.getMonth() + 1, 0).getDate();
   if (now33.getDate() < lastDay33) {
-    const dkF = g(`dateKey(Date.now() + DAY_MS)`);
+    const dkF = g(`learningDayKey(Date.now() + DAY_MS)`);
     sh = documentStub.getElementById('spellQuiz').innerHTML;
     ok(sh.includes('dis') && !sh.includes(`onclick="setPracticeDate('spell','${dkF}')"`), '未来日期格子禁点(无 onclick)');
   }
@@ -1425,7 +1424,7 @@ console.log('\n[35] 按日期内容分类 + 范围分组层级');
   // 范围选择器分组层级
   ok(sh35.includes('学习进度') && sh35.includes('学习标记') && sh35.includes('按时间') && sh35.includes('自选词单'), '范围选择器按层级分组(四组)');
   // 分类下无词:开始栏词数 0 + 空池提示
-  g(`state.settings.spellDateCat = 'wrong'; state.settings.spellDate = '${g('dateKey(Date.now() - DAY_MS)')}'; saveState(); renderSpellConfig()`);
+  g(`state.settings.spellDateCat = 'wrong'; state.settings.spellDate = '${g('learningDayKey(Date.now() - DAY_MS)')}'; saveState(); renderSpellConfig()`);
   const shEmpty = documentStub.getElementById('spellQuiz').innerHTML;
   ok(/id="spellFootCount">0</.test(shEmpty), '分类无词时开始栏词数 0');
   ok(shEmpty.includes('换个内容类型'), '空池提示提及内容类型');
@@ -1728,7 +1727,7 @@ console.log('\n[43] 错词重练(昨日答错→复习会话)');
   g('state = defaultState(); saveState();');
   // 昨天:cet4 错 hello、cet6 错同名词(跨库不计)、今天错的也不计
   g(`(() => {
-    const yd = dateKey(Date.now() - DAY_MS);
+    const yd = learningDayKey(Date.now() - DAY_MS);
     state.history[yd] = { learned: [], reviewed: [], wrongs: [['cet4','hello'],['cet6','hello']] };
     state.history[dateKey()] = { learned: [], reviewed: [], wrongs: [['cet4',' abandon']] };
     saveState();
@@ -1796,6 +1795,34 @@ console.log('\n[45] 外观主题(深色模式)设置');
   ok(g('state.settings.theme') === 'auto', '旧档/非法档主题归一为 auto');
   g('setTheme("dark")');
   ok(g('state.settings.theme') === 'dark', 'setTheme 存档记住选择');
+  g('state = defaultState(); saveState();');
+})();
+
+console.log('\n[46] 学习日边界(每日目标早上 5 点重置)');
+(() => {
+  // 纯函数边界:固定时间戳,任何时刻跑测试都稳定
+  const t459 = new Date(2026, 9, 25, 4, 59).getTime();
+  const t500 = new Date(2026, 9, 25, 5, 0).getTime();
+  const t2359 = new Date(2026, 9, 25, 23, 30).getTime();
+  ok(g(`learningDayKey(${t459})`) === '2026-10-24', '凌晨 4:59 归前一学习日');
+  ok(g(`learningDayKey(${t500})`) === '2026-10-25', '早上 5:00 整归新学习日');
+  ok(g(`learningDayKey(${t2359})`) === '2026-10-25', '白天活动归当天学习日');
+  // 记录落桶与同学习日持久化
+  g('state = defaultState(); saveState();');
+  g("learnWord('hello')");
+  ok(g(`(state.history[learningDayKey()] || {learned:[]}).learned.some(e => e[1] === 'hello')`) === true, '学习记录写入当前学习日的桶');
+  g('state.today = todayStr(); flushState(); state = loadState();');
+  ok(g("state.libs.cet4.learnedToday.includes('hello')") === true, '同一学习日内重启,每日计数保留(凌晨不清零)');
+  // 跨学习日重置:计数对账只认当前学习日桶
+  g(`
+    state = defaultState();
+    const yd46 = learningDayKey(Date.now() - DAY_MS);
+    state.history[yd46] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
+    curDaily().learnedToday = ['hello'];
+    state.today = 'Wed Jan 01 2025';
+    flushState(); state = loadState();
+  `);
+  ok(g('curDaily().learnedToday.length') === 0, '跨学习日后每日计数清零(昨天的不再计入)');
   g('state = defaultState(); saveState();');
 })();
 

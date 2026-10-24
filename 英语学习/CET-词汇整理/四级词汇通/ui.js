@@ -1937,7 +1937,7 @@ function setPracticeCfg(key, val) {
   // 切到「按日期」且还没选过日期：默认昨天；月历回到今天所在月
   const dateKey2 = key.replace('Scope', 'Date');
   if (val === 'date') {
-    if (!state.settings[dateKey2]) state.settings[dateKey2] = dateKey(Date.now() - DAY_MS);
+    if (!state.settings[dateKey2]) state.settings[dateKey2] = learningDayKey(Date.now() - DAY_MS);
     calY = null;
     calM = null;
   }
@@ -1989,7 +1989,7 @@ function practiceDateHtml(kind) {
   }
   const firstWd = new Date(calY, calM, 1).getDay();          // 1 号是周几(0=日)
   const daysInMonth = new Date(calY, calM + 1, 0).getDate();
-  const today = dateKey();
+  const today = learningDayKey();   // 学习日边界(5点):凌晨时当天格子按"未开始"禁点
   let cells = '';
   for (let i = 0; i < firstWd; i++) cells += '<span></span>';
   for (let d = 1; d <= daysInMonth; d++) {
@@ -2038,7 +2038,7 @@ function practiceDateHtml(kind) {
  * 选中后月历跟到该日期所在月(含原生日历跳到很早的日期的情况) */
 function setPracticeDate(kind, v) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return;
-  if (v > dateKey()) return;   // 不收未来日期(与月历禁点、原生日历 max 一致)
+  if (v > learningDayKey()) return;   // 不收未开始的学习日(与月历禁点、原生日历 max 一致)
   state.settings[kind + 'Date'] = v;
   const dt = new Date(v + 'T00:00:00');
   calY = dt.getFullYear();
@@ -3100,19 +3100,19 @@ let historyDay = null;   // 当前查看的日期 key
 let historyFilter = 'all';   // 记录类型筛选:all/learned/reviewed/wrongs(切日期保留,方便逐天看同类)
 
 function renderHistory() {
-  // 默认选今天
-  if (!historyDay) historyDay = dateKey();
+  // 默认选今天(学习日)
+  if (!historyDay) historyDay = learningDayKey();
   const days = Object.keys(state.history || {}).sort().reverse().slice(0, 30);   // 只显示最近 30 天，避免 tab 无限增长
   // 若当前查看的日期被截掉，回退到最近一天
-  if (historyDay && !days.includes(historyDay)) historyDay = days[0] || dateKey();
+  if (historyDay && !days.includes(historyDay)) historyDay = days[0] || learningDayKey();
   // 日期 tab:横向滑动条,短中文标签(今天/昨天/9月28日),选中项自动滚到可视区中间
   const fmtDay = (dk) => {
-    if (dk === dateKey()) return '今天';
-    if (dk === dateKey(Date.now() - DAY_MS)) return '昨天';
+    if (dk === learningDayKey()) return '今天';
+    if (dk === learningDayKey(Date.now() - DAY_MS)) return '昨天';
     const p = dk.split('-');
     return p.length === 3 ? `${+p[1]}月${+p[2]}日` : dk;
   };
-  const tabsHtml = (days.length ? days : [dateKey()]).map(d => {
+  const tabsHtml = (days.length ? days : [learningDayKey()]).map(d => {
     const rec = (state.history && state.history[d]) || { learned: [], reviewed: [], wrongs: [] };
     const act = d === historyDay ? 'active' : '';
     const n = rec.learned.length + rec.reviewed.length;
@@ -3200,7 +3200,7 @@ function setHistoryFilter(f) {
 
 function renderHistoryDetail(rec) {
   const el = document.getElementById('historyDetail');
-  const dayLabel = historyDay === dateKey() ? '今天' : historyDay;
+  const dayLabel = historyDay === learningDayKey() ? '今天' : historyDay;
   const total = rec.learned.length + rec.reviewed.length + rec.wrongs.length;
   // 类型筛选 chips:新学/复习/答错分开看
   const chips = `<div class="cfg-chips" style="margin:14px 0 2px">${HISTORY_FILTERS.map(f =>
