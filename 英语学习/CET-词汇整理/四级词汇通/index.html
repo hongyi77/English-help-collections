@@ -79,6 +79,7 @@
    * ui.js 把键盘高度写入 --kb-h;这里让答题容器缩到键盘之上,并把固定开始栏抬到键盘上边缘。 */
   body.kbd-open .screen.active { height: calc(100vh - var(--kb-h, 0px)); }
   body.kbd-open .practice-foot { bottom: var(--kb-h, 0px); }
+  body.kbd-open .ans-foot { bottom: var(--kb-h, 0px); }
   .wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; }
 
   /* ---------- 首页 · 账本行(纯文字概览,不再套卡片盒) ---------- */
@@ -181,10 +182,26 @@
   .options { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
   @media (min-width: 420px) { .options { grid-template-columns: 1fr 1fr; } }
   .opt {
-    padding: 12px; border-radius: 11px; border: 1px solid var(--hairline);
+    position: relative; padding: 12px 34px 12px 12px; border-radius: 11px; border: 1px solid var(--hairline);
     background: var(--card); font-size: 14.5px; color: var(--ink); cursor: pointer; text-align: left;
     transition: transform .12s, box-shadow .12s, border-color .12s;
+    animation: opt-in .22s ease-out backwards;
   }
+  .opt:nth-child(2) { animation-delay: .04s; }
+  .opt:nth-child(3) { animation-delay: .08s; }
+  .opt:nth-child(4) { animation-delay: .12s; }
+  @keyframes opt-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* 答错后选项保留可见(主流做法:形成"所选 vs 正确"对照),其余淡化 */
+  .quiz-card.with-ans .opt { opacity: .4; pointer-events: none; }
+  .quiz-card.with-ans .opt.correct, .quiz-card.with-ans .opt.wrong { opacity: 1; }
+  /* 桌面端数字键提示(键盘 1-4 可选);触屏不显示 */
+  .opt-key { display: none; }
+  @media (hover: hover) {
+    .opt-key { display: inline-block; min-width: 15px; margin-right: 5px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); opacity: .75; vertical-align: 1px; }
+  }
+  /* 答题后的对/错图标(随 .correct/.wrong 变色) */
+  .opt-mark { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: inline-flex; }
+  .opt-mark svg { width: 18px; height: 18px; }
   .opt:active { transform: scale(.98); }
   .opt.correct { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 600; }
   .opt.wrong { border-color: var(--pen-red); background: var(--red-soft); color: var(--pen-red); animation: shake .25s; }
@@ -252,8 +269,8 @@
   .session-done h2 { font-family: var(--serif); font-size: 24px; margin-bottom: 8px; color: var(--ink); }
   .session-done p { color: var(--ink-soft); margin-bottom: 24px; }
   .goal-done-note { color: var(--green); font-weight: 600; margin: -10px auto 16px; padding: 10px 14px; background: var(--green-soft); border-radius: 10px; display: inline-block; }
-  /* 答错出反馈后隐藏选项区(正确答案已在反馈里),避免页面超高 */
-  .quiz-card.with-ans .options, .quiz-card.with-ans .show-ans-wrap, .quiz-card.with-ans .spell-input-wrap { display: none; }
+  /* 答错出反馈后:隐藏「不会」按钮与拼写输入(正确答案已在反馈里);选项保留对照 */
+  .quiz-card.with-ans .show-ans-wrap, .quiz-card.with-ans .spell-input-wrap { display: none; }
   .done-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .done-list .list-card { margin-bottom: 0; }
   .done-list .list-item { padding: 8px 10px; gap: 6px; flex-wrap: wrap; }
@@ -485,6 +502,23 @@
     box-shadow: 0 -2px 10px rgba(31, 78, 121, .06);
   }
   .practice-foot .next-btn { flex: 1.6; margin-top: 0; }
+  /* 答题底部固定继续栏:出反馈时出现(红/绿随对错),与 practice-foot 同形态 */
+  .ans-foot {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 6;
+    max-width: 600px; margin: 0 auto; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper); border-top: 1px solid var(--hairline);
+    box-shadow: 0 -2px 10px rgba(31, 78, 121, .08);
+    display: none;
+  }
+  .ans-foot.show { display: block; }
+  .ans-foot-btn {
+    width: 100%; padding: 15px; border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 600; cursor: pointer; color: #fff;
+  }
+  .ans-foot-btn.ok { background: var(--green); }
+  .ans-foot-btn.bad { background: var(--pen-red); }
+  :root.dark-vars .ans-foot-btn.ok { color: #14291C; }
+  :root.dark-vars .ans-foot-btn.bad { color: #2B1005; }
   /* 选词器搜索+筛选吸顶:长列表滚动时保持可见。
    * top:0 是相对滚动容器 padding 边缘(即顶栏下沿),再写 54px 会双倍偏移漏出缝隙 */
   .picker-head {
@@ -775,6 +809,12 @@
           <button id="setSpeak" onclick="toggleAutoSpeak()">开</button>
         </div>
       </div>
+      <div class="set-row">
+        <label>答题音效（答对/答错提示音）</label>
+        <div class="set-ctrl">
+          <button id="setSfx" onclick="toggleSfx()">开</button>
+        </div>
+      </div>
       <p style="font-size:12px;color:var(--ink-soft);margin:10px 0 0;line-height:1.7">每日目标在<b>早上 5 点</b>重置——凌晨 0~5 点的学习计入前一天，夜猫子过午夜进度不清零。</p>
       <div class="set-div"></div>
       <div class="cfg-title" style="margin:0 0 8px">复习算法</div>
@@ -903,6 +943,11 @@
   <button data-tab="screen-dict" onclick="go('screen-dict')"><span class="tab-ico" data-icon="search"></span>词典</button>
   <button data-tab="screen-settings" onclick="go('screen-settings')"><span class="tab-ico" data-icon="settings"></span>设置</button>
 </nav>
+
+<!-- 答题底部固定继续栏:出反馈时接管「下一个」(拇指可达,反馈再长不遮按钮) -->
+<div class="ans-foot" id="ansFoot">
+  <button class="ans-foot-btn bad" id="ansFootBtn" onclick="ansFootGo()">继续</button>
+</div>
 
 <!-- 词库切换确认 -->
 <div class="modal-mask" id="switchLibModal" role="dialog" aria-modal="true" aria-labelledby="switchLibTitle">

@@ -21,6 +21,7 @@ const TAB_SCREENS = ['screen-home', 'screen-vocab', 'screen-dict', 'screen-setti
 function go(id) {
   const target = document.getElementById(id);
   if (!target) return;
+  hideAnsFoot();   // 切页即收起底部继续栏
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   target.classList.add('active');
   const t = SCREEN_TITLES[id] || '';
@@ -133,6 +134,8 @@ function refreshSettings() {
   document.getElementById('setReview').textContent = state.settings.dailyReview;
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
+  const sfxBtn = document.getElementById('setSfx');
+  if (sfxBtn) sfxBtn.textContent = state.settings.sfx ? '开' : '关';
   renderThemeSettings();
   renderAlgoSettings();
   renderVoiceSettings();
@@ -692,6 +695,7 @@ function startWrongReview() {
 }
 
 function renderWrongReOne() {
+  hideAnsFoot();
   const el = document.getElementById('reviewQuiz');
   const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
   if (!remaining.length) {
@@ -708,7 +712,7 @@ function renderWrongReOne() {
   const pct = Math.round((session.queue.length - remaining.length) / session.queue.length * 100);
   const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" aria-label="朗读" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
   const optionsHtml = session.q.options.map((o, i) =>
-    `<button class="opt" data-ans="${o.isAnswer}" onclick="wrongReAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
+    `<button class="opt" data-ans="${o.isAnswer}" onclick="wrongReAnswer(${i}, this)"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}</button>`
   ).join('');
   el.innerHTML = `
     <div class="quiz-card">
@@ -734,11 +738,9 @@ function wrongReAnswer(idx, btnEl) {
   const fbEl = document.getElementById('wrongReFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  document.querySelectorAll('#reviewQuiz .opt').forEach(b => {
-    if (b.dataset.ans === 'true') b.classList.add('correct');
-  });
-  if (!isCorrect && btnEl) btnEl.classList.add('wrong');
+  markOptions(document.getElementById('reviewQuiz'), btnEl);   // 只标当前屏选项
   if (isCorrect) {
+    sfxPlay('ok');
     rec.done = true;
     session.records.set(word, rec);
     session.correct++;
@@ -750,16 +752,20 @@ function wrongReAnswer(idx, btnEl) {
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
       </div>
-      <button class="next-btn" onclick="wrongReNext()">下一个 →</button>
     `;
+    revealFeedback(fbEl);
+    showAnsFoot('继续 →', 'ok', wrongReNext);
   } else {
+    sfxPlay('bad');
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);
-    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，稍后再考你', 'wrongReNext');
+    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，稍后再考你');
+    revealFeedback(fbEl);
+    showAnsFoot('记住了，继续 →', 'bad', wrongReNext);
   }
 }
 
@@ -777,7 +783,84 @@ function wrongReNext() {
  */
 const RETRY_INTERVAL = 3;   // 每学几个新词穿插一个错词
 
+/* ---------------- 答题反馈基础设施(音效/滚动/底部继续栏) ----------------
+ * 主流答题 App 的三件套:对错音效、反馈滚入视野、底部固定"继续"栏(拇指可达,
+ * 反馈内容再长也不会把按钮顶出屏幕;复用 practice-foot 的固定栏形态)。 */
+
+/* 答题音效:WebAudio 振荡器合成,零资源零依赖。答对=双音上行,答错=双音下行;
+ * 答错附带 20ms 短振动(快扫长按振动同款)。首次调用发生在用户点击后,自动解锁。 */
+let sfxCtx = null;
+function sfxPlay(kind) {
+  if (!state.settings.sfx) return;
+  try {
+    const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
+    if (!AC) return;
+    if (!sfxCtx) sfxCtx = new AC();
+    if (sfxCtx.state === 'suspended') sfxCtx.resume();
+    const t0 = sfxCtx.currentTime;
+    const beep = (freq, start, dur) => {
+      const o = sfxCtx.createOscillator(), g = sfxCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0 + start);
+      g.gain.exponentialRampToValueAtTime(0.12, t0 + start + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
+      o.connect(g); g.connect(sfxCtx.destination);
+      o.start(t0 + start); o.stop(t0 + start + dur + 0.03);
+    };
+    if (kind === 'ok') { beep(660, 0, 0.09); beep(880, 0.08, 0.13); }
+    else { beep(240, 0, 0.1); beep(165, 0.09, 0.15); }
+  } catch (e) { /* 音频不可用则静默 */ }
+  if (kind === 'bad' && typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(20); } catch (e) { /* 忽略 */ }
+  }
+}
+
+function toggleSfx() {
+  state.settings.sfx = !state.settings.sfx;
+  saveState();
+  refreshSettings();
+}
+
+/* 反馈区滚入视野:出反馈后自动滚到可见(反馈在选项下方,选项保留可见时尤其需要) */
+function revealFeedback(fbEl) {
+  if (fbEl && fbEl.scrollIntoView) {
+    try { fbEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { /* 旧浏览器 */ }
+  }
+}
+
+/* 底部固定继续栏:出反馈时接管「下一个」动作;换题/切页时隐藏 */
+let ansFootAction = null;
+function showAnsFoot(label, tone, fn) {
+  const bar = document.getElementById('ansFoot');
+  if (!bar) { if (fn) fn(); return; }   // 环境无底栏(测试桩)则直接执行,保行为不变
+  const btn = document.getElementById('ansFootBtn');
+  ansFootAction = fn;
+  if (btn) { btn.textContent = label; btn.className = 'ans-foot-btn ' + tone; }
+  bar.classList.add('show');
+}
+function hideAnsFoot() {
+  const bar = document.getElementById('ansFoot');
+  if (bar) bar.classList.remove('show');
+  ansFootAction = null;
+}
+function ansFootGo() { if (ansFootAction) ansFootAction(); }
+
+/* 选项态标注:正确项打勾、所选项打叉(主流做法,保留选项可见形成对照) */
+function markOptions(hostEl, chosenBtn) {
+  hostEl.querySelectorAll('.opt').forEach(b => {
+    if (b.dataset.ans === 'true') {
+      b.classList.add('correct');
+      if (b.insertAdjacentHTML) b.insertAdjacentHTML('beforeend', `<span class="opt-mark">${icon('circle-check')}</span>`);
+    }
+  });
+  if (chosenBtn && chosenBtn.classList && chosenBtn.dataset && chosenBtn.dataset.ans !== 'true' && chosenBtn.insertAdjacentHTML) {
+    chosenBtn.classList.add('wrong');
+    chosenBtn.insertAdjacentHTML('beforeend', `<span class="opt-mark">${icon('circle-x')}</span>`);
+  }
+}
+
 function renderStudyRecognize() {
+  hideAnsFoot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   const pending = session.pending || [];
   const retries = session.retries || [];
@@ -819,6 +902,7 @@ function rotateRetries() {
 
 function renderRecognizeOne(word) {
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
+  hideAnsFoot();
   // 学习/复习识别阶段固定英译汉；汉译英考察由拼写阶段承担（看释义写单词）
   const q = makeQuestion(word);
   session.q = q;
@@ -828,14 +912,18 @@ function renderRecognizeOne(word) {
   const isRelearn = rec.errors > 0;
   const typeLabel = (isRelearn ? '重记' : session.mode === 'study' ? '学习' : '复习') + ' · ' + q.type;
   const promptCls = 'quiz-prompt';
-  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
+  const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" aria-label="朗读" onclick="speakCurrent()">${icon('volume-2')}</button>` : '';
+  // 顶部进度条(与练习模式统一):已完成 = 队列 - 待识别 - 待重记
+  const doneN = session.queue.length - (session.pending || []).length - (session.retries || []).length;
+  const pct = Math.round(doneN / Math.max(1, session.queue.length) * 100);
   const optionsHtml = q.options.map((o, i) =>
-    `<button class="opt" data-ans="${o.isAnswer}" onclick="recognizeAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
+    `<button class="opt" data-ans="${o.isAnswer}" onclick="recognizeAnswer(${i}, this)"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}</button>`
   ).join('');
   const retryNote = isRelearn ? `<div class="retry-note">重记词 · 还需答对 ${Math.max(0, RECOG_REQUIRED - rec.corrects)} 次</div>` : '';
   el.innerHTML = `
     <div class="quiz-card">
       <span class="quiz-type${session.mode === 'review' ? ' rev' : ''}">${typeLabel}</span>
+      <div class="progress-bar"><span style="width:${pct}%"></span></div>
       <div class="${promptCls}">${escapeHtml(q.prompt)}${speakBtn}</div>
       <div class="progress-line">${session.mode === 'study' ? '学习新词' : '复习'}　·　✓ ${session.correct} ✗ ${session.wrong}</div>
       <div class="options">${optionsHtml}</div>
@@ -858,12 +946,10 @@ function recognizeAnswer(idx, btnEl) {
 
   // 只圈当前屏的选项(全局 .opt 会命中另一屏残留的旧题卡,见 startStudy/startReview)
   const host = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
-  host.querySelectorAll('.opt').forEach(b => {
-    if (b.dataset.ans === 'true') b.classList.add('correct');
-  });
-  if (!isCorrect) btnEl.classList.add('wrong');
+  markOptions(host, btnEl);
 
   if (isCorrect) {
+    sfxPlay('ok');
     session.correct++;
     rec.corrects++;
     session.records.set(word, rec);
@@ -879,6 +965,7 @@ function recognizeAnswer(idx, btnEl) {
     renderStudyRecognize();
     return;
   }
+  sfxPlay('bad');
   // 答错：不卡住，移到错词池，显示反馈（可选生词本）后刷新
   session.wrong++;
   rec.errors++;
@@ -1558,14 +1645,16 @@ function showWrongFeedback(word, wrongText) {
       <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
         ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
       </button>
-      <button class="next-btn" onclick="advanceAfterWrong()">下一个 →</button>
     </div>
   `;
   el.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  revealFeedback(fb);
+  showAnsFoot('记住了，继续 →', 'bad', advanceAfterWrong);
 }
 
-/* 拼写/听写/听音辨义共用的「答错反馈」模板:错词对+巧记+生词本按钮+下一步 */
-function wrongFeedbackHtml(word, title, nextFn) {
+/* 拼写/听写/听音辨义共用的「答错反馈」模板:错词对+巧记+生词本按钮;
+ * 「继续」由底部固定栏承接(showAnsFoot),不再内联 */
+function wrongFeedbackHtml(word, title) {
   const inBook = !!(curWords()[word] && curWords()[word].inBook);
   return `
     <div class="feedback bad">
@@ -1580,7 +1669,6 @@ function wrongFeedbackHtml(word, title, nextFn) {
       <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
         ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
       </button>
-      <button class="next-btn" onclick="${nextFn}()">下一个 →</button>
     </div>`;
 }
 
@@ -1621,6 +1709,7 @@ function advanceAfterWrong() {
 function showAnswer() {
   if (session.answered) return;
   session.answered = true;
+  sfxPlay('bad');
   const word = session.word;
   const rec = session.records.get(word) || makeRecord();
   rec.errors++;
@@ -1700,6 +1789,7 @@ function startSpellStage() {
 }
 
 function renderSpellStage() {
+  hideAnsFoot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   const remaining = session.queue.filter(w => {
     const rec = session.records.get(w) || makeRecord();
@@ -1751,6 +1841,7 @@ function checkSpell() {
 
   const fbEl = document.getElementById('spellFeedback');
   if (isCorrect) {
+    sfxPlay('ok');
     rec.spellCorrects = (rec.spellCorrects || 0) + 1;
     session.correct++;
     session.records.set(word, rec);
@@ -1770,9 +1861,11 @@ function checkSpell() {
         <div class="fb-title">${icon('circle-check')} 拼写正确${again}</div>
         <div class="ans-word">${escapeHtml(word)}</div>
       </div>
-      <button class="next-btn" onclick="nextSpell()">下一个 →</button>
     `;
+    revealFeedback(fbEl);
+    showAnsFoot('继续 →', 'ok', nextSpell);
   } else {
+    sfxPlay('bad');
     rec.spellCorrects = 0;
     rec.errors++;
     session.wrong++;
@@ -1786,7 +1879,9 @@ function checkSpell() {
     if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音，对照反馈听音纠错
     const card = fbEl.closest('.quiz-card');
     if (card) card.classList.add('with-ans');
-    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，稍后会再考你', 'advanceSpellAfterWrong');
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，稍后会再考你');
+    revealFeedback(fbEl);
+    showAnsFoot('记住了，继续 →', 'bad', advanceSpellAfterWrong);
   }
 }
 
@@ -1805,6 +1900,7 @@ function rotateSpellRetries() {
 
 /* ---------- 完成页 ---------- */
 function finishSession() {
+  hideAnsFoot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   el.innerHTML = doneHtml();
   session = null;   // 会话结束,清空防止键盘快捷键继续响应旧会话
@@ -2159,6 +2255,7 @@ function startCustomSpell() {
 }
 
 function renderCustomSpell() {
+  hideAnsFoot();
   const el = document.getElementById('spellQuiz');
   const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
   if (!remaining.length) {
@@ -2205,6 +2302,7 @@ function customSpellCheck() {
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
   if (isCorrect) {
+    sfxPlay('ok');
     rec.done = true;   // 宽松规则:重现后答对 1 次即完成
     session.records.set(word, rec);
     session.correct++;
@@ -2216,9 +2314,11 @@ function customSpellCheck() {
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
       </div>
-      <button class="next-btn" onclick="customSpellNext()">下一个 →</button>
     `;
+    revealFeedback(fbEl);
+    showAnsFoot('继续 →', 'ok', customSpellNext);
   } else {
+    sfxPlay('bad');
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
@@ -2226,7 +2326,9 @@ function customSpellCheck() {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 拼错朗读正确发音
-    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你', 'customSpellNext');
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你');
+    revealFeedback(fbEl);
+    showAnsFoot('记住了，继续 →', 'bad', customSpellNext);
   }
 }
 
@@ -2793,6 +2895,7 @@ async function playDictCycle(sess, gen) {
 }
 
 function renderDictWord() {
+  hideAnsFoot();
   const el = document.getElementById('dictQuiz');
   const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
   if (!remaining.length) {
@@ -2874,6 +2977,7 @@ function dictCheck() {
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
   if (isCorrect) {
+    sfxPlay('ok');
     rec.done = true;
     session.records.set(word, rec);
     session.correct++;
@@ -2885,16 +2989,20 @@ function dictCheck() {
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
       </div>
-      <button class="next-btn" onclick="dictNext()">下一个 →</button>
     `;
+    revealFeedback(fbEl);
+    showAnsFoot('继续 →', 'ok', dictNext);
   } else {
+    sfxPlay('bad');
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 判分拼错时补听一遍正确发音
-    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你', 'dictNext');
+    fbEl.innerHTML = wrongFeedbackHtml(word, '拼错了，过几个词再考你');
+    revealFeedback(fbEl);
+    showAnsFoot('记住了，继续 →', 'bad', dictNext);
   }
 }
 
@@ -2914,6 +3022,7 @@ function dictNext() {
 
 /* 中途结束听写：出完成页（循环模式下退出用） */
 function finishDictation() {
+  hideAnsFoot();
   stopDictPlayback();
   const el = document.getElementById('dictQuiz');
   el.innerHTML = practiceDoneHtml('听写', '听写');
@@ -2937,6 +3046,7 @@ function startListen() {
 }
 
 function renderListenWord() {
+  hideAnsFoot();
   const el = document.getElementById('dictQuiz');
   const remaining = session.queue.filter(w => !(session.records.get(w) || makeRecord()).done);
   if (!remaining.length) {
@@ -2952,7 +3062,7 @@ function renderListenWord() {
   const rec = session.records.get(word) || makeRecord();
   const retryNote = rec.errors > 0 ? `<div class="retry-note">重记词 · 答对 1 次即完成</div>` : '';
   const optionsHtml = session.q.options.map((o, i) =>
-    `<button class="opt" data-ans="${o.isAnswer}" onclick="listenAnswer(${i}, this)">${escapeHtml(o.text)}</button>`
+    `<button class="opt" data-ans="${o.isAnswer}" onclick="listenAnswer(${i}, this)"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}</button>`
   ).join('');
   el.innerHTML = `
     <div class="quiz-card">
@@ -2979,12 +3089,10 @@ function listenAnswer(idx, btnEl) {
   const fbEl = document.getElementById('listenFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  document.querySelectorAll('#dictQuiz .opt').forEach(b => {
-    if (b.dataset.ans === 'true') b.classList.add('correct');
-  });
-  if (!isCorrect && btnEl) btnEl.classList.add('wrong');
+  markOptions(document.getElementById('dictQuiz'), btnEl);   // 只标当前屏选项(防他屏残留误标)
   const def = WORD_MAP.get(word) || '';
   if (isCorrect) {
+    sfxPlay('ok');
     rec.done = true;
     session.records.set(word, rec);
     session.correct++;
@@ -2996,9 +3104,11 @@ function listenAnswer(idx, btnEl) {
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(def)}</div>
       </div>
-      <button class="next-btn" onclick="listenNext()">下一个 →</button>
     `;
+    revealFeedback(fbEl);
+    showAnsFoot('继续 →', 'ok', listenNext);
   } else {
+    sfxPlay('bad');
     rec.errors++;
     session.wrong++;
     session.records.set(word, rec);
@@ -3006,7 +3116,9 @@ function listenAnswer(idx, btnEl) {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 揭底时补听一遍单词，音形义对上
-    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，过几个词再考你', 'listenNext');
+    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，过几个词再考你');
+    revealFeedback(fbEl);
+    showAnsFoot('记住了，继续 →', 'bad', listenNext);
   }
 }
 
@@ -3649,6 +3761,7 @@ function quickMarkWrong() {
 function quickApplyAnswer(known) {
   const q = quickRebuild;
   if (!q) return;
+  sfxPlay(known ? 'ok' : 'bad');
   const w = q.list[q.i];
   if (q.write) quickMark(w, known);
   if (known) q.known++; else q.unknown++;

@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   dictPause: 1, dictRate: DEFAULT_RATE, dictOrder: 'random', dictLoop: false,  // 轮间停顿秒/语速/顺序/循环
   quickScope: 'all', quickWords: [],                      // 快速复习/重建:范围 + 自选词单(两模式共用)
   quickVerify: true,                                       // 快扫答案校验(两段式):先自评再翻面,可改判「记错了」
+  sfx: true,                                               // 答题音效(WebAudio 合成,答对上行双音/答错下行低音+短振动)
   theme: 'auto',                                           // 外观:auto 跟随系统 / light / dark
   voiceSrc: 'edge',                                       // 音源:'edge'Edge朗读(默认) / 'tts'设备TTS
   edgePack: null,                                         // Edge发音离线包元数据 {lib,voice,rate,words,ts},null=未下载(音频本体在 IndexedDB)
@@ -518,6 +519,7 @@ function loadState() {
     if (![0.85, 0.9, 0.95].includes(s.settings.fsrsRetention)) s.settings.fsrsRetention = 0.9;
     // 快扫答案校验与外观主题缺省校验
     s.settings.quickVerify = s.settings.quickVerify !== false;
+    s.settings.sfx = s.settings.sfx !== false;
     if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
     // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')。
     // 注意:这里必须用字面量数组,不能引用文件后段(line ~770)的 DATE_CATS——

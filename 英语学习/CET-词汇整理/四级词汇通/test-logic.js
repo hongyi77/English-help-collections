@@ -1844,6 +1844,47 @@ console.log('\n[46] 学习日边界(每日目标早上 5 点重置)');
   g('state = defaultState(); saveState();');
 })();
 
+console.log('\n[47] 答题反馈三件套(音效/底部继续栏/选项标注)');
+(() => {
+  // 音效设置:默认开,旧档归一,开关可切换
+  ok(g('state.settings.sfx') === true, '答题音效默认开');
+  g(`state.settings.sfx = 'bogus'; flushState(); state = loadState();`);
+  ok(g('state.settings.sfx') === true, '非法值归一为开');
+  g('toggleSfx()');
+  ok(g('state.settings.sfx') === false, 'toggleSfx 可关');
+  g('toggleSfx()');
+  // 沙箱无 AudioContext:播放函数走守卫不抛错
+  ok(g("sfxPlay('ok')") === undefined && g("sfxPlay('bad')") === undefined, 'sfxPlay 无音频环境静默返回');
+  // 底部继续栏:挂起动作→触发→隐藏后失效
+  g(`window.__footRan = false; showAnsFoot('继续', 'bad', () => { window.__footRan = true; });`);
+  ok(g('typeof ansFootAction') === 'function', 'showAnsFoot 挂起继续动作');
+  g('ansFootGo()');
+  ok(g('window.__footRan') === true, 'ansFootGo 执行挂起的动作');
+  g('hideAnsFoot()');
+  ok(g('ansFootAction') === null, 'hideAnsFoot 清空动作(再点不重复触发)');
+  // 选项标注:所选错项打叉(正确项由宿主桩空数组跳过)
+  g(`(() => {
+    let markHtml = '';
+    const host = { querySelectorAll: () => [] };
+    const chosen = { dataset: { ans: 'false' }, classList: { add() {} }, insertAdjacentHTML: (p, h) => { markHtml = h; } };
+    markOptions(host, chosen);
+    globalThis.__markHtml = markHtml;
+  })()`);
+  ok(String(g('__markHtml')).indexOf('opt-mark') >= 0 && String(g('__markHtml')).indexOf('<svg') >= 0, 'markOptions 给所选错项打叉图标');
+  // 识别卡:进度条 + 数字键角标;答错后反馈无内联"下一个"(由底栏承接)
+  g('state = defaultState(); state.settings.dailyNew = 2; saveState(); startStudy()');
+  const sh = documentStub.getElementById('studyQuiz').innerHTML;
+  ok(sh.includes('progress-bar'), '识别卡顶部有进度条');
+  ok(sh.includes('opt-key'), '选项带数字键角标(桌面提示)');
+  g(`(() => { const i = session.q.options.findIndex(o => !o.isAnswer); recognizeAnswer(i, { classList: { add() {} } }); })()`);
+  ok(documentStub.getElementById('feedbackZone').innerHTML.includes('答错了'), '答错出反馈');
+  ok(!documentStub.getElementById('feedbackZone').innerHTML.includes('下一个 →'), '反馈内不再放"下一个"按钮(底部栏承接)');
+  ok(g('typeof ansFootAction') === 'function', '答错挂起底部继续动作');
+  g('advanceAfterWrong()');
+  ok(g('ansFootAction') === null, '换题后继续栏收起');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);
