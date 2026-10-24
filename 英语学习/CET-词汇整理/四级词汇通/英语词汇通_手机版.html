@@ -594,6 +594,18 @@
   .book-toggle svg { width: 15px; height: 15px; }
   .master-tab svg { width: 14px; height: 14px; }
 
+  /* ---------- 说明文字折叠(全项目统一:默认收起,点开查看) ---------- */
+  .doc-note { margin-top: 8px; font-size: 12px; }
+  .doc-note summary {
+    color: var(--ink-soft); cursor: pointer; user-select: none; list-style: none;
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+  }
+  .doc-note summary::-webkit-details-marker { display: none; }
+  .doc-note summary::after { content: "▾"; font-size: 10px; opacity: .7; transition: transform .15s; }
+  .doc-note[open] summary::after { transform: rotate(180deg); }
+  .doc-note summary:hover { color: var(--ink-blue); }
+  .doc-note .note-body { margin-top: 6px; color: var(--ink-soft); line-height: 1.7; }
+
   /* ---------- 首页·错词重练入口 ---------- */
   .big-action.wrong-re .ba-ico { background: var(--red-soft); color: var(--pen-red); }
 
@@ -767,13 +779,18 @@
       <div class="stat-card"><div class="num green" id="mMastered">0</div><div class="lbl">已掌握</div></div>
     </div>
     <div class="settings-card">
+      <h3>学习热力 <span class="mt-cnt" id="streakLine"></span></h3>
+      <div id="heatmapBox"></div>
+      <details class="doc-note"><summary>说明</summary><div class="note-body">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</div></details>
+    </div>
+    <div class="settings-card">
       <h3>按分类查看并重置</h3>
       <div id="masterTabs"></div>
-      <p style="font-size:13px;color:var(--ink-soft);margin-top:12px;line-height:1.7">
+      <details class="doc-note"><summary>说明</summary><div class="note-body" style="font-size:13px;line-height:1.7">
         复习答错累计 5 次的词自动标记为「顽固词」，可单独查看或到自由拼写/听写里选「顽固词」范围专项练；<br>
         点击某个单词可重置它(回到未学习，顽固标记一并清除)；<br>
         点分类旁「重置全部」可清空该分类所有单词。
-      </p>
+      </div></details>
     </div>
     <!-- 搜索框静态化:输入时不重建(否则每键丢焦点/打断输入法组词),列表区单独渲染进 masterList -->
     <div class="master-search-wrap"><input id="masterSearchInput" class="master-search" placeholder="搜索单词或释义…" oninput="onMasterSearch(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="在分类内搜索单词或释义"></div>
@@ -783,16 +800,6 @@
     <div class="settings-card">
       <h3>选择日期</h3>
       <div id="historyDates"></div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="num" id="hLearned">0</div><div class="lbl">新学</div></div>
-      <div class="stat-card"><div class="num green" id="hReviewed">0</div><div class="lbl">复习</div></div>
-      <div class="stat-card"><div class="num red" id="hWrongs">0</div><div class="lbl">答错</div></div>
-    </div>
-    <div class="settings-card">
-      <h3>学习热力 <span class="mt-cnt" id="streakLine"></span></h3>
-      <div id="heatmapBox"></div>
-      <p style="font-size:12px;color:var(--ink-soft);margin-top:8px">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</p>
     </div>
     <div id="historyDetail"></div>
   </div>
@@ -848,14 +855,14 @@
           <button id="setSfx" onclick="toggleSfx()">开</button>
         </div>
       </div>
-      <p style="font-size:12px;color:var(--ink-soft);margin:10px 0 0;line-height:1.7">每日目标在<b>早上 5 点</b>重置——凌晨 0~5 点的学习计入前一天，夜猫子过午夜进度不清零。</p>
+      <details class="doc-note"><summary>说明</summary><div class="note-body">每日目标在<b>早上 5 点</b>重置——凌晨 0~5 点的学习计入前一天，夜猫子过午夜进度不清零。</div></details>
       <div class="set-div"></div>
       <div class="cfg-title" style="margin:0 0 8px">复习算法</div>
       <div class="set-ctrl" id="algoChips" style="gap:8px">
         <button class="master-tab" data-algo="ebbinghaus" onclick="setReviewAlgo('ebbinghaus')">经典间隔</button>
         <button class="master-tab" data-algo="fsrs" onclick="setReviewAlgo('fsrs')">FSRS 自适应</button>
       </div>
-      <p id="algoNote" style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin:10px 0 0"></p>
+      <details class="doc-note"><summary>算法说明</summary><div class="note-body" id="algoNote" style="font-size:12px;line-height:1.7"></div></details>
       <div id="fsrsRetentionRow" style="display:none;margin-top:12px">
         <div class="set-row">
           <label>目标记忆保持率<br><span style="font-size:12px;color:var(--ink-soft)">越高记得越牢，复习也越频繁</span></label>
@@ -886,7 +893,7 @@
           <button class="master-tab" data-src="tts" onclick="setVoiceSrc('tts')">设备TTS</button>
         </div>
       </div>
-      <p id="voiceSrcNote" style="font-size:12px;color:var(--ink-soft);line-height:1.7;margin:-6px 0 14px"></p>
+      <details class="doc-note" style="margin:-4px 0 12px"><summary>音源说明</summary><div class="note-body" id="voiceSrcNote" style="font-size:12px;line-height:1.7"></div></details>
       <div class="set-row">
         <label>试听</label>
         <div class="set-ctrl" style="gap:8px">
@@ -913,10 +920,10 @@
             <button class="data-btn" id="edgePackBtn" onclick="edgePackToggle()">下载发音包</button>
             <button class="btn-ghost" id="edgePackStopBtn" onclick="edgePackStopJob()" style="display:none;padding:8px 14px;border-radius:10px">停止</button>
           </div>
-          <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.7">
+          <details class="doc-note"><summary>说明</summary><div class="note-body" style="font-size:12px;line-height:1.7">
             只含单词发音（每词约 6KB，不含汉译）。下载期间请保持页面在前台；中途退出不丢进度，已下的词立即秒播。
             换音色或词库后重新下载即可，旧包保留、切回不用重下。
-          </p>
+          </div></details>
         </div>
       </div>
       <div class="set-row">
@@ -931,10 +938,10 @@
     <div class="sec-cap">数据</div>
     <div class="settings-card">
       <div class="cfg-title" style="margin:0 0 8px">跨设备同步</div>
-      <p style="font-size:13px;color:var(--ink-soft);line-height:1.8;margin-bottom:12px">
+      <details class="doc-note" style="margin-bottom:12px"><summary>说明</summary><div class="note-body" style="font-size:13px;line-height:1.8">
         电脑上学完，手机想接着学？<br>
         在电脑上「导出进度」→ 把文件发到手机 → 手机上「导入进度」，学习记录、生词本、掌握情况就同步过来了。
-      </p>
+      </div></details>
       <div style="display:flex;gap:10px">
         <button class="data-btn" onclick="exportProgressFile()"><span data-icon="arrow-right" style="display:inline-block;transform:rotate(90deg)"></span> 导出进度</button>
         <button class="data-btn" onclick="document.getElementById('importFile').click()"><span data-icon="arrow-right" style="display:inline-block;transform:rotate(-90deg)"></span> 导入进度</button>
@@ -945,23 +952,23 @@
       <div class="cfg-title" style="margin:0 0 8px">数据诊断</div>
       <div id="diagBody" style="font-size:13px;color:var(--ink-soft);line-height:1.9">读取中…</div>
       <button class="btn-ghost" style="margin-top:10px;padding:10px 16px;border-radius:10px" onclick="forceSwUpdate()">强制更新到最新版（不清学习数据）</button>
-      <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</p>
+      <details class="doc-note"><summary>说明</summary><div class="note-body" style="font-size:12px;line-height:1.7">仅重新拉取程序代码，不碰学习进度；更新后如果进度仍为空，把上面几行数字发给开发者。</div></details>
     </div>
     <div class="settings-card">
       <h3>进度快速重建</h3>
-      <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0 0 10px">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</p>
+      <details class="doc-note" style="margin:0 0 10px"><summary>说明</summary><div class="note-body" style="font-size:13px;line-height:1.7">清档补救：快扫词库里还没有学习记录的词（当前剩 <b id="quickEntryCount">0</b> 个），认识的点一下就按 2 天后排期，不认识明天再来。即标即存，随时退出随时继续。<br>只想练习不改进度的话，用主页的「快速复习」。</div></details>
       <button class="btn-ghost" style="padding:10px 16px;border-radius:10px" onclick="openQuickRebuild()">去重建进度（预选重建模式）</button>
     </div>
     <div class="sec-cap">关于</div>
     <div class="settings-card">
       <h3>关于</h3>
-      <p style="font-size:14px;color:var(--ink-soft);line-height:1.9">
+      <details class="doc-note" open><summary>关于本应用</summary><div class="note-body" style="font-size:14px;line-height:1.9">
         复习调度：<b>经典艾宾浩斯</b>（1 / 2 / 4 / 7 / 15 天）或 <b>FSRS 自适应</b>（按每个词的记忆强度排期），在「学习偏好」里切换。<br>
         连续答对升级；答错降级并排 10 分钟后重考，可在反馈里手动加入生词本。<br>
         复习答错累计 5 次自动标记「顽固词」；升到最高级即"完全记住"，移出复习循环。<br>
         11 个词库学习进度独立保存；每日目标在早上 5 点重置。<br>
         数据保存在浏览器本地，换设备用「导入进度」同步。
-      </p>
+      </div></details>
       <div class="set-div"></div>
       <button class="danger-btn" onclick="confirmReset()">重置全部学习进度</button>
     </div>
@@ -30788,7 +30795,7 @@ function renderSpellConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
-      <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
+      ${docNoteHtml('看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。')}
       ${spellCfgHtml('spell')}
       ${pool.length ? '' : practiceEmptyHtml('spell')}
     </div>
@@ -31007,7 +31014,7 @@ function renderWordPicker() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left">
       <span class="quiz-type">${icon('list-plus')} 选定单词</span>
-      <p class="cfg-note">点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
+      ${docNoteHtml('点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（' + escapeHtml(LIBS[libKey()].name) + '）保存，切词库后他库词不参与。')}
       <div class="picker-head">
         <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
         <div class="cfg-chips">${SCOPES.map(s =>
@@ -31249,7 +31256,7 @@ function renderDictConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('ear')} 听力练习</span>
-      <p class="cfg-note"><b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。两类共用下面的范围/数量/自选词单，错词自动穿插重现；发音首次需联网，之后离线可用。</p>
+      ${docNoteHtml('<b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。两类共用下面的范围/数量/自选词单，错词自动穿插重现；发音首次需联网，之后离线可用。')}
       <div class="cfg-title">练习类型</div>
       <div class="cfg-chips">
         <button class="master-tab ${kind === 'write' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','write')">${icon('pencil-line')} 听音写词</button>
@@ -31733,7 +31740,7 @@ function renderMaster() {
 
   // 顶部 tab
   document.getElementById('masterTabs').innerHTML = MASTER_TABS.map(t => {
-    const n = t.cls === 'leech' ? b.leech : b[t.cls];
+    const n = t.cls === 'unlearned' ? b.unseen : (t.cls === 'leech' ? b.leech : b[t.cls]);   // 桶键是 unseen(曾漏映射致 tab 显示 undefined)
     const act = masterTab === t.cls ? 'active' : '';
     return `<div class="master-tab ${act}" data-cls="${t.cls}" onclick="setMasterTab('${t.cls}')">
       ${t.label} <span class="mt-cnt">${n}</span>
@@ -31741,6 +31748,7 @@ function renderMaster() {
   }).join('');
 
   renderMasterList();
+  renderHeatmap();   // 学习热力随卡片移入掌握情况(点格子跳学习记录)
 }
 
 function setMasterTab(cls) {
@@ -31877,11 +31885,7 @@ function renderHistory() {
   }
 
   const rec = (state.history && state.history[historyDay]) || { learned: [], reviewed: [], wrongs: [] };
-  document.getElementById('hLearned').textContent = rec.learned.length;
-  document.getElementById('hReviewed').textContent = rec.reviewed.length;
-  document.getElementById('hWrongs').textContent = rec.wrongs.length;
-  renderHeatmap();
-  renderHistoryDetail(rec);
+  renderHistoryDetail(rec);   // 分类计数在详情 chips 里,顶部三格统计已移除
 }
 
 /* ---------------- 学习热力图(GitHub 贡献图风格) + 连续学习 streak ----------------
@@ -31922,10 +31926,13 @@ function renderHeatmap() {
   document.getElementById('streakLine').textContent = `连续学习 ${streakInfo()} 天`;
 }
 
-/* 热力图点击 → 跳到该天记录(event.target 为 rect) */
+/* 热力图点击 → 切到学习记录分段并选中该天(热力卡片在掌握情况里) */
 function heatmapClick(e) {
   const dk = e.target && e.target.dataset && e.target.dataset.dk;
-  if (dk) setHistoryDay(dk);
+  if (!dk) return;
+  historyDay = dk;
+  setVocabSeg('history');
+  renderHistory();
 }
 
 function setHistoryDay(day) {
@@ -31996,6 +32003,11 @@ function icon(name) {
 
 function renderIcons() {
   document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
+}
+
+/* 说明文字折叠(全项目统一):默认收起,点「说明」展开——原生 details 零依赖 */
+function docNoteHtml(bodyHtml, title) {
+  return `<details class="doc-note"><summary>${title || '说明'}</summary><div class="note-body">${bodyHtml}</div></details>`;
 }
 
 /* ---------------- 工具 ---------------- */
@@ -32148,7 +32160,7 @@ function renderQuickConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('sparkles')} 快速复习</span>
-      <p class="cfg-note">一屏一词,认识/不认识点一下。${mode === 'rebuild' ? '<b>重建模式会写入学习进度</b>:认识按 2 天后排期,不认识明天再来;只扫还没有记录的词。' : '<b>纯练习不改任何学习数据</b>,放心扫。'}</p>
+      ${docNoteHtml('一屏一词,认识/不认识点一下。' + (mode === 'rebuild' ? '<b>重建模式会写入学习进度</b>:认识按 2 天后排期,不认识明天再来;只扫还没有记录的词。' : '<b>纯练习不改任何学习数据</b>,放心扫。'))}
       <div class="cfg-title">模式</div>
       <div class="cfg-chips">
         <button class="master-tab ${mode === 'practice' ? 'active' : ''}" onclick="setQuickMode('practice')">复习练习(不改数据)</button>

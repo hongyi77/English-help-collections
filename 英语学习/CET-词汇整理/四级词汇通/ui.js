@@ -2259,7 +2259,7 @@ function renderSpellConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('pencil-line')} 自由拼写</span>
-      <p class="cfg-note">看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。</p>
+      ${docNoteHtml('看释义拼写单词，答错不卡住、稍后穿插重现；纯练习，不影响学习进度。')}
       ${spellCfgHtml('spell')}
       ${pool.length ? '' : practiceEmptyHtml('spell')}
     </div>
@@ -2478,7 +2478,7 @@ function renderWordPicker() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left">
       <span class="quiz-type">${icon('list-plus')} 选定单词</span>
-      <p class="cfg-note">点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（${escapeHtml(LIBS[libKey()].name)}）保存，切词库后他库词不参与。</p>
+      ${docNoteHtml('点行勾选/取消；<b>长按一行后往下拖</b>可连续选（拖过已选的则连续取消）；词单按当前词库（' + escapeHtml(LIBS[libKey()].name) + '）保存，切词库后他库词不参与。')}
       <div class="picker-head">
         <div class="master-search-wrap"><input id="pickerSearchInput" class="master-search" placeholder="搜索单词或释义…" value="${escapeHtml(pickerSearch)}" oninput="onPickerSearch(this.value)"></div>
         <div class="cfg-chips">${SCOPES.map(s =>
@@ -2720,7 +2720,7 @@ function renderDictConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('ear')} 听力练习</span>
-      <p class="cfg-note"><b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。两类共用下面的范围/数量/自选词单，错词自动穿插重现；发音首次需联网，之后离线可用。</p>
+      ${docNoteHtml('<b>听音写词</b>：播两轮（单词读 2 遍 + 汉译 1 遍）后输入提交；<b>听音辨义</b>：只听发音不给拼写，四选一中文释义。两类共用下面的范围/数量/自选词单，错词自动穿插重现；发音首次需联网，之后离线可用。')}
       <div class="cfg-title">练习类型</div>
       <div class="cfg-chips">
         <button class="master-tab ${kind === 'write' ? 'active' : ''}" onclick="setPracticeCfg('dictKind','write')">${icon('pencil-line')} 听音写词</button>
@@ -3204,7 +3204,7 @@ function renderMaster() {
 
   // 顶部 tab
   document.getElementById('masterTabs').innerHTML = MASTER_TABS.map(t => {
-    const n = t.cls === 'leech' ? b.leech : b[t.cls];
+    const n = t.cls === 'unlearned' ? b.unseen : (t.cls === 'leech' ? b.leech : b[t.cls]);   // 桶键是 unseen(曾漏映射致 tab 显示 undefined)
     const act = masterTab === t.cls ? 'active' : '';
     return `<div class="master-tab ${act}" data-cls="${t.cls}" onclick="setMasterTab('${t.cls}')">
       ${t.label} <span class="mt-cnt">${n}</span>
@@ -3212,6 +3212,7 @@ function renderMaster() {
   }).join('');
 
   renderMasterList();
+  renderHeatmap();   // 学习热力随卡片移入掌握情况(点格子跳学习记录)
 }
 
 function setMasterTab(cls) {
@@ -3348,11 +3349,7 @@ function renderHistory() {
   }
 
   const rec = (state.history && state.history[historyDay]) || { learned: [], reviewed: [], wrongs: [] };
-  document.getElementById('hLearned').textContent = rec.learned.length;
-  document.getElementById('hReviewed').textContent = rec.reviewed.length;
-  document.getElementById('hWrongs').textContent = rec.wrongs.length;
-  renderHeatmap();
-  renderHistoryDetail(rec);
+  renderHistoryDetail(rec);   // 分类计数在详情 chips 里,顶部三格统计已移除
 }
 
 /* ---------------- 学习热力图(GitHub 贡献图风格) + 连续学习 streak ----------------
@@ -3393,10 +3390,13 @@ function renderHeatmap() {
   document.getElementById('streakLine').textContent = `连续学习 ${streakInfo()} 天`;
 }
 
-/* 热力图点击 → 跳到该天记录(event.target 为 rect) */
+/* 热力图点击 → 切到学习记录分段并选中该天(热力卡片在掌握情况里) */
 function heatmapClick(e) {
   const dk = e.target && e.target.dataset && e.target.dataset.dk;
-  if (dk) setHistoryDay(dk);
+  if (!dk) return;
+  historyDay = dk;
+  setVocabSeg('history');
+  renderHistory();
 }
 
 function setHistoryDay(day) {
@@ -3467,6 +3467,11 @@ function icon(name) {
 
 function renderIcons() {
   document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); });
+}
+
+/* 说明文字折叠(全项目统一):默认收起,点「说明」展开——原生 details 零依赖 */
+function docNoteHtml(bodyHtml, title) {
+  return `<details class="doc-note"><summary>${title || '说明'}</summary><div class="note-body">${bodyHtml}</div></details>`;
 }
 
 /* ---------------- 工具 ---------------- */
@@ -3619,7 +3624,7 @@ function renderQuickConfig() {
   el.innerHTML = `
     <div class="quiz-card" style="text-align:left;margin-bottom:100px">
       <span class="quiz-type">${icon('sparkles')} 快速复习</span>
-      <p class="cfg-note">一屏一词,认识/不认识点一下。${mode === 'rebuild' ? '<b>重建模式会写入学习进度</b>:认识按 2 天后排期,不认识明天再来;只扫还没有记录的词。' : '<b>纯练习不改任何学习数据</b>,放心扫。'}</p>
+      ${docNoteHtml('一屏一词,认识/不认识点一下。' + (mode === 'rebuild' ? '<b>重建模式会写入学习进度</b>:认识按 2 天后排期,不认识明天再来;只扫还没有记录的词。' : '<b>纯练习不改任何学习数据</b>,放心扫。'))}
       <div class="cfg-title">模式</div>
       <div class="cfg-chips">
         <button class="master-tab ${mode === 'practice' ? 'active' : ''}" onclick="setQuickMode('practice')">复习练习(不改数据)</button>

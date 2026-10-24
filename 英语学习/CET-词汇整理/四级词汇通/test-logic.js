@@ -1144,13 +1144,18 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   // ---- 学习热力图渲染 ----
   g(`
     state.history['${dkY}'] = { learned: [], reviewed: [['cet4','${w0}']], wrongs: [] };
-    saveState(); historyDay = null; renderHistory();
+    saveState(); historyDay = null; renderMaster();
   `);
   const hm = documentStub.getElementById('heatmapBox').innerHTML;
-  ok(hm.includes('<svg') && hm.includes('hm-1'), '热力图 SVG 渲染(有活动的格子着色)');
+  ok(hm.includes('<svg') && hm.includes('hm-1'), '热力图 SVG 渲染(随卡片移入掌握情况)');
   ok(documentStub.getElementById('streakLine').textContent.includes('连续学习'), 'streak 文案渲染');
+  const mt = documentStub.getElementById('masterTabs').innerHTML;
+  ok(!mt.includes('undefined'), '未学习 tab 计数正常(回归:曾因桶键漏映射显示 undefined)');
+  g("masterTab = 'unlearned'; renderMaster();");
+  const ulCnt = (documentStub.getElementById('masterTabs').innerHTML.match(/未学习 <span class="mt-cnt">(\d+)/) || [])[1];
+  ok(ulCnt === String(g('unseenWords().length')), '未学习 tab 计数与列表一致');
   g(`heatmapClick({ target: { dataset: { dk: '${dkY2}' } } })`);
-  ok(g('historyDay') === dkY2, '点热力格子跳到对应日期记录');
+  ok(g('historyDay') === dkY2 && g('vocabSeg') === 'history', '点热力格子切到学习记录并选中该天');
   // ---- 听力练习(听写+听音辨义合并,dictKind 切换) ----
   g(`speakWord = function(w){ window.__spoke.push(w); }; window.__spoke = [];`);
   g('state = defaultState(); saveState();');
