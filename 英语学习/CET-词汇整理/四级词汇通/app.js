@@ -999,6 +999,7 @@ function reviewWrong(word, addBook) {
 function toggleBook(word) {
   const r = curWords()[word] || { stage: 0, right: 0, wrong: 0, inBook: false, created: Date.now() };
   r.inBook = !r.inBook;
+  if (r.inBook) r.bookAt = Date.now();   // 加入时间:生词本「添加顺序」排序用(旧记录无此字段则回落 created)
   curWords()[word] = r;
   saveState();
 }

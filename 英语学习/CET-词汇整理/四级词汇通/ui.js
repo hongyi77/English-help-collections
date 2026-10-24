@@ -3156,22 +3156,56 @@ function listenNext() {
 /* ============================================================
  * 生词本
  * ============================================================ */
+/* 排序由用户选择:'wrong' 错误次数降序(默认,错的多的先看) | 'added' 添加顺序(最近加入在前);
+ * 加入时间取 bookAt(toggleBook 加入时记录),旧记录无则回落 created(首次学习时间)近似 */
+let bookOrder = 'wrong';
+
+function setBookOrder(v) {
+  if (v !== 'wrong' && v !== 'added') return;
+  bookOrder = v;
+  renderBook();
+}
+
+function bookTimeOf(w) {
+  const r = curWords()[w];
+  return (r && (r.bookAt || r.created)) || 0;
+}
+
 function renderBook() {
   const el = document.getElementById('bookList');
-  const book = bookWords();
+  const book = bookWords().slice();
+  const words = curWords();
+  if (bookOrder === 'wrong') {
+    book.sort((a, b) => (((words[b] && words[b].wrong) || 0) - ((words[a] && words[a].wrong) || 0)) || (bookTimeOf(b) - bookTimeOf(a)));
+  } else {
+    book.sort((a, b) => bookTimeOf(b) - bookTimeOf(a));
+  }
   if (!book.length) {
     el.innerHTML = '<div class="empty-tip">生词本是空的<br><br>答错或没记住的单词会自动加入这里</div>';
     return;
   }
-  el.innerHTML = book.map(w =>
-    `<div class="list-card"><div class="list-item">
+  // 顶部:总数 + 排序切换(与掌握情况工具栏同款布局)
+  const head = `
+    <div class="list-card master-toolbar">
+      <span style="font-size:14px;color:var(--ink-soft)">共 ${book.length} 词</span>
+      <div class="cfg-chips" style="gap:6px">
+        <button class="master-tab ${bookOrder === 'wrong' ? 'active' : ''}" onclick="setBookOrder('wrong')">错误次数</button>
+        <button class="master-tab ${bookOrder === 'added' ? 'active' : ''}" onclick="setBookOrder('added')">添加顺序</button>
+      </div>
+    </div>`;
+  const rows = book.map(w => {
+    const r = words[w] || {};
+    const wrongN = r.wrong || 0;
+    return `<div class="list-card"><div class="list-item">
       <span class="list-word">${escapeHtml(w)}</span>
       <span class="list-def">${escapeHtml(WORD_MAP.get(w))}</span>
+      ${wrongN ? `<span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span>` : ''}
       <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
       ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
       <button class="list-del" title="移出生词本" aria-label="移出生词本" onclick="removeFromBook('${escapeAttr(w)}')">${icon('x')}</button>
-    </div></div>`
-  ).join('');
+    </div></div>`;
+  }).join('');
+  el.innerHTML = head + rows;
 }
 
 function removeFromBook(word) {

@@ -1902,6 +1902,41 @@ console.log('\n[47] 答题反馈三件套(音效/底部继续栏/选项标注)')
   g('state = defaultState(); saveState();');
 })();
 
+console.log('\n[48] 生词本排序(错误次数/添加顺序,用户可切换)');
+(() => {
+  g('state = defaultState(); saveState();');
+  // 依次加入三个词,并造不同错误次数
+  g(`
+    const [wA, wB, wC] = WORD_LIST.slice(0, 3);
+    toggleBook(wA); curWords()[wA].wrong = 1; curWords()[wA].bookAt = 1000;
+    toggleBook(wB); curWords()[wB].wrong = 7; curWords()[wB].bookAt = 3000;
+    toggleBook(wC); curWords()[wC].wrong = 3; curWords()[wC].bookAt = 2000;
+    globalThis.__bk = [wA, wB, wC];
+    saveState();
+  `);
+  // 默认:错误次数降序
+  g('bookOrder = "wrong"; renderBook();');
+  const htmlWrong = documentStub.getElementById('bookList').innerHTML;
+  const iA = htmlWrong.indexOf('>' + g('__bk[0]') + '<');
+  const iB = htmlWrong.indexOf('>' + g('__bk[1]') + '<');
+  const iC = htmlWrong.indexOf('>' + g('__bk[2]') + '<');
+  ok(iB < iC && iC < iA, '默认按错误次数降序(7→3→1)');
+  ok(htmlWrong.includes('错误次数') && htmlWrong.includes('添加顺序'), '排序切换 chips 渲染');
+  ok(htmlWrong.includes('错 7'), '行内显示错误次数徽章');
+  // 添加顺序:最近加入在前
+  g(`setBookOrder('added')`);
+  const htmlAdded = documentStub.getElementById('bookList').innerHTML;
+  const jA = htmlAdded.indexOf('>' + g('__bk[0]') + '<');
+  const jB = htmlAdded.indexOf('>' + g('__bk[1]') + '<');
+  const jC = htmlAdded.indexOf('>' + g('__bk[2]') + '<');
+  ok(jB < jC && jC < jA, '添加顺序=最近加入在前(按 bookAt)');
+  ok(g(`curWords()[__bk[0]].bookAt`) !== undefined, '加入生词本记录 bookAt 时间戳');
+  // 旧档无 bookAt 回落 created 也能渲染
+  g(`delete curWords()[__bk[0]].bookAt; saveState(); renderBook();`);
+  ok(documentStub.getElementById('bookList').innerHTML.includes(g('__bk[0]')), '无 bookAt 的旧记录回落 created 正常渲染');
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);
