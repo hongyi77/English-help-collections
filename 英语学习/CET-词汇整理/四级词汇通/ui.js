@@ -558,7 +558,7 @@ function setImportMsg(text, kind) {
  *      答错/不会 → 不卡住，刷新下一个词，该词进入「错词池」
  *      （记几次错，延迟到本阶段收尾才重新出现，须再答对多次）
  *   2. 全部识别完后，询问是否进入拼写阶段（可拒绝）
- *   3. 拼写阶段：看释义拼写，连对达标才完成
+ *   3. 拼写阶段：看释义拼写，答对 1 次即完成
  *   拼写答错时不卡住：进拼写错词池，先出下一个词，稍后穿插重现
  *   答错时：可自选是否加入生词本
  */
@@ -569,7 +569,7 @@ let session = null;
  *   retries(识别错词池), spellRetries(拼写错词池), sinceSpellRetry(拼写穿插计数) }
  */
 const RECOG_REQUIRED = 3;   // 错词重新出现后需累计答对次数（多次）
-const SPELL_REQUIRED = 2;   // 拼写需连续答对次数
+const SPELL_REQUIRED = 1;   // 拼写答对次数(答对一次即完成)
 
 function makeRecord() { return { errors: 0, corrects: 0, spellCorrects: 0, done: false }; }
 
@@ -738,9 +738,9 @@ function wrongReAnswer(idx, btnEl) {
   const fbEl = document.getElementById('wrongReFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  markOptions(document.getElementById('reviewQuiz'), btnEl);   // 只标当前屏选项
   if (isCorrect) {
     sfxPlay('ok');
+    markOptions(document.getElementById('reviewQuiz'), btnEl);   // 只标当前屏选项
     rec.done = true;
     session.records.set(word, rec);
     session.correct++;
@@ -763,7 +763,8 @@ function wrongReAnswer(idx, btnEl) {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);
-    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，稍后再考你');
+    revealWrongOptions(document.getElementById('reviewQuiz'), session.q, idx);   // 选项原地揭示
+    fbEl.innerHTML = wrongStripHtml(word);
     revealFeedback(fbEl);
     showAnsFoot('记住了，继续 →', 'bad', wrongReNext);
   }
@@ -1605,54 +1606,97 @@ function speakCurrent() {
   if (session && session.q && session.q.speakWord) speakWord(session.q.speakWord);
 }
 
+/* ---------------- 答错选项揭示(错误大框取消,信息长在选项上) ----------------
+ * 答错后选项原地重排:正确项与所选项展开"单词+汉译"双行并高亮,
+ * 其余干扰项折叠、点击可查看对应单词。 */
+
+/* 选项的"单词+释义"对:英译汉选项是释义→反查单词;汉译英选项是单词→查释义 */
+function optionPairOf(q, o) {
+  if (q.type === '汉译英') {
+    const w2 = o.text;
+    return { w: w2, d: WORD_MAP.get(w2) || '' };
+  }
+  return { w: o.isAnswer ? q.answer : (reverseDefToWord(o.text, q.answer) || ''), d: o.text };
+}
+
+/* 答错后的选项区 HTML:chosenIdx=所选错项(点「不会」传 -1,无所选项) */
+function revealOptionsHtml(q, chosenIdx) {
+  return q.options.map((o, i) => {
+    if (o.isAnswer || i === chosenIdx) {
+      const p = optionPairOf(q, o);
+      const cls = o.isAnswer ? 'opt correct shown' : 'opt wrong shown';
+      const mark = o.isAnswer ? icon('circle-check') : icon('circle-x');
+      return `<div class="${cls}">
+        <span class="opt-w">${escapeHtml(p.w)}</span>
+        <span class="opt-d">${escapeHtml(p.d)}</span>
+        <span class="opt-mark">${mark}</span>
+      </div>`;
+    }
+    return `<button class="opt dim" onclick="revealOpt(this, ${i})"><span class="opt-key">${i + 1}</span>${escapeHtml(o.text)}<span class="opt-tap">${icon('eye')}</span></button>`;
+  }).join('');
+}
+
+/* 把选项区替换为揭示形态 */
+function revealWrongOptions(hostEl, q, chosenIdx) {
+  const wrap = hostEl && hostEl.querySelector ? hostEl.querySelector('.options') : null;
+  if (wrap) wrap.innerHTML = revealOptionsHtml(q, chosenIdx);
+}
+
+/* 折叠干扰项 → 点开成"单词+释义"双行 */
+function revealOpt(btn, i) {
+  if (!session || !session.q || !session.q.options[i]) return;
+  const p = optionPairOf(session.q, session.q.options[i]);
+  if (btn.classList) { btn.classList.remove('dim'); btn.classList.add('shown'); }
+  if (btn.innerHTML !== undefined) {
+    btn.innerHTML = `<span class="opt-w">${escapeHtml(p.w)}</span><span class="opt-d">${escapeHtml(p.d)}</span>`;
+  }
+  if (btn.removeAttribute) btn.removeAttribute('onclick');
+}
+
+/* 答错轻量条:巧记(有才显示,点开面板)+生词本按钮;不再有红色大反馈框 */
+function wrongStripHtml(word) {
+  const inBook = !!(curWords()[word] && curWords()[word].inBook);
+  return `<div class="wrong-strip">
+    ${memoOf(word) ? `<button class="strip-memo" onclick="toggleStripMemo('${escapeAttr(word)}', this)">${icon('lightbulb')} 巧记</button>` : ''}
+    <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
+      ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
+    </button>
+  </div>`;
+}
+
+/* 巧记按钮:再点收起 */
+function toggleStripMemo(word, btn) {
+  const opened = btn.dataset && btn.dataset.open === '1';
+  let panel = document.getElementById('stripMemoPanel');
+  if (opened) {
+    if (panel) panel.remove();
+    btn.dataset.open = '';
+    return;
+  }
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'stripMemoPanel';
+    panel.className = 'wrong-memo';
+  }
+  panel.innerHTML = icon('lightbulb') + ' ' + escapeHtml(memoOf(word));
+  if (btn.parentNode) btn.parentNode.insertBefore(panel, btn.parentNode.nextSibling);
+  btn.dataset.open = '1';
+}
+
 function showWrongFeedback(word, wrongText) {
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   const fb = document.getElementById('feedbackZone');
-  const inBook = curWords()[word] && curWords()[word].inBook;
-  const def = WORD_MAP.get(word);
-
-  // 选错选项的翻译提示（英译汉：选项是中文释义 → 反查提示它的英文单词）
-  let wrongHint = '';
-  if (wrongText) {
-    const foundWord = reverseDefToWord(wrongText, word);
-    if (foundWord) wrongHint = `<div class="wrong-hint">「${escapeHtml(wrongText)}」的英语是：${escapeHtml(foundWord)}</div>`;
-  }
-
-  // 其余错误选项可点看对应单词（点「不会」没有选错项，全部干扰项都可点）
-  const chips = session.q && session.q.type === '英译汉'
-    ? session.q.options.map((o, i) => ({ text: o.text, isAnswer: o.isAnswer, i }))
-        .filter(o => !o.isAnswer && o.text !== wrongText)
-    : [];
-  const chipsHtml = chips.length ? `
-    <div class="def-chips">${chips.map(o =>
-      `<button class="def-chip" onclick="toggleDefChip(this, ${o.i})">${icon('eye')} ${escapeHtml(o.text)}</button>`
-    ).join('')}</div>` : '';
-
   const card = fb.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  fb.innerHTML = `
-    <div class="feedback bad">
-      <div class="fb-title">${icon('circle-x')} 答错了，稍后会再考你</div>
-      <div class="wrong-pair">
-        <span class="wp-ans">${escapeHtml(word)}</span>
-        <span class="wp-def">${escapeHtml(def)}</span>
-      </div>
-      ${wrongHint}
-      ${chipsHtml}
-      ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
-    </div>
-    <div class="wrong-actions">
-      <button class="book-toggle ${inBook ? 'in-book' : ''}" id="wrongBookBtn" onclick="toggleWrongBook('${escapeAttr(word)}')">
-        ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
-      </button>
-    </div>
-  `;
-  el.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  // 选项原地揭示:正确项(+所选项)展开双行,其余折叠可点看
+  const chosenIdx = session.q ? session.q.options.findIndex(o => o.text === wrongText) : -1;
+  revealWrongOptions(el, session.q, chosenIdx);
+  fb.innerHTML = wrongStripHtml(word);
   revealFeedback(fb);
   showAnsFoot('记住了，继续 →', 'bad', advanceAfterWrong);
 }
 
-/* 拼写/听写/听音辨义共用的「答错反馈」模板:错词对+巧记+生词本按钮;
+/* 拼写/听写类(无选项)的答错反馈:词对+巧记+生词本;
  * 「继续」由底部固定栏承接(showAnsFoot),不再内联 */
 function wrongFeedbackHtml(word, title) {
   const inBook = !!(curWords()[word] && curWords()[word].inBook);
@@ -1670,25 +1714,6 @@ function wrongFeedbackHtml(word, title) {
         ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
       </button>
     </div>`;
-}
-
-/* 点错误选项标签 → 展开该选项释义对应的英文单词（再点收起） */
-function toggleDefChip(btn, optIdx) {
-  if (!session || !session.q || !session.q.options[optIdx]) return;
-  const def = session.q.options[optIdx].text;
-  const wrap = btn.closest('.def-chips');
-  const card = btn.closest('.feedback');
-  if (!wrap || !card) return;
-  card.querySelectorAll('.def-chip-ans').forEach(x => x.remove());
-  const opened = btn.dataset.open === '1';
-  wrap.querySelectorAll('.def-chip').forEach(b => b.dataset.open = '');
-  if (opened) return;   // 再点同一个 = 收起
-  btn.dataset.open = '1';
-  const w = reverseDefToWord(def, session.word);
-  const div = document.createElement('div');
-  div.className = 'def-chip-ans';
-  div.textContent = '「' + def + '」的英语是：' + (w || '（词库中未找到）');
-  wrap.parentNode.insertBefore(div, wrap.nextSibling);
 }
 
 function toggleWrongBook(word) {
@@ -3089,10 +3114,10 @@ function listenAnswer(idx, btnEl) {
   const fbEl = document.getElementById('listenFeedback');
   const card = fbEl.closest('.quiz-card');
   if (card) card.classList.add('with-ans');
-  markOptions(document.getElementById('dictQuiz'), btnEl);   // 只标当前屏选项(防他屏残留误标)
   const def = WORD_MAP.get(word) || '';
   if (isCorrect) {
     sfxPlay('ok');
+    markOptions(document.getElementById('dictQuiz'), btnEl);   // 只标当前屏选项(防他屏残留误标)
     rec.done = true;
     session.records.set(word, rec);
     session.correct++;
@@ -3116,7 +3141,8 @@ function listenAnswer(idx, btnEl) {
     if (!session.spellRetries.includes(word)) session.spellRetries.push(word);
     session.sinceSpellRetry = 0;
     if (state.settings.autoSpeak) speakWord(word);   // 揭底时补听一遍单词，音形义对上
-    fbEl.innerHTML = wrongFeedbackHtml(word, '答错了，过几个词再考你');
+    revealWrongOptions(document.getElementById('dictQuiz'), session.q, idx);   // 选项原地揭示
+    fbEl.innerHTML = wrongStripHtml(word);
     revealFeedback(fbEl);
     showAnsFoot('记住了，继续 →', 'bad', listenNext);
   }

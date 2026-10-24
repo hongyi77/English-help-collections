@@ -377,7 +377,8 @@ console.log('\n[15] 巧记：数据接入、答错反馈、列表查看');
   fbZone.innerHTML = '';
   g(`showWrongFeedback('negotiate', null)`);
   ok(!fbZone.innerHTML.includes('wp-sep'), '答错对照为叠层布局（无 / 分隔符）');
-  ok(fbZone.innerHTML.includes('wrong-memo') && fbZone.innerHTML.includes('<svg'), '答错反馈显示巧记(svg 图标)');
+  ok(fbZone.innerHTML.includes('strip-memo'), '答错轻量条含巧记入口(negotiate 有巧记)');
+  ok(fbZone.innerHTML.includes('wrongBookBtn'), '答错轻量条含生词本按钮');
   // 简单词答错不显示巧记行
   fbZone.innerHTML = '';
   g(`showWrongFeedback('hello', null)`);
@@ -474,33 +475,39 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   ok(g("libKey()") === 'cet4', '无效词库 key 回落到 cet4');
 })();
 
-/* ================= 18. 功能1:答错反馈错误选项可点看 ================= */
-console.log('\n[18] 答错反馈:错误选项点看释义(reverseDefToWord)');
+/* ================= 18. 答错选项揭示(错误大框取消,信息长在选项上) ================= */
+console.log('\n[18] 答错选项揭示:正确/所选项展开双行,其余可点看');
 (() => {
   g('state = defaultState(); saveState();');
   g('startStudy()');
-  // 答错当前词 → 反馈区应渲染其余错误选项的可点看标签
   const w = g('session.word');
   const badIdx = g('session.q.options.findIndex(o => !o.isAnswer)');
   g(`recognizeAnswer(${badIdx}, { classList: { add() {} } })`);
   const fb = documentStub.getElementById('feedbackZone').innerHTML;
-  ok(fb.includes('def-chips'), '答错反馈渲染错误选项点看标签');
-  ok(fb.includes('toggleDefChip'), '标签绑定点看事件');
-  ok((fb.match(/def-chip\"/g) || []).length === 2, `点「选项」时其余 2 个干扰项可点（实际 ${((fb.match(/def-chip\"/g) || []).length)}）`);
-  // 点「不会」(无选错项) → 全部 3 个干扰项可点
+  ok(fb.includes('wrong-strip'), '答错出轻量条(生词本/巧记)');
+  ok(!fb.includes('feedback bad'), '红色大反馈框已取消');
+  // 揭示后的选项(纯函数):正确项+所选项展开"单词+汉译"双行,其余 2 项折叠可点看
+  const html = g(`revealOptionsHtml(session.q, ${badIdx})`);
+  ok(html.includes('opt correct') && html.includes('opt wrong'), '正确项与所选项展开高亮');
+  ok((html.match(/opt-w/g) || []).length === 2, '2 个展开项含"单词+汉译"双行');
+  ok((html.match(/opt dim/g) || []).length === 2, '其余 2 个干扰项折叠');
+  ok(html.includes('revealOpt('), '折叠项绑定"点看汉译"');
+  ok(g(`revealOptionsHtml(session.q, ${badIdx}).includes(session.q.answer)`) === true, '正确项双行含答案单词');
+  ok(g(`revealOptionsHtml(session.q, ${badIdx}).indexOf(session.q.options[${badIdx}].text) >= 0`) === true, '所选项双行含其释义');
+  // 点「不会」:无所选项,仅正确项展开,3 个干扰项折叠
   g('state = defaultState(); saveState();');
   g('startStudy()');
   g('showAnswer()');
-  const fb2 = documentStub.getElementById('feedbackZone').innerHTML;
-  ok((fb2.match(/def-chip\"/g) || []).length === 3, '点「不会」时 3 个干扰项全部可点');
-  // 释义反查:能查到对应单词且优先跳过当前词
+  const html2 = g('revealOptionsHtml(session.q, -1)');
+  ok(!html2.includes('opt wrong') && (html2.match(/opt dim/g) || []).length === 3, '点「不会」:仅正确项展开,3 干扰项折叠');
+  // 释义反查仍可用(展开项的单词来源)
   const def = g(`WORD_MAP.get('${w}')`);
   ok(g(`reverseDefToWord(${JSON.stringify(def)}, null)`) !== null, 'reverseDefToWord 能反查单词');
-  // 汉译英题型不出点看标签(选项是单词不是释义)
-  g('state = defaultState(); saveState();');
-  g(`session = { mode: 'study', phase: 'recognize', word: '${w}', q: makeQuestion('${w}', true), records: new Map() }`);
-  g(`showWrongFeedback('${w}', null)`);
-  ok(!documentStub.getElementById('feedbackZone').innerHTML.includes('def-chips'), '汉译英反馈无点看标签');
+  // 汉译英方向:选项是单词,展开补汉译
+  const revHtml = g(`revealOptionsHtml(makeQuestion('${w}', true), 0)`);
+  ok(revHtml.includes('opt-w') && revHtml.includes('opt dim'), '汉译英方向同样展开双行');
+  // 旧点看标签机制已删
+  ok(g('typeof toggleDefChip') === 'undefined', 'def-chips 点看机制已移除(由选项内点看替代)');
 })();
 
 /* ================= 19. 功能2:自由拼写 ================= */
@@ -1877,7 +1884,7 @@ console.log('\n[47] 答题反馈三件套(音效/底部继续栏/选项标注)')
   ok(sh.includes('progress-bar'), '识别卡顶部有进度条');
   ok(sh.includes('opt-key'), '选项带数字键角标(桌面提示)');
   g(`(() => { const i = session.q.options.findIndex(o => !o.isAnswer); recognizeAnswer(i, { classList: { add() {} } }); })()`);
-  ok(documentStub.getElementById('feedbackZone').innerHTML.includes('答错了'), '答错出反馈');
+  ok(documentStub.getElementById('feedbackZone').innerHTML.includes('wrong-strip'), '答错出轻量条');
   ok(!documentStub.getElementById('feedbackZone').innerHTML.includes('下一个 →'), '反馈内不再放"下一个"按钮(底部栏承接)');
   ok(g('typeof ansFootAction') === 'function', '答错挂起底部继续动作');
   g('advanceAfterWrong()');

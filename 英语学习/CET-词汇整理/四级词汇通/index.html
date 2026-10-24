@@ -191,9 +191,22 @@
   .opt:nth-child(3) { animation-delay: .08s; }
   .opt:nth-child(4) { animation-delay: .12s; }
   @keyframes opt-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
-  /* 答错后选项保留可见(主流做法:形成"所选 vs 正确"对照),其余淡化 */
-  .quiz-card.with-ans .opt { opacity: .4; pointer-events: none; }
-  .quiz-card.with-ans .opt.correct, .quiz-card.with-ans .opt.wrong { opacity: 1; }
+  /* 答错后选项原地揭示:正确/所选项展开"单词+汉译"双行,其余折叠可点看 */
+  .opt.shown { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; cursor: default; animation: none; }
+  .opt.shown .opt-w { font-family: var(--serif); font-weight: 700; font-size: 16px; }
+  .opt.shown .opt-d { font-size: 13px; opacity: .8; }
+  .quiz-card.with-ans .opt.dim { opacity: .55; }
+  .opt-tap { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: inline-flex; opacity: .55; }
+  .opt-tap svg { width: 15px; height: 15px; }
+  /* 答错轻量条(替代原红色大反馈框):巧记+生词本 */
+  .wrong-strip { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
+  .wrong-strip .book-toggle { width: auto; margin-top: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
+  .strip-memo {
+    flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 10px 14px;
+    border-radius: 12px; border: 1px dashed var(--amber); background: transparent;
+    color: var(--amber); font-size: 14px; cursor: pointer;
+  }
+  .strip-memo svg { width: 15px; height: 15px; }
   /* 桌面端数字键提示(键盘 1-4 可选);触屏不显示 */
   .opt-key { display: none; }
   @media (hover: hover) {
