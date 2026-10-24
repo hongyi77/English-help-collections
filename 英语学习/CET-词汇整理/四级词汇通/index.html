@@ -17,6 +17,8 @@
 <script src="pwa-register.js" defer></script>
 <style>
   :root {
+    color-scheme: light;   /* 原生控件(日期/下拉/滚动条)跟随浅色;dark-vars 下切深色 */
+    --top-h: calc(54px + env(safe-area-inset-top, 0px));   /* 顶栏高:含刘海安全区(PWA独立窗口) */
     --paper: #F6F0E4;
     --card: #FFFCF5;
     --ink: #23283A;
@@ -37,6 +39,7 @@
     --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { overscroll-behavior: none; }   /* 禁下拉刷新/滚动链,答题中误滑不出浏览器手势 */
   html, body { height: 100%; }
   body {
     font-family: var(--sans);
@@ -51,7 +54,7 @@
 
   /* ---------- 顶栏 ---------- */
   .topbar {
-    position: fixed; top: 0; left: 0; right: 0; height: 54px;
+    position: fixed; top: 0; left: 0; right: 0; height: var(--top-h);
     display: flex; align-items: center; justify-content: center;
     background: var(--card); border-bottom: 1px solid var(--hairline); z-index: 10;
   }
@@ -64,48 +67,13 @@
   .topbar .sub { position: absolute; right: 14px; font-size: 12px; color: var(--ink-soft); font-weight: 400; font-family: var(--mono); letter-spacing: .5px; }
 
   /* ---------- 主内容 ---------- */
-  .screen { display: none; padding-top: 54px; height: 100vh; overflow-y: auto; scroll-padding-bottom: 16px; }
+  .screen { display: none; padding-top: var(--top-h); height: 100vh; overflow-y: auto; scroll-padding-bottom: 16px; overscroll-behavior: contain; }
   .screen.active { display: block; }
   /* 移动端键盘避让:键盘弹出时 visualViewport 缩小而 100vh 不变,若不处理输入框会被键盘盖住。
    * ui.js 把键盘高度写入 --kb-h;这里让答题容器缩到键盘之上,并把固定开始栏抬到键盘上边缘。 */
   body.kbd-open .screen.active { height: calc(100vh - var(--kb-h, 0px)); }
   body.kbd-open .practice-foot { bottom: var(--kb-h, 0px); }
   .wrap { max-width: 600px; margin: 0 auto; padding: 18px 16px 40px; }
-
-  /* ---------- 首页 · 词卡 hero ---------- */
-  .hero-card {
-    position: relative; overflow: hidden;
-    background: var(--card); border: 1px solid var(--hairline); border-radius: 16px;
-    box-shadow: var(--shadow); padding: 22px 20px; margin-bottom: 16px;
-  }
-  .hero-card::before {
-    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-    background: linear-gradient(180deg, var(--ink-blue), var(--amber));
-  }
-  .hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--ink-soft); text-transform: uppercase; margin-bottom: 6px; }
-  .hero-card h1 { font-family: var(--serif); font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: 1px; padding-right: 74px; }
-  .hero-sub { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
-  .resume-banner {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 14px;
-  }
-  .resume-banner .rb-title { font-size: 15px; font-weight: 600; color: var(--amber); }
-  .resume-banner .rb-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
-  .resume-banner .rb-btn {
-    margin-left: auto; padding: 9px 18px; border-radius: 9px; border: none;
-    background: var(--amber); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
-  }
-  .resume-banner .rb-discard {
-    padding: 9px 10px; border-radius: 9px; border: 1px solid var(--hairline);
-    background: var(--card); color: var(--ink-soft); font-size: 13px; cursor: pointer;
-  }
-  .hero-deck { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 58px; height: 76px; }
-  .mini-card { position: absolute; inset: 0; border-radius: 8px; border: 1px solid var(--hairline); background: var(--card); box-shadow: var(--shadow); }
-  .mini-card.back { transform: rotate(-4deg) translate(-4px, 3px); background: var(--paper); }
-  .mini-card.front { transform: rotate(3deg); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--serif); color: var(--ink-blue); }
-  .mini-card.front b { font-size: 20px; letter-spacing: 1px; }
-  .mini-card.front span { font-size: 9px; color: var(--ink-soft); margin-top: 2px; }
 
   /* ---------- 统计 · 账本行 ---------- */
   .stats-grid {
@@ -137,31 +105,11 @@
   .goal-status { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
   .goal-status.done { color: var(--green); font-weight: 600; }
 
-  /* ---------- 首页 · 功能清单 ---------- */
-  .action-list {
-    background: var(--card); border: 1px solid var(--hairline); border-radius: 14px;
-    box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
-  }
-  .action-btn {
-    width: 100%; padding: 15px 16px; display: flex; align-items: center; gap: 14px;
-    background: none; border: none; border-bottom: 1px solid var(--hairline); cursor: pointer; text-align: left;
-  }
-  .action-btn:last-child { border-bottom: none; }
-  .action-btn:active { background: var(--paper); }
-  .action-ico { width: 40px; height: 40px; flex: none; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .ico-blue { background: var(--blue-soft); }
-  .ico-amber { background: var(--amber-soft); }
-  .ico-red { background: var(--red-soft); }
-  .ico-green { background: var(--green-soft); }
-  .ico-slate { background: #ECE7DB; }
-  .action-txt { flex: 1; display: flex; flex-direction: column; }
-  .action-title { font-size: 16px; font-weight: 600; color: var(--ink); }
-  .action-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  /* ---------- 首页 · 数量徽章 ---------- */
   .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .badge.new { background: var(--blue-soft); color: var(--ink-blue); }
   .badge.rev { background: var(--amber-soft); color: var(--amber); }
   .badge.book { background: var(--red-soft); color: var(--pen-red); }
-  .action-btn .arrow { font-size: 22px; color: var(--ink-soft); }
 
   /* ---------- 设置 ---------- */
   .settings-card { background: var(--card); border: 1px solid var(--hairline); border-radius: 14px; box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
@@ -345,6 +293,18 @@
   .btn-ghost { background: var(--paper); border: 1px solid var(--hairline); color: var(--ink); }
   .btn-danger { background: var(--pen-red); border: none; color: #fff; }
 
+  /* ---------- 桌面端悬停反馈 ----------
+   * hover:hover 只在真鼠标环境命中,触屏设备不触发(避免点按后悬停态粘住) */
+  @media (hover: hover) {
+    .opt:hover { border-color: var(--ink-blue); }
+    .master-tab:hover { border-color: var(--ink-blue); color: var(--ink); }
+    .toolbar-btn:hover, .data-btn:hover, .btn-ghost:hover { background: var(--blue-soft); }
+    .list-speak:hover, .list-memo-btn:hover, .list-del:hover { opacity: 1; }
+    .show-ans-btn:hover { background: var(--paper); }
+    .big-action:hover, .tool-card:hover { border-color: var(--ink-blue); }
+    .def-chip:hover { color: var(--ink-blue); border-color: var(--ink-blue); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -409,7 +369,7 @@
   .seg-tabs button.active { background: var(--ink-blue); color: #fff; font-weight: 600; }
 
   /* ---------- 词典 ---------- */
-  .dict-search-wrap { position: sticky; top: 54px; z-index: 5; margin: -2px -16px 0; padding: 4px 16px 8px; background: var(--paper); }
+  .dict-search-wrap { position: sticky; top: var(--top-h); z-index: 5; margin: -2px -16px 0; padding: 4px 16px 8px; background: var(--paper); }
   .dict-hint { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; }
   .dict-lib { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--ink-blue); white-space: nowrap; flex: none; }
   .list-speak { background: none; border: none; cursor: pointer; padding: 4px; opacity: .75; }
@@ -545,7 +505,6 @@
   .speak-btn svg, .list-speak svg { width: 17px; height: 17px; }
   .list-memo-btn svg { width: 15px; height: 15px; }
   .list-del svg { width: 16px; height: 16px; }
-  .rb-title svg { width: 15px; height: 15px; }
   .seg-tabs svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; }
   .session-done .icon svg { width: 44px; height: 44px; color: var(--ink-blue); }
   .fb-title svg { width: 18px; height: 18px; }
@@ -568,6 +527,7 @@
   /* ---------- 深色模式(html.dark-vars 由 ui.js 按设置/系统切换) ----------
    * 换一套 CSS 变量即可覆盖绝大部分观感;个别"浅底白字"按钮在深色下反转为"浅底深字"保对比度 */
   :root.dark-vars {
+    color-scheme: dark;   /* 原生控件(日期/下拉/滚动条)跟随深色 */
     --paper: #17191F;
     --card: #1F232C;
     --ink: #E9E4D8;
@@ -591,7 +551,6 @@
   :root.dark-vars .master-tab.active,
   :root.dark-vars .tabbar .tab-badge { color: #0D1B2A; }
   :root.dark-vars .btn-danger { color: #2B1005; }
-  :root.dark-vars .ico-slate { background: #333A4C; }
   /* 热力图墨蓝加深色底对比不足,换亮蓝梯度 */
   :root.dark-vars .hm-1 { fill: rgba(130, 180, 227, .22); }
   :root.dark-vars .hm-2 { fill: rgba(130, 180, 227, .45); }
