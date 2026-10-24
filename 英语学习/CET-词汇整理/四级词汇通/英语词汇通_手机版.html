@@ -29490,7 +29490,22 @@ function recognizeAnswer(idx, btnEl) {
       if (session.mode === 'study') learnWord(word);
       else reviewCorrect(word);
     }
-    // 答对即刷新到下一个词，不停留
+    if (session.mode === 'study') {
+      // 新学:答对不直接跳词——绿框反馈(单词+释义)+底部继续,加深首因印象
+      const fb = document.getElementById('feedbackZone');
+      const card = fb.closest('.quiz-card');
+      if (card) card.classList.add('with-ans');
+      fb.innerHTML = `
+        <div class="feedback good">
+          <div class="fb-title">${icon('circle-check')} 答对了！</div>
+          <div class="ans-word">${escapeHtml(word)}</div>
+          <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+        </div>`;
+      revealFeedback(fb);
+      showAnsFoot('继续 →', 'ok', advanceAfterWrong);
+      return;
+    }
+    // 复习:答对即刷新到下一个词，不停留(保持快节奏)
     session.answered = false;
     renderStudyRecognize();
     return;

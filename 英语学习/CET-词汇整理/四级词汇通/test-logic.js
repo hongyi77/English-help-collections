@@ -1699,14 +1699,16 @@ console.log('\n[42] 拼写阶段选择计入进度');
 (() => {
   g('state = defaultState(); state.settings.dailyNew = 1; saveState();');
   g('startStudy()');
-  // 识别阶段答对 1 次 → 进入拼写询问
+  // 识别阶段答对 1 次 → 进入拼写询问(新学答对出反馈,需经继续栏推进)
   let guard = 0;
   while (g('session && session.phase') === 'recognize' && guard++ < 50) {
+    if (g('session.answered')) { g('advanceAfterWrong()'); continue; }
     g(`(() => {
       const goodIdx = session.q.options.findIndex(o => o.isAnswer);
       recognizeAnswer(goodIdx, null);
     })()`);
   }
+  ok(documentStub.getElementById('feedbackZone').innerHTML.includes('feedback good'), '新学答对出绿框反馈(不直接跳词)');
   ok(g('session && session.phase') === 'spellAsk', '识别完成进入拼写询问');
   const w = g('session.queue[0]');
   g('startSpellStage()');
