@@ -804,6 +804,20 @@
       <h3>词库</h3>
       <div id="libList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:2px"></div>
       <p id="libNote" style="font-size:13px;color:var(--ink-soft);margin-top:10px;line-height:1.7"></p>
+      <div id="customLibForm" style="display:none;margin-top:12px;padding:12px;border:1px solid var(--hairline);border-radius:10px">
+        <div class="cfg-title" style="margin:0 0 8px">新建自建词库</div>
+        <input id="customLibName" maxlength="30" placeholder="词库名称（必填，如：医学词汇）"
+               style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:8px;border:1px solid var(--hairline);border-radius:8px;background:var(--paper);color:var(--ink)">
+        <textarea id="customLibText" rows="7" placeholder="每行一词：&#10;abandon v. 放弃&#10;hobby 爱好&#10;sustainable&#10;只写单词的会自动从现有词库补释义"
+                  style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:8px;border:1px solid var(--hairline);border-radius:8px;background:var(--paper);color:var(--ink);font-size:14px"></textarea>
+        <input id="customLibFile" type="file" accept=".txt,.csv,text/plain"
+               style="font-size:12px;color:var(--ink-soft);margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="master-tab active" onclick="submitCustomLib()">导入</button>
+          <button class="master-tab" onclick="closeCustomLibForm()">取消</button>
+        </div>
+        <p id="customLibResult" style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.6"></p>
+      </div>
     </div>
     <div class="sec-cap">学习偏好</div>
     <div class="settings-card">

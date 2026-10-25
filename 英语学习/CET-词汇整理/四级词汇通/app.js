@@ -87,10 +87,140 @@ function registerVocabLibs(libsObj) {
   }
 }
 
+/* ---------------- 自建词库 ----------------
+ * 词表存独立 localStorage 键（不进 state 存档，答题高频写盘不背词表）：
+ *   cet4_customLibs = { custom_xxx: { name, createdAt, words: [[单词, 释义], ...] } }
+ * 进度仍随 state.libs[key] 走，与内置词库同机制。
+ * 启动时在 loadState() 之前注册——loadState 校验 settings.lib 需要它们已在 LIBS 里。
+ * 导入格式（一行一词）：`单词` / `单词<空白或逗号分号>释义`；
+ * 只有单词没写释义的，按 当前词库→内置四级→其余词库 顺序自动补释义，查不到的词剔除并列出。
+ */
+const CUSTOM_LIBS_KEY = 'cet4_customLibs';
+const CUSTOM_LIB_MAX_COUNT = 20;
+const CUSTOM_LIB_MAX_WORDS = 5000;
+const CUSTOM_WORD_RE = /^[A-Za-z][A-Za-z'\- ]*$/;
+
+function listCustomLibs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CUSTOM_LIBS_KEY) || '{}');
+    return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+  } catch (e) { return {}; }
+}
+function persistCustomLibs(libs) {
+  try { localStorage.setItem(CUSTOM_LIBS_KEY, JSON.stringify(libs)); } catch (e) { /* 存储满/不可用 */ }
+}
+function registerCustomLibs() {
+  const libs = listCustomLibs();
+  const reg = {};
+  for (const k of Object.keys(libs)) {
+    const v = libs[k];
+    if (v && v.name && Array.isArray(v.words) && v.words.length) {
+      reg[k] = { name: String(v.name), words: v.words, custom: true };
+    }
+  }
+  registerVocabLibs(reg);
+}
+registerCustomLibs();
+
+/* 导入文本解析：返回 { pairs: [[单词, 释义|null]], badLines: [行文本] }
+ * 分隔规则：行内有 Tab/逗号/分号 → 第一处分隔，左边词右边释义；
+ * 只有空白时 → 第一处空白切分，右边含 CJK 才算释义（否则整行当词组，如 "ice cream"） */
+function parseCustomImportText(text) {
+  const pairs = [], badLines = [];
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t) continue;
+    let en = '', cn = null;
+    const hard = t.match(/^([^,，;；\t]+)[,，;；\t]\s*(.+)$/);
+    if (hard) { en = hard[1].trim(); cn = hard[2].trim(); }
+    else {
+      const sp = t.search(/\s/);
+      if (sp > 0) {
+        en = t.slice(0, sp);
+        const rest = t.slice(sp + 1).trim();
+        if (/[\u4e00-\u9fff]/.test(rest)) cn = rest;   // 右侧含中文才算释义
+        else en = t;                                    // 纯英文右侧 → 整行是词组
+      } else en = t;
+    }
+    if (!en || !CUSTOM_WORD_RE.test(en) || !en.trim()) { badLines.push(t); continue; }
+    pairs.push([en.trim(), cn]);
+  }
+  return { pairs, badLines };
+}
+
+/* 无释义单词补释义的查找顺序：当前词库 → 内置四级 → 其余词库（按注册顺序） */
+function lookupDefEverywhere(word, curKey) {
+  const order = [];
+  if (curKey && LIBS[curKey]) order.push(curKey);
+  if (!order.includes('cet4')) order.push('cet4');
+  for (const k of Object.keys(LIBS)) if (!order.includes(k)) order.push(k);
+  for (const k of order) {
+    const d = defInLib(k, word);
+    if (d) return d;
+  }
+  return '';
+}
+
+/* 创建自建词库：text 为导入原文。成功返回 { key, name, matched, unmatched, truncated, badLines } */
+function createCustomLib(name, text) {
+  const libs = listCustomLibs();
+  if (Object.keys(libs).length >= CUSTOM_LIB_MAX_COUNT) {
+    return { err: `最多建 ${CUSTOM_LIB_MAX_COUNT} 个自建词库，请先删除不用的` };
+  }
+  const { pairs, badLines } = parseCustomImportText(text);
+  if (!pairs.length) return { err: '没有识别到任何单词，请检查格式（每行一词）' };
+  const seen = new Set(), words = [], unmatched = [];
+  let truncated = false;
+  for (const [en, cn] of pairs) {
+    if (words.length >= CUSTOM_LIB_MAX_WORDS) { truncated = true; break; }
+    const key = en.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    let def = (cn || '').replace(/\s+/g, ' ').trim();
+    if (!def) def = lookupDefEverywhere(en, libKey());
+    if (!def) { unmatched.push(en); continue; }
+    words.push([en, def]);
+  }
+  if (!words.length) {
+    return { err: '识别到的单词都查不到释义（共 ' + unmatched.length + ' 个：' + unmatched.slice(0, 8).join(', ') + '）' };
+  }
+  const safeName = String(name || '').trim().slice(0, 30) || '自建词库';
+  const key = 'custom_' + Date.now().toString(36) + '_' + Math.floor(Math.random() * 1e4).toString(36);
+  libs[key] = { name: safeName, createdAt: Date.now(), words };
+  persistCustomLibs(libs);
+  registerVocabLibs({ [key]: { name: safeName, words, custom: true } });
+  return { key, name: safeName, matched: words.length, unmatched, truncated, badLines };
+}
+
+/* 删除自建词库（连进度一起清；若正在用则回落内置四级）。返回是否删除了东西 */
+function deleteCustomLib(key) {
+  if (!key || String(key).indexOf('custom_') !== 0) return false;
+  const libs = listCustomLibs();
+  if (!libs[key]) return false;
+  delete libs[key];
+  persistCustomLibs(libs);
+  delete LIBS[key];
+  delete LIB_WORD_SETS[key];
+  delete LIB_DEF_MAPS[key];
+  if (state && state.settings && state.settings.lib === key) state.settings.lib = 'cet4';
+  if (state && state.libs) delete state.libs[key];
+  saveState();
+  return true;
+}
+
+/* 导出自建词库为 Tab 分隔文本（一行一词） */
+function exportCustomLibText(key) {
+  const lib = listCustomLibs()[key];
+  if (!lib) return '';
+  return lib.words.map(([w, d]) => w + '\t' + d).join('\n');
+}
+
 /* 词库分组（设置页两级选择 UI：先选系列，再选具体词库）。
  * 只影响展示布局，词库本身互不合并；分组里没列到的词库不显示 */
 const LIB_GROUPS = [
   { label: '四六级',   libs: ['cet4', 'cet4_core', 'cet4_lite', 'cet6', 'cet6_core', 'cet6_lite'] },
+  { label: '专升本',   libs: ['zsb'] },
+  { label: '出国考试', libs: ['ielts', 'toefl'] },
   { label: '学段词汇', libs: ['primary', 'junior', 'senior'] },
   { label: '蝶变系列', libs: ['diebian', 'diebian_junior'] },
 ];

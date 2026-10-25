@@ -24,6 +24,9 @@ const LIBS = [
   { key: 'cet4_lite',      file: '四级精简词.json',    name: '四级精简词',     group: '四六级' },
   { key: 'cet6_core',      file: '六级核心词.json',    name: '六级核心词',     group: '四六级' },
   { key: 'cet6_lite',      file: '六级精简词.json',    name: '六级精简词',     group: '四六级' },
+  { key: 'zsb',            file: '专升本词汇.json',    name: '专升本词汇',     group: '专升本' },
+  { key: 'ielts',          file: '雅思词汇.json',      name: '雅思词汇',       group: '出国考试' },
+  { key: 'toefl',          file: '托福词汇.json',      name: '托福词汇',       group: '出国考试' },
   { key: 'diebian',        file: '蝶变单词.txt',       name: '蝶变单词（小学版）', group: '蝶变系列' },
   { key: 'diebian_junior', file: '蝶变单词(初中版).txt', name: '蝶变单词·初中版', group: '蝶变系列' },
 ];

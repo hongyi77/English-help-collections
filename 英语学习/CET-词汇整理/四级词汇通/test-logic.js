@@ -1937,6 +1937,45 @@ console.log('\n[48] 生词本排序(错误次数/添加顺序,用户可切换)')
   g('state = defaultState(); saveState();');
 })();
 
+/* ================= [49] 自建词库：导入解析 / 建库 / 删除 / 导出 ================= */
+console.log('\n[49] 自建词库(导入/建库/删除/导出)');
+(() => {
+  // 解析:空格+中文释义 / tab / 逗号 / 裸词 / 纯英文行整行当词组 / 坏行
+  g(`var __p = parseCustomImportText('abandon v. 放弃\\nhobby 爱好\\nsustainable\\nice cream\\nword,单词\\n###!!\\n\\n')`);
+  ok(JSON.stringify(g('__p.pairs[0]')) === '["abandon","v. 放弃"]', '解析:空格+中文释义');
+  ok(JSON.stringify(g('__p.pairs[1]')) === '["hobby","爱好"]', '解析:中文释义(无词性)');
+  ok(JSON.stringify(g('__p.pairs[2]')) === '["sustainable",null]', '解析:裸词(释义留空待补)');
+  ok(JSON.stringify(g('__p.pairs[3]')) === '["ice cream",null]', '解析:纯英文行整行当词组');
+  ok(JSON.stringify(g('__p.pairs[4]')) === '["word","单词"]', '解析:逗号分隔');
+  ok(g('__p.badLines.length') === 1, '解析:无法识别的行被记录');
+
+  // 建库:自动补释义、未匹配剔除、重复去重、注册进 LIBS、持久化
+  g(`var __r = createCustomLib('我的词库', 'abandon\\nhobby 爱好\\nzzznotaword\\nabandon\\n')`);
+  ok(!g('__r.err'), '建库:正常创建' + (g('__r.err') ? '(实际:' + g('__r.err') + ')' : ''));
+  ok(g('__r.matched') === 2, '建库:2 词入库(裸词自动补释义),重复词去重');
+  ok(g('__r.unmatched.length') === 1 && g('__r.unmatched[0]') === 'zzznotaword', '建库:查不到释义的词剔除并列出');
+  ok(g(`LIBS[__r.key] && LIBS[__r.key].custom === true`), '建库:注册进 LIBS 带 custom 标记');
+  ok(g(`LIB_WORD_SETS[__r.key].has('abandon')`), '建库:单词索引可用');
+  ok(g(`LIB_DEF_MAPS[__r.key].get('abandon')`).length > 0, '建库:释义索引可用(自动补释义)');
+  ok(g(`listCustomLibs()[__r.key].name`) === '我的词库', '建库:词表持久化到 localStorage');
+  ok(!!g(`createCustomLib('空文本', '   ').err`), '建库:空文本返回错误');
+
+  // 设为当前词库→删除:当前词库回落 cet4、进度一并清、各索引移除
+  g(`setLibrary(__r.key); curWords()['abandon'] = { created: 1, wrong: 2 }; saveState()`);
+  ok(g('libKey()') === g('__r.key'), '切换:自建词库可设为当前词库');
+  ok(g(`(state.libs || {})[__r.key] !== undefined`), '进度:自建词库进度随 state.libs 存储');
+  g(`deleteCustomLib(__r.key)`);
+  ok(g(`LIBS[__r.key] === undefined`), '删除:从 LIBS 移除');
+  ok(g(`listCustomLibs()[__r.key] === undefined`), '删除:词表从 localStorage 移除');
+  ok(g('libKey()') === 'cet4', '删除:当前词库回落内置四级');
+  ok(g(`(state.libs || {})[__r.key] === undefined`), '删除:进度一并清除');
+
+  // 导出:Tab 分隔文本
+  g(`var __r2 = createCustomLib('导出测试', 'hobby 爱好\\n'); var __exp = exportCustomLibText(__r2.key)`);
+  ok(g(`__exp === 'hobby\\t爱好'`), '导出:Tab 分隔一行一词');
+  g('deleteCustomLib(__r2.key)');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

@@ -324,7 +324,7 @@ function renderLibPicker() {
   const cur = libKey();
   const groupOf = {};
   LIB_GROUPS.forEach(g => g.libs.forEach(k => { groupOf[k] = g.label; }));
-  const curGroup = groupOf[cur];   // 当前词库所在组(分组行高亮用)
+  const curGroup = (LIBS[cur] && LIBS[cur].custom) ? '自建词库' : groupOf[cur];   // 当前词库所在组(分组行高亮用)
   const open = (libGroupOpen === undefined) ? '' : libGroupOpen;   // 默认全部收起(点组名再展开)
   el.innerHTML = LIB_GROUPS.filter(g => g.libs.some(k => LIBS[k])).map(g => {
     const isCurGroup = g.label === curGroup;
@@ -341,12 +341,97 @@ function renderLibPicker() {
       </button>
       ${isOpen ? `<div class="lib-group-chips">${chips}</div>` : ''}
     </div>`;
-  }).join('');
+  }).join('') + customLibsSection(cur, open);
   const note = document.getElementById('libNote');
   if (note) note.textContent = `当前词库：${LIBS[cur].name}（${WORD_LIST.length} 词）。各词库的学习进度与每日新学/复习目标都独立保存，可随时切换。`;
   // 题卡右上角角标跟随当前词库（CSS content 用 --lib-badge 变量）
   const root = document.documentElement;
   if (root && root.style) root.style.setProperty('--lib-badge', JSON.stringify(LIBS[cur].name));
+}
+
+/* ---------------- 自建词库（设置页词库区末尾的动态分组） ---------------- */
+function customLibsSection(cur, open) {
+  const keys = Object.keys(LIBS).filter(k => LIBS[k] && LIBS[k].custom);
+  const isCurCustom = !!(LIBS[cur] && LIBS[cur].custom);
+  const isOpen = open === '自建词库';
+  const chips = keys.map(k => `
+    <button class="master-tab ${k === cur ? 'active' : ''}" onclick="confirmSwitchLib('${k}')">
+      ${escapeHtml(LIBS[k].name)} <span class="mt-cnt">${LIB_WORD_SETS[k].size}</span>
+    </button>`).join('');
+  const manage = isCurCustom ? `
+    <button class="master-tab" onclick="exportCustomLibFlow('${cur}')">导出当前</button>
+    <button class="master-tab" onclick="deleteCustomLibFlow('${cur}')">删除当前</button>` : '';
+  return `<div class="lib-group">
+    <button class="lib-group-head ${isCurCustom ? 'current' : ''}" onclick="toggleLibGroup('自建词库')">
+      <span class="lib-group-name">自建词库</span>
+      ${isCurCustom ? `<span class="lib-group-cur">${escapeHtml(LIBS[cur].name)}</span>` : ''}
+      <span class="lib-group-arrow ${isOpen ? 'open' : ''}">${icon('chevron-left')}</span>
+    </button>
+    ${isOpen ? `<div class="lib-group-chips">${chips}<button class="master-tab" onclick="openCustomLibForm()">＋ 新建</button>${manage}</div>
+      <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.7">每行一词，可带释义（如 <b>abandon v. 放弃</b> 或 <b>hobby 爱好</b>）；只写单词的会自动从现有词库补释义，查不到的会列出。上限 5000 词/库、20 个库。</p>` : ''}
+  </div>`;
+}
+
+function openCustomLibForm() {
+  const form = document.getElementById('customLibForm');
+  if (!form) return;
+  form.style.display = '';
+  document.getElementById('customLibName').value = '';
+  document.getElementById('customLibText').value = '';
+  document.getElementById('customLibResult').textContent = '';
+  const file = document.getElementById('customLibFile');
+  file.value = '';
+  file.onchange = () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { document.getElementById('customLibText').value = String(r.result || ''); };
+    r.readAsText(f, 'utf-8');
+  };
+  form.scrollIntoView({ block: 'nearest' });
+}
+function closeCustomLibForm() {
+  const form = document.getElementById('customLibForm');
+  if (form) form.style.display = 'none';
+}
+function submitCustomLib() {
+  const name = document.getElementById('customLibName').value;
+  const text = document.getElementById('customLibText').value;
+  const res = createCustomLib(name, text);
+  const out = document.getElementById('customLibResult');
+  if (res.err) { out.textContent = '导入失败：' + res.err; return; }
+  let msg = `已创建「${res.name}」：导入 ${res.matched} 词`;
+  if (res.unmatched.length) msg += `；${res.unmatched.length} 个词查不到释义已剔除（${res.unmatched.slice(0, 6).join('、')}${res.unmatched.length > 6 ? '…' : ''}）`;
+  if (res.truncated) msg += `；超出 5000 词上限，只保留了前 5000 个`;
+  if (res.badLines.length) msg += `；${res.badLines.length} 行无法识别已跳过`;
+  out.textContent = msg;
+  refreshSettings();
+  setTimeout(() => { closeCustomLibForm(); confirmSwitchLib(res.key); }, 1200);
+}
+function deleteCustomLibFlow(key) {
+  const lib = LIBS[key];
+  if (!lib || !lib.custom) return;
+  if (!confirm(`删除自建词库「${lib.name}」？该词库的学习进度也会一并删除，无法恢复。`)) return;
+  if (deleteCustomLib(key)) {
+    session = null;              // 可能删的是当前词库，进行中的会话作废
+    refreshSettings();
+    refreshHome();
+  }
+}
+function exportCustomLibFlow(key) {
+  const lib = LIBS[key];
+  if (!lib || !lib.custom) return;
+  const text = exportCustomLibText(key);
+  try {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = lib.name + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  } catch (e) { /* 下载不可用时静默（长按全选文本另存亦可） */ }
 }
 
 /* ---------------- 词汇 Tab（生词本/掌握情况/学习记录 分段） ---------------- */
