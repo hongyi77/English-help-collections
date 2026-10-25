@@ -222,8 +222,12 @@
   .feedback.bad .fb-title { color: var(--pen-red); }
   .feedback .ans-word { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); }
   .feedback .ans-def { color: var(--ink-soft); margin-top: 4px; }
-  .ans-sent { margin-top: 8px; padding: 7px 10px; background: var(--blue-soft); border-radius: 8px; font-size: 13px; line-height: 1.65; text-align: left; }
-  .ans-sent .ans-sent-cn { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
+  .ans-sent { margin-top: 8px; padding: 7px 10px; background: var(--blue-soft); border-radius: 8px; font-size: 13px; line-height: 1.65; text-align: left; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 6px; }
+  .ans-sent .sent-en { flex: 1; min-width: 0; }
+  .ans-sent .sent-hl { color: var(--ink-blue); font-weight: 700; }
+  .ans-sent .sent-speak { flex: none; width: 30px; height: 30px; margin-top: -2px; border: none; border-radius: 50%; background: transparent; color: var(--ink-blue); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .ans-sent .sent-speak:active { background: rgba(0, 0, 0, .08); }
+  .ans-sent .ans-sent-cn { flex-basis: 100%; display: block; color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
   .next-btn { width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 12px; background: var(--ink-blue); color: #fff; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(31, 78, 121, .25); }
   .next-btn:active { background: var(--ink-blue-deep); }
   .book-toggle { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border:  1px solid var(--hairline); background: var(--card); font-size: 15px; cursor: pointer; color: var(--ink); }

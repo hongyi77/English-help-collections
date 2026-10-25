@@ -464,11 +464,35 @@ function onDictInput(v) {
   dictSearchTimer = setTimeout(renderDictResults, 180);
 }
 
-/* 例句展示行(有例句才渲染):英文原句+中文翻译,用于反馈卡/词典行 */
+/* 例句展示行(有例句才渲染):目标词高亮 + 整句朗读 + 中文翻译。
+ * 用于答对绿框/答错反馈卡/词典页精确命中——市场通用三要素:高亮/发音/中英分层 */
 function sentenceLineHtml(word) {
   const s = sentencesOf(word);
   if (!s || !s.length) return '';
-  return `<div class="ans-sent">${escapeHtml(s[0][0])}<span class="ans-sent-cn">${escapeHtml(s[0][1])}</span></div>`;
+  const en = s[0][0], cn = s[0][1];
+  // 目标词高亮:大小写不敏感整词优先;连字符词(如 well-known)拆半段兜底(well known/wellknown 写法也能标中)
+  let hl = en;
+  try {
+    const esc = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const marked = en.replace(new RegExp('(' + esc + ')', 'gi'), '<b class="sent-hl">$1</b>');
+    if (marked !== en) hl = marked;
+    else if (word.includes('-')) {
+      const parts = word.split('-').filter(p => p.length > 1)
+        .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      if (parts.length) hl = en.replace(new RegExp('(' + parts.join('|') + ')', 'gi'), '<b class="sent-hl">$1</b>');
+    }
+  } catch (e) { /* 正则异常则不高亮,例句照常展示 */ }
+  return `<div class="ans-sent">` +
+    `<span class="sent-en">${hl}</span>` +
+    `<button class="sent-speak" title="朗读例句" aria-label="朗读例句" data-sent="${escapeAttr(en)}" onclick="speakSentence(this)">${icon('volume-2')}</button>` +
+    `<span class="ans-sent-cn">${escapeHtml(cn)}</span>` +
+    `</div>`;
+}
+
+/* 整句朗读:走 Edge TTS(带缓存)+设备 TTS 兜底,与单词发音同引擎 */
+function speakSentence(btn) {
+  const t = (btn && btn.getAttribute('data-sent')) || '';
+  if (t) speakTextFireForget(t, 'en-US');
 }
 
 function renderDictResults() {

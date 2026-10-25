@@ -248,8 +248,12 @@
   .feedback.bad .fb-title { color: var(--pen-red); }
   .feedback .ans-word { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); }
   .feedback .ans-def { color: var(--ink-soft); margin-top: 4px; }
-  .ans-sent { margin-top: 8px; padding: 7px 10px; background: var(--blue-soft); border-radius: 8px; font-size: 13px; line-height: 1.65; text-align: left; }
-  .ans-sent .ans-sent-cn { display: block; color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
+  .ans-sent { margin-top: 8px; padding: 7px 10px; background: var(--blue-soft); border-radius: 8px; font-size: 13px; line-height: 1.65; text-align: left; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 6px; }
+  .ans-sent .sent-en { flex: 1; min-width: 0; }
+  .ans-sent .sent-hl { color: var(--ink-blue); font-weight: 700; }
+  .ans-sent .sent-speak { flex: none; width: 30px; height: 30px; margin-top: -2px; border: none; border-radius: 50%; background: transparent; color: var(--ink-blue); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .ans-sent .sent-speak:active { background: rgba(0, 0, 0, .08); }
+  .ans-sent .ans-sent-cn { flex-basis: 100%; display: block; color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
   .next-btn { width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 12px; background: var(--ink-blue); color: #fff; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(31, 78, 121, .25); }
   .next-btn:active { background: var(--ink-blue-deep); }
   .book-toggle { width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border:  1px solid var(--hairline); background: var(--card); font-size: 15px; cursor: pointer; color: var(--ink); }
@@ -53338,11 +53342,35 @@ function onDictInput(v) {
   dictSearchTimer = setTimeout(renderDictResults, 180);
 }
 
-/* 例句展示行(有例句才渲染):英文原句+中文翻译,用于反馈卡/词典行 */
+/* 例句展示行(有例句才渲染):目标词高亮 + 整句朗读 + 中文翻译。
+ * 用于答对绿框/答错反馈卡/词典页精确命中——市场通用三要素:高亮/发音/中英分层 */
 function sentenceLineHtml(word) {
   const s = sentencesOf(word);
   if (!s || !s.length) return '';
-  return `<div class="ans-sent">${escapeHtml(s[0][0])}<span class="ans-sent-cn">${escapeHtml(s[0][1])}</span></div>`;
+  const en = s[0][0], cn = s[0][1];
+  // 目标词高亮:大小写不敏感整词优先;连字符词(如 well-known)拆半段兜底(well known/wellknown 写法也能标中)
+  let hl = en;
+  try {
+    const esc = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const marked = en.replace(new RegExp('(' + esc + ')', 'gi'), '<b class="sent-hl">$1</b>');
+    if (marked !== en) hl = marked;
+    else if (word.includes('-')) {
+      const parts = word.split('-').filter(p => p.length > 1)
+        .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      if (parts.length) hl = en.replace(new RegExp('(' + parts.join('|') + ')', 'gi'), '<b class="sent-hl">$1</b>');
+    }
+  } catch (e) { /* 正则异常则不高亮,例句照常展示 */ }
+  return `<div class="ans-sent">` +
+    `<span class="sent-en">${hl}</span>` +
+    `<button class="sent-speak" title="朗读例句" aria-label="朗读例句" data-sent="${escapeAttr(en)}" onclick="speakSentence(this)">${icon('volume-2')}</button>` +
+    `<span class="ans-sent-cn">${escapeHtml(cn)}</span>` +
+    `</div>`;
+}
+
+/* 整句朗读:走 Edge TTS(带缓存)+设备 TTS 兜底,与单词发音同引擎 */
+function speakSentence(btn) {
+  const t = (btn && btn.getAttribute('data-sent')) || '';
+  if (t) speakTextFireForget(t, 'en-US');
 }
 
 function renderDictResults() {

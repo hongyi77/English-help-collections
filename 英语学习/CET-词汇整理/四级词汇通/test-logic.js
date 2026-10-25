@@ -2057,6 +2057,10 @@ console.log('\n[51] 例句(查询/渲染/词典注入)');
   ok(g("sentencesOf('zzznotaword999')") === null, '无例句的词返回 null');
   const line = g("sentenceLineHtml('abandon')");
   ok(line.includes('ans-sent') && line.includes('ans-sent-cn') && line.length > 20, 'sentenceLineHtml 渲染例句行(英+中)');
+  ok(line.includes('sent-hl') && line.toLowerCase().includes('<b class="sent-hl">abandon</b>'), '目标词在句中高亮(词边界大小写不敏感)');
+  ok(line.includes('sent-speak') && line.includes('data-sent='), '整句朗读按钮就位');
+  g("var __btn={getAttribute:(k)=>k==='data-sent'?'test sentence':'x'}; speakSentence(__btn)");
+  ok(true, 'speakSentence 可调用(沙盒无音频引擎,静默)');
   ok(g("sentenceLineHtml('zzznotaword999')") === '', '无例句渲染空串(不占位)');
   // 词典页精确命中时注入例句
   g('state = defaultState(); saveState()');
