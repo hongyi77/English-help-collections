@@ -685,9 +685,74 @@ function makeSession(mode, picked) {
   });
 }
 
+/* ---------------- 新学断点续学:会话 ↔ 快照 ----------------
+ * 快照在每次出题/阶段切换时落盘(app.js 的 saveStudySnapshot 附上词库+学习日);
+ * 恢复时重建会话并回放位置。records 是 Map,落盘转条目数组。
+ * 注意:恢复后当前题会重新出(选项重排),词的学习状态以已提交的为准,不受影响 */
+function studySnapshot() {
+  return {
+    phase: session.phase || 'recognize',
+    queue: session.queue.slice(),
+    pending: (session.pending || []).slice(),
+    retries: (session.retries || []).slice(),
+    sinceRetry: session.sinceRetry || 0,
+    idx: session.idx || 0,
+    correct: session.correct || 0,
+    wrong: session.wrong || 0,
+    records: Array.from(session.records.entries()),
+    spellRetries: (session.spellRetries || []).slice(),
+    sinceSpellRetry: session.sinceSpellRetry || 0,
+    spellOn: !!session.spellOn,
+    spellCounts: !!session.spellCounts,
+  };
+}
+
+function restoreStudySession(snap) {
+  session = makeSession('study', snap.queue);
+  session.pending = (snap.pending || []).slice();
+  session.retries = (snap.retries || []).slice();
+  session.sinceRetry = snap.sinceRetry || 0;
+  session.idx = snap.idx || 0;
+  session.correct = snap.correct || 0;
+  session.wrong = snap.wrong || 0;
+  session.records = new Map(snap.records);
+  session.spellRetries = (snap.spellRetries || []).slice();
+  session.sinceSpellRetry = snap.sinceSpellRetry || 0;
+  session.spellOn = !!snap.spellOn;
+  session.spellCounts = !!snap.spellCounts;
+  session.phase = snap.phase || 'recognize';
+}
+
+/* 拼写中途退出后再进来:再次给选择(继续/跳过),永不强制 */
+function spellResumeHtml() {
+  const remaining = session.queue.filter(w => !((session.records.get(w) || makeRecord()).done)).length;
+  const spelled = session.queue.length - remaining;
+  return `
+    <div class="quiz-card session-done">
+      <div class="icon">${icon("keyboard")}</div>
+      <h2>拼写还没完成</h2>
+      <p>上次已拼 ${spelled}/${session.queue.length} 个，还剩 <b>${remaining}</b> 个。<br>可以接着拼，也可以跳过——识别早已提交，跳过不影响任何进度。</p>
+      <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
+        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} 继续拼写（剩余 ${remaining} 词）</button>
+        <button class="btn-ghost" onclick="finishSession()">跳过，直接完成</button>
+      </div>
+    </div>
+  `;
+}
+
 function startStudy() {
   session = null; quickRebuild = null;   // 互斥:清掉旧会话/快扫,防残留状态接管键盘
   document.getElementById('reviewQuiz').innerHTML = '';   // 清复习屏残留旧题卡,防隐藏屏 .opt 被数字键误触(串答)
+  /* 断点续学:有本词库本学习日的有效快照时不重开新会话——
+   * 识别未完直接续题;拼写环节(询问页/中途退出)再给一次选择,可跳过不强制 */
+  const snap = loadStudySnapshot();
+  if (snap) {
+    restoreStudySession(snap);
+    go('screen-study');
+    if (snap.phase === 'spell') document.getElementById('studyQuiz').innerHTML = spellResumeHtml();
+    else renderStudyRecognize();   // recognize=续题;spellAsk=空队列自然落回询问页
+    return;
+  }
   const g = goalInfo();
   if (g.allDone) {
     const el = document.getElementById('studyQuiz');
@@ -958,6 +1023,7 @@ function renderStudyRecognize() {
   // 识别全部完成 → 询问拼写
   if (!pending.length && !retries.length) {
     session.phase = 'spellAsk';
+    if (session.mode === 'study') saveStudySnapshot(studySnapshot());
     el.innerHTML = spellAskHtml();
     return;
   }
@@ -980,6 +1046,7 @@ function renderStudyRecognize() {
   }
   session.word = word;
   session.answered = false;
+  if (session.mode === 'study') saveStudySnapshot(studySnapshot());
   renderRecognizeOne(word);
 }
 
@@ -1916,6 +1983,7 @@ function renderSpellStage() {
   const word = pickInterleaved(remaining);
   session.word = word;
   session.answered = false;
+  if (session.mode === 'study') saveStudySnapshot(studySnapshot());
   prefetchUpcomingAudio();
   const hint = WORD_MAP.get(word);
   el.innerHTML = `
@@ -2016,6 +2084,7 @@ function finishSession() {
   hideAnsFoot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   el.innerHTML = doneHtml();
+  if (session.mode === 'study') clearStudySnapshot();   // 走到完成页=会话终结,快照作废(跳过拼写也经这里)
   session = null;   // 会话结束,清空防止键盘快捷键继续响应旧会话
 }
 

@@ -40977,6 +40977,7 @@ function deleteCustomLib(key) {
   if (state && state.settings && state.settings.lib === key) state.settings.lib = 'cet4';
   if (state && state.libs) delete state.libs[key];
   saveState();
+  rebuildWordData();   // 删的可能是当前词库:libKey 已回落,词表/索引必须跟着重建,否则界面还在操作已删词库的词
   return true;
 }
 
@@ -41259,6 +41260,7 @@ const curDaily = () => libDaily(libKey());
 function setLibrary(key) {
   if (!LIBS[key] || key === libKey()) return;
   state.settings.lib = key;
+  clearStudySnapshot();   // 快照绑定词库,切库即作废(别让 A 库的队列恢复到 B 库)
   saveState();
   rebuildWordData();
 }
@@ -41266,6 +41268,50 @@ function setLibrary(key) {
 function todayStr() {
   // 学习日字符串(与存档 state.today 比较):锚点后移 5 小时,凌晨 0~5 点仍属前一学习日
   return new Date(Date.now() - DAY_CUTOFF_MS).toDateString();
+}
+
+/* ---------------- 新学断点续学快照 ----------------
+ * 新学会话(识别+拼写)在每次出题/阶段切换时落盘;中途退出后点「新学」接着
+ * 上次的队列与位置继续,不再"只保留答对提交的、队列作废重来"。
+ * 只对 study 模式写快照(复习池每次按到期重算,没有续的场景)。
+ * 恢复策略:识别未完=直接续题;识别完成后(拼写询问/拼写中途)=再给一次
+ * 「继续拼写 / 跳过」选择,永不强制(用户要求)。
+ * 失效条件:词库切换 / 跨学习日(早 5 点) / 完成或跳过 / 新会话覆盖;
+ * 校验失败即清除,绝不恢复过期快照。 */
+const STUDY_SNAP_KEY = 'cet4_study_snapshot_v2';
+
+function saveStudySnapshot(snap) {
+  try {
+    if (!snap) { localStorage.removeItem(STUDY_SNAP_KEY); return; }
+    snap.v = 2;
+    snap.lib = libKey();
+    snap.day = todayStr();
+    localStorage.setItem(STUDY_SNAP_KEY, JSON.stringify(snap));
+  } catch (e) { /* 存储不可用,静默(断点续学是增益不是关键路径) */ }
+}
+
+function loadStudySnapshot() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STUDY_SNAP_KEY) || 'null'); } catch (e) { s = null; }
+  const valid = s && s.v === 2
+    && s.lib === libKey() && s.day === todayStr()
+    && Array.isArray(s.queue) && s.queue.length
+    && Array.isArray(s.records);
+  if (!valid) {
+    if (s) { try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e2) { /* 忽略 */ } }
+    return null;
+  }
+  // 队列词必须都在当前词库里(自建词库被删/换库后快照作废)
+  const set = LIB_WORD_SETS[libKey()];
+  if (!set || !s.queue.every(w => set.has(w))) {
+    try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e2) { /* 忽略 */ }
+    return null;
+  }
+  return s;
+}
+
+function clearStudySnapshot() {
+  try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e) { /* 忽略 */ }
 }
 
 /* 日期 key：YYYY-MM-DD（纯格式化,月历/热力图格子按日历日取键,与学习日桶天然对齐） */
@@ -42778,9 +42824,74 @@ function makeSession(mode, picked) {
   });
 }
 
+/* ---------------- 新学断点续学:会话 ↔ 快照 ----------------
+ * 快照在每次出题/阶段切换时落盘(app.js 的 saveStudySnapshot 附上词库+学习日);
+ * 恢复时重建会话并回放位置。records 是 Map,落盘转条目数组。
+ * 注意:恢复后当前题会重新出(选项重排),词的学习状态以已提交的为准,不受影响 */
+function studySnapshot() {
+  return {
+    phase: session.phase || 'recognize',
+    queue: session.queue.slice(),
+    pending: (session.pending || []).slice(),
+    retries: (session.retries || []).slice(),
+    sinceRetry: session.sinceRetry || 0,
+    idx: session.idx || 0,
+    correct: session.correct || 0,
+    wrong: session.wrong || 0,
+    records: Array.from(session.records.entries()),
+    spellRetries: (session.spellRetries || []).slice(),
+    sinceSpellRetry: session.sinceSpellRetry || 0,
+    spellOn: !!session.spellOn,
+    spellCounts: !!session.spellCounts,
+  };
+}
+
+function restoreStudySession(snap) {
+  session = makeSession('study', snap.queue);
+  session.pending = (snap.pending || []).slice();
+  session.retries = (snap.retries || []).slice();
+  session.sinceRetry = snap.sinceRetry || 0;
+  session.idx = snap.idx || 0;
+  session.correct = snap.correct || 0;
+  session.wrong = snap.wrong || 0;
+  session.records = new Map(snap.records);
+  session.spellRetries = (snap.spellRetries || []).slice();
+  session.sinceSpellRetry = snap.sinceSpellRetry || 0;
+  session.spellOn = !!snap.spellOn;
+  session.spellCounts = !!snap.spellCounts;
+  session.phase = snap.phase || 'recognize';
+}
+
+/* 拼写中途退出后再进来:再次给选择(继续/跳过),永不强制 */
+function spellResumeHtml() {
+  const remaining = session.queue.filter(w => !((session.records.get(w) || makeRecord()).done)).length;
+  const spelled = session.queue.length - remaining;
+  return `
+    <div class="quiz-card session-done">
+      <div class="icon">${icon("keyboard")}</div>
+      <h2>拼写还没完成</h2>
+      <p>上次已拼 ${spelled}/${session.queue.length} 个，还剩 <b>${remaining}</b> 个。<br>可以接着拼，也可以跳过——识别早已提交，跳过不影响任何进度。</p>
+      <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
+        <button class="next-btn" onclick="startSpellStage()">${icon('keyboard')} 继续拼写（剩余 ${remaining} 词）</button>
+        <button class="btn-ghost" onclick="finishSession()">跳过，直接完成</button>
+      </div>
+    </div>
+  `;
+}
+
 function startStudy() {
   session = null; quickRebuild = null;   // 互斥:清掉旧会话/快扫,防残留状态接管键盘
   document.getElementById('reviewQuiz').innerHTML = '';   // 清复习屏残留旧题卡,防隐藏屏 .opt 被数字键误触(串答)
+  /* 断点续学:有本词库本学习日的有效快照时不重开新会话——
+   * 识别未完直接续题;拼写环节(询问页/中途退出)再给一次选择,可跳过不强制 */
+  const snap = loadStudySnapshot();
+  if (snap) {
+    restoreStudySession(snap);
+    go('screen-study');
+    if (snap.phase === 'spell') document.getElementById('studyQuiz').innerHTML = spellResumeHtml();
+    else renderStudyRecognize();   // recognize=续题;spellAsk=空队列自然落回询问页
+    return;
+  }
   const g = goalInfo();
   if (g.allDone) {
     const el = document.getElementById('studyQuiz');
@@ -43051,6 +43162,7 @@ function renderStudyRecognize() {
   // 识别全部完成 → 询问拼写
   if (!pending.length && !retries.length) {
     session.phase = 'spellAsk';
+    if (session.mode === 'study') saveStudySnapshot(studySnapshot());
     el.innerHTML = spellAskHtml();
     return;
   }
@@ -43073,6 +43185,7 @@ function renderStudyRecognize() {
   }
   session.word = word;
   session.answered = false;
+  if (session.mode === 'study') saveStudySnapshot(studySnapshot());
   renderRecognizeOne(word);
 }
 
@@ -44009,6 +44122,7 @@ function renderSpellStage() {
   const word = pickInterleaved(remaining);
   session.word = word;
   session.answered = false;
+  if (session.mode === 'study') saveStudySnapshot(studySnapshot());
   prefetchUpcomingAudio();
   const hint = WORD_MAP.get(word);
   el.innerHTML = `
@@ -44109,6 +44223,7 @@ function finishSession() {
   hideAnsFoot();
   const el = document.getElementById(session.mode === 'study' ? 'studyQuiz' : 'reviewQuiz');
   el.innerHTML = doneHtml();
+  if (session.mode === 'study') clearStudySnapshot();   // 走到完成页=会话终结,快照作废(跳过拼写也经这里)
   session = null;   // 会话结束,清空防止键盘快捷键继续响应旧会话
 }
 

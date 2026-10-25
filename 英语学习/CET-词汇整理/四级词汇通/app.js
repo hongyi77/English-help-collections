@@ -205,6 +205,7 @@ function deleteCustomLib(key) {
   if (state && state.settings && state.settings.lib === key) state.settings.lib = 'cet4';
   if (state && state.libs) delete state.libs[key];
   saveState();
+  rebuildWordData();   // 删的可能是当前词库:libKey 已回落,词表/索引必须跟着重建,否则界面还在操作已删词库的词
   return true;
 }
 
@@ -487,6 +488,7 @@ const curDaily = () => libDaily(libKey());
 function setLibrary(key) {
   if (!LIBS[key] || key === libKey()) return;
   state.settings.lib = key;
+  clearStudySnapshot();   // 快照绑定词库,切库即作废(别让 A 库的队列恢复到 B 库)
   saveState();
   rebuildWordData();
 }
@@ -494,6 +496,50 @@ function setLibrary(key) {
 function todayStr() {
   // 学习日字符串(与存档 state.today 比较):锚点后移 5 小时,凌晨 0~5 点仍属前一学习日
   return new Date(Date.now() - DAY_CUTOFF_MS).toDateString();
+}
+
+/* ---------------- 新学断点续学快照 ----------------
+ * 新学会话(识别+拼写)在每次出题/阶段切换时落盘;中途退出后点「新学」接着
+ * 上次的队列与位置继续,不再"只保留答对提交的、队列作废重来"。
+ * 只对 study 模式写快照(复习池每次按到期重算,没有续的场景)。
+ * 恢复策略:识别未完=直接续题;识别完成后(拼写询问/拼写中途)=再给一次
+ * 「继续拼写 / 跳过」选择,永不强制(用户要求)。
+ * 失效条件:词库切换 / 跨学习日(早 5 点) / 完成或跳过 / 新会话覆盖;
+ * 校验失败即清除,绝不恢复过期快照。 */
+const STUDY_SNAP_KEY = 'cet4_study_snapshot_v2';
+
+function saveStudySnapshot(snap) {
+  try {
+    if (!snap) { localStorage.removeItem(STUDY_SNAP_KEY); return; }
+    snap.v = 2;
+    snap.lib = libKey();
+    snap.day = todayStr();
+    localStorage.setItem(STUDY_SNAP_KEY, JSON.stringify(snap));
+  } catch (e) { /* 存储不可用,静默(断点续学是增益不是关键路径) */ }
+}
+
+function loadStudySnapshot() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STUDY_SNAP_KEY) || 'null'); } catch (e) { s = null; }
+  const valid = s && s.v === 2
+    && s.lib === libKey() && s.day === todayStr()
+    && Array.isArray(s.queue) && s.queue.length
+    && Array.isArray(s.records);
+  if (!valid) {
+    if (s) { try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e2) { /* 忽略 */ } }
+    return null;
+  }
+  // 队列词必须都在当前词库里(自建词库被删/换库后快照作废)
+  const set = LIB_WORD_SETS[libKey()];
+  if (!set || !s.queue.every(w => set.has(w))) {
+    try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e2) { /* 忽略 */ }
+    return null;
+  }
+  return s;
+}
+
+function clearStudySnapshot() {
+  try { localStorage.removeItem(STUDY_SNAP_KEY); } catch (e) { /* 忽略 */ }
 }
 
 /* 日期 key：YYYY-MM-DD（纯格式化,月历/热力图格子按日历日取键,与学习日桶天然对齐） */

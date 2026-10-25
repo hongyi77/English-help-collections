@@ -169,7 +169,7 @@ console.log('\n[5] 无到期复习时 startReview 不创建空会话');
 /* ================= 6. 学习会话仍正常（英译汉回归） ================= */
 console.log('\n[6] 学习会话回归：出题→答对→提交');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("startStudy()");
   const s = g('session');
   ok(s && s.queue.length > 0, 'startStudy 创建会话');
@@ -214,7 +214,7 @@ console.log('\n[7] 旧存档设置缺省合并');
 /* ================= 8. 学习记录 tab 上限 ================= */
 console.log('\n[8] 历史记录 tab 最多 30 天');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 造 40 天历史
   g(`
     for (let i = 40; i >= 1; i--) {
@@ -235,7 +235,7 @@ console.log('\n[8] 历史记录 tab 最多 30 天');
 /* ================= 9. 掌握情况搜索 + 分页 ================= */
 console.log('\n[9] 掌握情况列表：搜索 + 分页上限');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("setMasterTab('unlearned')");
   const listEl = documentStub.getElementById('masterList');
   ok((listEl.innerHTML.match(/list-word/g) || []).length <= 100, '未学习 4543 词只渲染前 100 条');
@@ -282,7 +282,7 @@ console.log('\n[11] 写盘防抖与会话快照移除');
 /* ================= 12. 死代码清理回归 ================= */
 console.log('\n[12] 死代码清理回归');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("learnWord('hello')");
   g("reviewCorrect('hello')"); // stage1→2
   ok(g(`curWords()['hello'].masteredTotal`) === undefined, 'word 记录无 masteredTotal 残留');
@@ -340,7 +340,7 @@ console.log('\n[13] 学习会话全流程');
 console.log('\n[14] 复习会话：识别固定英译汉');
 (() => {
   const origRandom = Math.random;   // sandbox.Math 与宿主同对象，测完必须恢复
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 用词库里真实存在的 3 个词（生造词不在 WORD_LIST，dueWords 不会收录）
   g(`(() => {
     const [w1, w2, w3] = WORD_LIST.slice(0, 3);
@@ -371,7 +371,7 @@ console.log('\n[15] 巧记：数据接入、答错反馈、列表查看');
   ok(g("memoOf('negotiate')").length > 0, '难词有巧记');
   ok(g("memoOf('hello')") === '', '简单词无巧记不误显');
   // 答错反馈：叠层布局 + 巧记行
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g(`session = { mode: 'study', phase: 'recognize', q: { type: '英译汉', options: [] }, records: new Map() }`);
   const fbZone = documentStub.getElementById('feedbackZone');
   fbZone.innerHTML = '';
@@ -411,7 +411,7 @@ console.log('\n[16] TTS：支持检测、不支持降级、speak 不抛异常');
   g('toggleAutoSpeak()');
   ok(g('state.settings.autoSpeak') === true, '不支持时开关不可切换');
   // 出题卡不渲染 🔊
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g('startStudy()');
   ok(!documentStub.getElementById('studyQuiz').innerHTML.includes('speak-btn'), '不支持时出题卡无 🔊 按钮');
   // 恢复
@@ -422,7 +422,7 @@ console.log('\n[16] TTS：支持检测、不支持降级、speak 不抛异常');
 /* ================= 17. 词库切换 ================= */
 console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g("libKey()") === 'cet4', '默认词库为 cet4');
   ok(g('Object.keys(LIBS).length') >= 5, `词库已注册（${g('Object.keys(LIBS).length')} 个）`);
   ok(g('WORD_LIST.length') === g("LIBS['cet4'].words.length"), '启动词表与 cet4 一致');
@@ -481,7 +481,7 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
 /* ================= 18. 答错选项揭示(错误大框取消,信息长在选项上) ================= */
 console.log('\n[18] 答错选项揭示:正确/所选项展开双行,其余可点看');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g('startStudy()');
   const w = g('session.word');
   const badIdx = g('session.q.options.findIndex(o => !o.isAnswer)');
@@ -497,7 +497,7 @@ console.log('\n[18] 答错选项揭示:正确/所选项展开双行,其余可点
   ok(html.includes('revealOpt('), '折叠项绑定"点看汉译"');
   ok(g(`revealOptionsHtml(session.q, ${badIdx}).indexOf(session.q.options[${badIdx}].text) >= 0`) === true, '所选项双行含其释义');
   // 点「不会」:无所选项,仅正确项展开,3 个干扰项折叠
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g('startStudy()');
   g('showAnswer()');
   const html2 = g('revealOptionsHtml(session.q, -1)');
@@ -543,13 +543,13 @@ console.log('\n[19] 自由拼写:范围取词/错词宽松重现/纯练习不改
   ok(g('Object.keys(curWords()).length') === 0, '整个会话结束仍不写学习状态');
   ok(documentStub.getElementById('spellQuiz').innerHTML.includes('拼写练习完成'), '显示练习完成页');
   // 范围取词:book 范围只取生词本里的词
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g(`curWords()['hello'] = { stage: 1, right: 1, wrong: 0, inBook: true, created: Date.now(), due: Date.now() + 86400000 }; saveState();`);
   g(`const bl = wordsInScope('book')`);
   ok(g('bl.length') === 1 && g('bl[0]') === 'hello', 'book 范围只含生词本单词');
   ok(g('normScope("不存在的范围")') === 'all', '无效范围回落到全部');
   // 「按日期」范围:取指定日期新学的词(当前词库,history 条目 [lib, word])
-  g(`state = defaultState(); saveState();`);
+  g(`state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");`);
   // 范围折叠:默认只显示摘要行,不渲染分组 chips(点摘要才展开)
   g('cfgScopeOpen = {}; state.settings.spellScope = "unseen"; saveState(); renderSpellConfig()');
   {
@@ -659,7 +659,7 @@ console.log('\n[20] 听写:配置默认值/判分流程/自查模式/循环');
 /* ================= 21. 功能4:学习记录按词库归属 ================= */
 console.log('\n[21] 学习记录:条目带词库/旧字符串兼容/按词库查释义');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("learnWord('hello')");
   const today = g('learningDayKey()');
   let entry = g(`state.history['${today}'].learned[state.history['${today}'].learned.length - 1]`);
@@ -693,7 +693,7 @@ console.log('\n[21] 学习记录:条目带词库/旧字符串兼容/按词库查
 /* ================= 22. 自选词单 + 听写自动轮播 ================= */
 console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g('normScope("custom")') === 'custom', '范围支持 custom(自选)');
   // 词单按当前词库过滤
   g(`state.settings.spellWords = ['hello', '不存在的词zz']; saveState();`);
@@ -752,7 +752,7 @@ console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
   /* ================= 23. 数量自定义 + 快照跨天失效 ================= */
   console.log('\n[23] 数量自定义(1~词库上限)与快照跨天重置');
   (() => {
-    g('state = defaultState(); saveState();');
+    g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
     g(`setPracticeCount('spell', 25)`);
     ok(g('state.settings.spellCount') === 25, '数量可设任意值 25');
     g(`setPracticeCount('spell', 0)`);
@@ -768,7 +768,7 @@ console.log('\n[22] 自选词单(具体到单词)与自动轮播模式');
     /* ================= 24. 选词器:长按拖动连续选择 + 全选 ================= */
     console.log('\n[24] 选词器:连续选择手势逻辑与全选');
     (() => {
-      g('state = defaultState(); saveState();');
+      g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
       g(`pickerKind = 'spell'; pickerFilter = 'all'; pickerSearch = '';`);
       // 连续选择:以"反向状态"应用同一目标(未选 → 全部设为选)
       const rowStub = w => ({ dataset: { w }, classList: { toggle() {} }, querySelector: () => null });
@@ -998,12 +998,12 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
   g('state = loadState();');
   ok(!g('state.libs.cet4.learnedToday').includes('badword'), '预置的污染计数被对账清除');
   // 正常写入后重启：计数 ⊆ history，对账不丢数
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g(`learnWord('hello'); learnWord(LIBS.cet4.words[0][0])`);
   g('flushState(); state = loadState();');   // 防抖落盘后再模拟重启
   ok(g('curDaily().learnedToday.length') === 2, '正常学习后重启,对账重建计数不丢');
   // 跨天重置：昨天有计数、今天还没学 → 启动对账后计数为 0
-  g(`state = defaultState(); saveState();`);
+  g(`state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");`);
   g(`
     const ydC = learningDayKey(Date.now() - DAY_MS);
     state.history[ydC] = { learned: [['cet4','hello']], reviewed: [], wrongs: [] };
@@ -1018,7 +1018,7 @@ console.log('\n[28] 每日新学/复习目标按词库独立（2026-08-31）');
 /* ================= 29. 拼写/听写答题发音 + 生词本发音按钮 + 学习记录类型筛选 ================= */
 console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音按钮/学习记录筛选');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("window.__spoke = []; speakWord = function(w){ window.__spoke.push(w); };");
   const w0 = g(`LIBS.cet4.words[0][0]`);
   const setSpellInput = v => g(`document.getElementById('spellInput').value = '${v}'; session.answered = false; window.__spoke = [];`);
@@ -1070,7 +1070,7 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
   const bookHtml = documentStub.getElementById('bookList').innerHTML;
   ok(bookHtml.includes(`speakWord('${w0}')`) && bookHtml.includes('list-speak') && bookHtml.includes('<svg'), '生词本行有发音按钮(点击播报)');
   // 学习记录类型筛选:全部/新学/复习/答错
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g(`
     const tK29 = learningDayKey();
     state.history[tK29] = { learned: [['cet4','hello']], reviewed: [['cet4','${w0}']], wrongs: [['cet4','${w0}']] };
@@ -1104,7 +1104,7 @@ console.log('\n[29] 拼写答对(首次/二次)与答错发音/生词本发音�
 /* ================= 30. 顽固词机制 + 学习热力图/streak + 听音辨义 ================= */
 console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨义全流程');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   const w0 = g(`LIBS.cet4.words[0][0]`);
   // ---- 顽固词:复习答错累计 5 次 → 自动标记 ----
   for (let i = 0; i < 4; i++) g(`reviewWrong('${w0}', false)`);
@@ -1125,7 +1125,7 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   g(`masterTab = 'leech'; renderMasterList();`);
   ok(documentStub.getElementById('masterList').innerHTML.includes('顽固 · 错5 次'), '顽固词列表行显示答错次数');
   // ---- streak 连续学习天数 ----
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g('streakInfo()') === 0, '无记录 streak=0');
   const dkT = g('learningDayKey()');
   const dkY = g('learningDayKey(Date.now() - DAY_MS)');
@@ -1158,7 +1158,7 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   ok(g('historyDay') === dkY2 && g('vocabSeg') === 'history', '点热力格子切到学习记录并选中该天');
   // ---- 听力练习(听写+听音辨义合并,dictKind 切换) ----
   g(`speakWord = function(w){ window.__spoke.push(w); }; window.__spoke = [];`);
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g('state.settings.dictKind') === 'write', '听力练习类型缺省为听音写词');
   ok(g('state.settings.listenScope') === undefined, '听音辨义独立配置字段已移除(并入 dict*)');
   g('state.settings.dictCount = 2; saveState();');
@@ -1230,7 +1230,7 @@ console.log('\n[31] FSRS 自适应复习算法');
   const retry = fsrsReview(fw, 3, now, now + 10 * 60e3);
   ok(retry.s > fw.s, '同日重试答对 S 回升(inc≥1)');
   // ---- 接入:经典为缺省,FSRS 分支调度 ----
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g('state.settings.reviewAlgo') === 'ebbinghaus' && g('state.settings.fsrsRetention') === 0.9, '缺省:经典算法+90% 保持率');
   const w31 = g('WORD_LIST[0]');
   g(`learnWord('${w31}')`);
@@ -1285,7 +1285,7 @@ console.log('\n[31] FSRS 自适应复习算法');
 /* ================= 32. 选词器带入范围 + 按日期含复习/答错 ================= */
 console.log('\n[32] 选词器带入范围 + 按日期含复习/答错');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]'), wC = g('WORD_LIST[2]'), wD = g('WORD_LIST[3]');
   const dk32 = g('dateKey()');
   // 造一天混合记录:A 新学+复习, B 仅复习, C 仅答错;混入他库条目与垃圾条目
@@ -1341,7 +1341,7 @@ console.log('\n[32] 选词器带入范围 + 按日期含复习/答错');
 /* ================= 33. 配置页布局:固定开始栏/分组重排/月历禁未来/吸顶 ================= */
 console.log('\n[33] 配置页布局优化');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 固定开始栏:词数与按钮分离
   g(`go('screen-spell')`);
   let sh = documentStub.getElementById('spellQuiz').innerHTML;
@@ -1382,7 +1382,7 @@ console.log('\n[33] 配置页布局优化');
 /* ================= 34. 长按连选自动滚屏 ================= */
 console.log('\n[34] 长按连选自动滚屏');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g(`openWordPicker('dict'); setPickerFilter('all'); window.innerHeight = 844;`);
   ok(g('pickerLimit') === 100, '进选词器默认显示 100 个');
   // 速度函数:贴上缘向上滚(负)、贴下缘向下滚(正)、中间不动;越贴边越快
@@ -1412,7 +1412,7 @@ console.log('\n[34] 长按连选自动滚屏');
 /* ================= 35. 按日期内容分类 + 范围分组层级 ================= */
 console.log('\n[35] 按日期内容分类 + 范围分组层级');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]'), wC = g('WORD_LIST[2]');
   const dk35 = g('dateKey()');
   g(`state.history['${dk35}'] = {
@@ -1446,7 +1446,7 @@ console.log('\n[35] 按日期内容分类 + 范围分组层级');
   // 非法分类回落
   g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { spellDateCat: 'bogus' } })); state = loadState();`);
   ok(g('state.settings.spellDateCat') === 'all', '非法内容分类回落 all');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= 36. 带进度存档冷启动回归(防迁移异常清档) =================
@@ -1496,7 +1496,7 @@ console.log('\n[36] 带进度存档冷启动回归');
 /* ================= 37. 快速复习/进度重建双模式 ================= */
 console.log('\n[37] 快速复习/进度重建双模式');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   const wA = g('WORD_LIST[0]'), wB = g('WORD_LIST[1]');
   // quickMark 底层:认识=stage2/2天后,不认识=stage1/明天来
   g(`quickMark('${wA}', true)`);
@@ -1534,13 +1534,13 @@ console.log('\n[37] 快速复习/进度重建双模式');
   ok(rem === g('quickRemaining()') && !g('quickRebuild.list').includes(wA) && !g('quickRebuild.list').includes(wB), '重建模式扫词列表只含无记录的词');
   ok(g('quickRebuild.write') === true, '重建模式会写入进度');
   g('quickExit()');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= 38. Edge 发音离线包 + 快扫发音 ================= */
 console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快扫发音');
 (async () => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 旧存档缺 edgePack 字段 → 缺省合并出 null(纯 DEFAULT_SETTINGS 合并,无迁移代码)
   {
     g('flushState()');   // saveState 已防抖,读盘前先强制落盘
@@ -1632,7 +1632,7 @@ console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快
   g('edgePackSleep = (ms) => new Promise(r => setTimeout(r, ms))');
   g(`edgeSynthesize = (text, voice, rate) => edgeSynthesizeNow(text, voice, rate, voice + '|' + edgeRate(rate) + '|' + text)`);
   g('canUseEdgeVoice = () => false');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 快扫卡片:发音按钮 + 预取守卫
   g(`quickMode = 'practice'; startQuickSweep()`);
   ok(documentStub.getElementById('studyQuiz').innerHTML.includes('speakQuickWord()'), '快扫词卡带发音按钮');
@@ -1642,7 +1642,7 @@ console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快
   ok(g('typeof speakQuickWord') === 'function' && (() => { g('speakQuickWord()'); return true; })(), 'speakQuickWord 可调用(降级链路不抛错)');
   g('canUseEdgeVoice = () => false');
   g('quickExit()');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= 40. 会话互斥与串答修复（回归） =================
@@ -1652,7 +1652,7 @@ console.log('\n[38] Edge发音离线包:包键/元数据/退避/下载流程/快
  */
 console.log('\n[40] 会话互斥与串答修复');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 快扫启动清掉进行中的学习会话
   g('startStudy()');
   ok(g('session && session.mode') === 'study', '先开学习会话');
@@ -1668,13 +1668,13 @@ console.log('\n[40] 会话互斥与串答修复');
   documentStub.getElementById('studyQuiz').innerHTML = '<button class="opt">stale</button>';
   g('startReview()');
   ok(documentStub.getElementById('studyQuiz').innerHTML === '', 'startReview 清空学习屏残留题卡');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= 41. bucketCounts 单次遍历统计（回归） ================= */
 console.log('\n[41] bucketCounts 与逐桶过滤口径一致');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 造混合状态:2 新词、1 已掌握、1 待复习、1 生词本(未学)、1 顽固
   g(`(() => {
     const ws = WORD_LIST.slice(0, 6);
@@ -1696,7 +1696,7 @@ console.log('\n[41] bucketCounts 与逐桶过滤口径一致');
   ok(g("classCount('due')") === g('dueWords().length'), 'classCount 与逐桶过滤一致');
   const s = g('stats()');
   ok(s.mastered === b.mastered && s.due === b.due && s.learning === b.learning && s.inBook === b.inBook, 'stats 复用单遍统计');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= 42. 拼写选择计入 + 错词重练 + 快扫两段式 + 主题 ================= */
@@ -1736,12 +1736,12 @@ console.log('\n[42] 拼写阶段选择计入进度');
   const rec2 = g(`curWords()['${w}']`);
   ok(rec2.stage === 1, '拼对不重复提交(stage 仍为识别时提交的 1,不连升)');
   ok(Math.abs(rec2.due - (Date.now() + 10 * 60 * 1000)) < 5000, '拼对不改 due(10 分钟重试排期保留)');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[43] 错词重练(昨日答错→复习会话)');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 昨天:cet4 错 hello、cet6 错同名词(跨库不计)、今天错的也不计
   g(`(() => {
     const yd = learningDayKey(Date.now() - DAY_MS);
@@ -1775,7 +1775,7 @@ console.log('\n[43] 错词重练(昨日答错→复习会话)');
   g('wrongReNext()');
   ok(guard < 100 && documentStub.getElementById('reviewQuiz').innerHTML.includes('错词重练完成'), `全部完成出专练总结页(循环 ${guard} 次)`);
   ok(documentStub.getElementById('reviewQuiz').innerHTML.includes('startWrongReview()'), '总结页「再来一组」直接重抽错词(无配置页)');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[44] 快扫两段式(自评→翻面→记错了改判)');
@@ -1817,7 +1817,7 @@ console.log('\n[44] 快扫两段式(自评→翻面→记错了改判)');
   ok(g('quickRebuild.verify') === false, '关闭后快扫为单段模式');
   ok(documentStub.getElementById('studyQuiz').innerHTML.includes('这个词认识吗'), '单段模式单词汉译同屏');
   g('quickExit()');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[45] 外观主题(深色模式)设置');
@@ -1830,7 +1830,7 @@ console.log('\n[45] 外观主题(深色模式)设置');
   ok(g('state.settings.theme') === 'auto', '旧档/非法档主题归一为 auto');
   g('setTheme("dark")');
   ok(g('state.settings.theme') === 'dark', 'setTheme 存档记住选择');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[46] 学习日边界(每日目标早上 5 点重置)');
@@ -1843,7 +1843,7 @@ console.log('\n[46] 学习日边界(每日目标早上 5 点重置)');
   ok(g(`learningDayKey(${t500})`) === '2026-10-25', '早上 5:00 整归新学习日');
   ok(g(`learningDayKey(${t2359})`) === '2026-10-25', '白天活动归当天学习日');
   // 记录落桶与同学习日持久化
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   g("learnWord('hello')");
   ok(g(`(state.history[learningDayKey()] || {learned:[]}).learned.some(e => e[1] === 'hello')`) === true, '学习记录写入当前学习日的桶');
   g('state.today = todayStr(); flushState(); state = loadState();');
@@ -1858,7 +1858,7 @@ console.log('\n[46] 学习日边界(每日目标早上 5 点重置)');
     flushState(); state = loadState();
   `);
   ok(g('curDaily().learnedToday.length') === 0, '跨学习日后每日计数清零(昨天的不再计入)');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[47] 答题反馈三件套(音效/底部继续栏/选项标注)');
@@ -1899,12 +1899,12 @@ console.log('\n[47] 答题反馈三件套(音效/底部继续栏/选项标注)')
   ok(g('typeof ansFootAction') === 'function', '答错挂起底部继续动作');
   g('advanceAfterWrong()');
   ok(g('ansFootAction') === null, '换题后继续栏收起');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 console.log('\n[48] 生词本排序(错误次数/添加顺序,用户可切换)');
 (() => {
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   // 依次加入三个词,并造不同错误次数
   g(`
     const [wA, wB, wC] = WORD_LIST.slice(0, 3);
@@ -1934,7 +1934,7 @@ console.log('\n[48] 生词本排序(错误次数/添加顺序,用户可切换)')
   // 旧档无 bookAt 回落 created 也能渲染
   g(`delete curWords()[__bk[0]].bookAt; saveState(); renderBook();`);
   ok(documentStub.getElementById('bookList').innerHTML.includes(g('__bk[0]')), '无 bookAt 的旧记录回落 created 正常渲染');
-  g('state = defaultState(); saveState();');
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
 /* ================= [49] 自建词库：导入解析 / 建库 / 删除 / 导出 ================= */
@@ -1974,6 +1974,77 @@ console.log('\n[49] 自建词库(导入/建库/删除/导出)');
   g(`var __r2 = createCustomLib('导出测试', 'hobby 爱好\\n'); var __exp = exportCustomLibText(__r2.key)`);
   ok(g(`__exp === 'hobby\\t爱好'`), '导出:Tab 分隔一行一词');
   g('deleteCustomLib(__r2.key)');
+})();
+
+/* ================= [50] 新学断点续学：快照落盘/识别续题/拼写再询问 ================= */
+console.log('\n[50] 新学断点续学(识别续题/拼写再询问/跳过不触发)');
+(() => {
+  g('state = defaultState(); saveState()');
+  g('startStudy()');
+  const qLen = g('session.queue.length');
+  const snap0 = g('loadStudySnapshot()');
+  ok(snap0 && snap0.phase === 'recognize' && snap0.queue.length === qLen, '新会话建立即落快照(识别阶段)');
+  ok(snap0.lib === g('libKey()') && !!snap0.day, '快照带词库+学习日校验字段');
+
+  // 答对 2 词后模拟退出(会话是内存态,直接置 null)
+  let guard = 0;
+  while (g('session.pending.length') > qLen - 2 && guard++ < 20) {
+    if (g('session.answered')) { g('advanceAfterWrong()'); continue; }
+    const idx = g('session.q.options.findIndex(o => o.isAnswer)');
+    g(`recognizeAnswer(${idx}, null)`);
+  }
+  const pendingAtExit = g('session.pending.length');
+  ok(pendingAtExit === qLen - 2, '答对 2 词:pending 减 2(答对即提交)');
+  if (g('session.answered')) g('advanceAfterWrong()');   // 快照在出题时落盘:推进一题对齐实时进度再退出
+  g('session = null');
+  g('startStudy()');
+  ok(g('session && session.phase') === 'recognize', '重进:恢复识别会话,不弹窗直接续题');
+  ok(g('session.pending.length') === pendingAtExit, '重进:接着退出前的进度,不重新抽词');
+  ok(g('session.queue.length') === qLen, '重进:队列与退出前一致');
+  const idx2 = g('session.q.options.findIndex(o => o.isAnswer)');
+  g(`recognizeAnswer(${idx2}, null)`);
+  g('advanceAfterWrong()');
+  ok(g('loadStudySnapshot().pending.length') === pendingAtExit - 1, '恢复后继续作答,快照同步前进');
+
+  // 一路答对到识别完成 → spellAsk;退出再进来重新给选择
+  guard = 0;
+  while (g('session && session.phase') === 'recognize' && guard++ < 300) {
+    if (g('session.answered')) { g('advanceAfterWrong()'); continue; }
+    const i = g('session.q.options.findIndex(o => o.isAnswer)');
+    g(`recognizeAnswer(${i}, null)`);
+  }
+  ok(g('session && session.phase') === 'spellAsk', '整批词过完一遍(对错不论) → 拼写询问');
+  ok(g('loadStudySnapshot().phase') === 'spellAsk', '询问页快照落盘');
+  g('session = null');
+  g('startStudy()');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('开始拼写'), '拼写环节退出再进来:同样给出选择');
+
+  // 选拼写 → 退出 → 再进来:仍提示选择,不强制;跳过后快照清除不再触发
+  g('startSpellStage()');
+  ok(g('loadStudySnapshot().phase') === 'spell', '拼写阶段快照落盘');
+  g('session = null');
+  g('startStudy()');
+  const resumeHtml = documentStub.getElementById('studyQuiz').innerHTML;
+  ok(resumeHtml.includes('拼写还没完成') && resumeHtml.includes('继续拼写'), '拼写中途退出再进来:再次提示,可跳过不强制');
+  g('startSpellStage()');
+  ok(g('session.phase') === 'spell' && g('session.spellCounts') === true, '选择继续拼写:恢复拼写会话(计入标记保留)');
+  g('finishSession()');
+  ok(g('loadStudySnapshot()') === null, '完成或跳过:快照清除,不再触发');
+  ok(documentStub.getElementById('studyQuiz').innerHTML.includes('session-done'), '跳过后落完成页');
+
+  // 失效校验:跨学习日 / 队列含陌生词 / 切换词库
+  g(`saveStudySnapshot({ phase: 'recognize', queue: ['abandon'], pending: ['abandon'], retries: [], records: [['abandon', { errors: 0, corrects: 0, spellCorrects: 0, done: false }]] })`);
+  ok(g('loadStudySnapshot()') !== null, '有效快照可恢复(前置)');
+  const rawSnap = JSON.parse(storage.get('cet4_study_snapshot_v2'));
+  rawSnap.day = '1999-01-01';
+  storage.set('cet4_study_snapshot_v2', JSON.stringify(rawSnap));
+  ok(g('loadStudySnapshot()') === null, '跨学习日(早5点锚点)快照失效并清除');
+  g(`saveStudySnapshot({ phase: 'recognize', queue: ['__not_a_word__'], pending: ['__not_a_word__'], retries: [], records: [] })`);
+  ok(g('loadStudySnapshot()') === null, '队列词不在当前词库:快照失效');
+  g(`saveStudySnapshot({ phase: 'recognize', queue: ['abandon'], pending: ['abandon'], retries: [], records: [['abandon', { errors: 0, corrects: 0, spellCorrects: 0, done: false }]] })`);
+  g('setLibrary("cet6")');
+  ok(g('loadStudySnapshot()') === null, '切换词库:快照作废');
+  g('state = defaultState(); saveState()');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
