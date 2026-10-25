@@ -11,7 +11,9 @@ const ROOT = __dirname;
 const CHUNK_DIR = path.join(ROOT, 'vocab-sentence-chunks');
 const OUT = path.join(ROOT, 'vocab-sentences.js');
 
-const WORD_RE = /^[A-Za-z][A-Za-z'\- ]*$/;
+// 键名校验放宽:词库本身含 P.E. / How old...? / let's = let us / tick‑tock(Unicode 连字符)
+// 等标点键名,只要求含字母、长度合理、无危险字符——键必须与词库原词一致,App 按原词查询
+const KEY_OK = w => w.length <= 40 && /[a-z]/i.test(w) && !/[<>"\r\n]/.test(w);
 
 // 1. 读并执行所有 chunk(按文件名排序,后写覆盖前写)
 const chunkFiles = fs.readdirSync(CHUNK_DIR).filter(f => f.endsWith('.js')).sort();
@@ -37,7 +39,7 @@ for (const part of sandbox.VOCAB_SENTENCE_PARTS) {
     if (Array.isArray(raw) && raw.length === 2 && typeof raw[0] === 'string' && typeof raw[1] === 'string') {
       sents = [raw];
     }
-    if (!WORD_RE.test(w) || !Array.isArray(sents) || !sents.length) { bad++; continue; }
+    if (!KEY_OK(w) || !Array.isArray(sents) || !sents.length) { bad++; continue; }
     const ok = sents.every(s => Array.isArray(s) && s.length === 2
       && typeof s[0] === 'string' && s[0].trim()
       && typeof s[1] === 'string' && s[1].trim()
