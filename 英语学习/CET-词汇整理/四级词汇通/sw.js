@@ -4,7 +4,7 @@
  * 注册用 updateViaCache:'none'(见 pwa-register.js),sw.js 本身绕过 HTTP 缓存,
  * 版本号只在 CACHE_VER 一处维护,不再需要 ?v=NN 查询参数
  */
-const CACHE_VER = 'cet4-vocab-v58';
+const CACHE_VER = 'cet4-vocab-v59';
 const ASSETS = [
   './index.html',
   './manifest.json',

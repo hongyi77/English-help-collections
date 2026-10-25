@@ -2071,6 +2071,30 @@ console.log('\n[51] 例句(查询/渲染/词典注入)');
   ok(!documentStub.getElementById('dictList').innerHTML.includes('ans-sent'), '词典页模糊命中不注入例句');
 })();
 
+/* ================= [52] 错词重练「不会，看答案」按钮 ================= */
+console.log('\n[52] 错词重练不会按钮(揭示+重现+零进度写入)');
+(() => {
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+  g(`(() => {
+    const yd = learningDayKey(Date.now() - DAY_MS);
+    state.history[yd] = { learned: [], reviewed: [], wrongs: [['cet4','hello']] };
+    saveState();
+  })()`);
+  g('startWrongReview()');
+  ok(g('session && session.mode') === 'wrongre', '进入错词重练会话');
+  ok(documentStub.getElementById('reviewQuiz').innerHTML.includes('不会，看答案'), '题卡渲染「不会，看答案」按钮');
+  const w = g('session.word');
+  g('wrongReGiveUp()');
+  ok(g('session.answered') === true, '点不会:当前题锁定');
+  ok(g(`session.spellRetries.includes('${w}')`) === true, '不会的词进重现池(稍后再来)');
+  ok(g('session.wrong') === 1, '计本会话 ✗ 一次');
+  ok(documentStub.getElementById('wrongReFeedback').innerHTML.includes('wrong-strip'), '原地显示单词+释义条');
+  ok(g(`!curWords()['${w}']`) === true, '纯练习确认:词的学习进度零写入');
+  g('wrongReNext()');
+  ok(g('session.answered') === false, '继续后解锁下一题');
+  g('session = null; saveState()');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

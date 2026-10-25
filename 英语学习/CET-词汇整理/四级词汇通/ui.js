@@ -907,6 +907,9 @@ function renderWrongReOne() {
       <div class="quiz-prompt">${escapeHtml(word)}${speakBtn}</div>
       <div class="progress-line">剩余 ${remaining.length} 词 · ✓ ${session.correct} ✗ ${session.wrong} · 纯练习不改进度</div>
       <div class="options">${optionsHtml}</div>
+      <div class="show-ans-wrap">
+        <button class="show-ans-btn" onclick="wrongReGiveUp()">${icon('eye')} 不会，看答案</button>
+      </div>
       ${retryNote}
       <div id="wrongReFeedback"></div>
     </div>
@@ -919,7 +922,8 @@ function wrongReAnswer(idx, btnEl) {
   if (!session || session.mode !== 'wrongre' || session.answered) return;
   session.answered = true;
   const word = session.word;
-  const isCorrect = session.q.options[idx].isAnswer;
+  const chosen = session.q.options[idx];
+  const isCorrect = !!(chosen && chosen.isAnswer);   // idx=-1 =「不会」进入,视同答错
   const rec = session.records.get(word) || makeRecord();
   const fbEl = document.getElementById('wrongReFeedback');
   const card = fbEl.closest('.quiz-card');
@@ -961,6 +965,12 @@ function wrongReNext() {
   session.answered = false;
   session.idx++;
   renderWrongReOne();
+}
+
+/* 「不会，看答案」:不作选择,原地揭示正确项+释义条,词进重现池稍后再来。
+ * 走 wrongReAnswer(-1) 的答错通道——纯练习不写任何进度,只计本会话 ✗ */
+function wrongReGiveUp() {
+  wrongReAnswer(-1, null);
 }
 
 /* ---------- 识别阶段（学习/复习共用） ----------
