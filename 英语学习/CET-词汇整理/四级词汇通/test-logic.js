@@ -59,6 +59,7 @@ const dir = __dirname;
 vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-data.js'), 'utf8'), sandbox);
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-libs.js'), 'utf8'), sandbox); } catch (e) { /* 扩展词库缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-extra.js'), 'utf8'), sandbox); } catch (e) { /* 巧记数据缺失不阻塞基础测试 */ }
+try { vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-sentences.js'), 'utf8'), sandbox); } catch (e) { /* 例句数据缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'icons.js'), 'utf8'), sandbox); } catch (e) { /* 图标数据缺失不阻塞基础测试 */ }
 try { vm.runInContext(fs.readFileSync(path.join(dir, 'fsrs.js'), 'utf8'), sandbox); } catch (e) { /* FSRS 引擎缺失不阻塞基础测试 */ }
 vm.runInContext(fs.readFileSync(path.join(dir, 'app.js'), 'utf8'), sandbox);
@@ -2045,6 +2046,25 @@ console.log('\n[50] 新学断点续学(识别续题/拼写再询问/跳过不触
   g('setLibrary("cet6")');
   ok(g('loadStudySnapshot()') === null, '切换词库:快照作废');
   g('state = defaultState(); saveState()');
+})();
+
+/* ================= [51] 例句：查询/渲染行/词典页注入 ================= */
+console.log('\n[51] 例句(查询/渲染/词典注入)');
+(() => {
+  const s1 = g("sentencesOf('abandon')");
+  ok(Array.isArray(s1) && s1.length >= 1 && Array.isArray(s1[0]) && s1[0].length === 2, 'sentencesOf 返回 [英文句, 中文翻译] 结构');
+  ok(/abandon/i.test(s1[0][0]) && /[\u4e00-\u9fff]/.test(s1[0][1]), '英文句含目标词,中文翻译为中文');
+  ok(g("sentencesOf('zzznotaword999')") === null, '无例句的词返回 null');
+  const line = g("sentenceLineHtml('abandon')");
+  ok(line.includes('ans-sent') && line.includes('ans-sent-cn') && line.length > 20, 'sentenceLineHtml 渲染例句行(英+中)');
+  ok(g("sentenceLineHtml('zzznotaword999')") === '', '无例句渲染空串(不占位)');
+  // 词典页精确命中时注入例句
+  g('state = defaultState(); saveState()');
+  g("dictQ = 'abandon'; renderDictResults()");
+  ok(documentStub.getElementById('dictList').innerHTML.includes('ans-sent'), '词典页精确命中显示例句');
+  // 模糊命中(score>0)不注入,保持结果列表紧凑
+  g("dictQ = 'abandonm'; renderDictResults()");
+  ok(!documentStub.getElementById('dictList').innerHTML.includes('ans-sent'), '词典页模糊命中不注入例句');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);

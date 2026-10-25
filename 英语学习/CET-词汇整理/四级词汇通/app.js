@@ -436,6 +436,12 @@ function memoOf(word) {
   return (typeof m === 'string' && m.trim()) ? m.trim() : '';
 }
 
+/* 例句查询：VOCAB_SENTENCES 定义在 vocab-sentences.js(懒加载,未就绪时静默无例句);
+ * 按词查询、各词库通用,值为 [[英文句, 中文翻译]] */
+function sentencesOf(word) {
+  return (typeof VOCAB_SENTENCES !== 'undefined' && VOCAB_SENTENCES[word]) || null;
+}
+
 /* ---------------- 全局状态 ----------------
  * 学习进度按词库隔离：state.libs[libKey].words[word] = {
  *   stage: 0新词, 1-5复习级, 5已掌握
@@ -1345,19 +1351,27 @@ rebuildWordData();
  * 重建索引并回调 ui.js 的 onLibsReady 刷新界面。
  * 单文件手机版/测试环境已内联 VOCAB_LIBS 时(装在 app.js 之前)自动跳过。 */
 (function lazyLoadVocabLibs() {
-  if (typeof VOCAB_LIBS !== 'undefined') return;                      // 已内联,无需动态加载
+  const needLibs = typeof VOCAB_LIBS === 'undefined';
+  const needSent = typeof VOCAB_SENTENCES === 'undefined';
+  if (!needLibs && !needSent) return;                                 // 已内联,无需动态加载
   if (typeof document === 'undefined' || !document.head) return;      // 测试沙箱
   if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
   const kick = () => {
-    if (typeof VOCAB_LIBS !== 'undefined') return;
-    const s = document.createElement('script');
-    s.src = 'vocab-libs.js';
-    s.onload = () => {
-      if (typeof VOCAB_LIBS === 'undefined') return;
-      registerVocabLibs(VOCAB_LIBS);
-      if (typeof onLibsReady === 'function') onLibsReady();
-    };
-    document.head.appendChild(s);
+    if (needLibs && typeof VOCAB_LIBS === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'vocab-libs.js';
+      s.onload = () => {
+        if (typeof VOCAB_LIBS === 'undefined') return;
+        registerVocabLibs(VOCAB_LIBS);
+        if (typeof onLibsReady === 'function') onLibsReady();
+      };
+      document.head.appendChild(s);
+    }
+    if (needSent && typeof VOCAB_SENTENCES === 'undefined') {
+      const s2 = document.createElement('script');
+      s2.src = 'vocab-sentences.js';   // 纯数据无需注册;渲染点经 sentencesOf 实时读取,晚到一题内自动补上
+      document.head.appendChild(s2);
+    }
   };
   if (document.readyState === 'complete' || document.readyState === 'interactive') kick();
   else window.addEventListener('DOMContentLoaded', kick);

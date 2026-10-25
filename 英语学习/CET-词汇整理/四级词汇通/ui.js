@@ -464,6 +464,13 @@ function onDictInput(v) {
   dictSearchTimer = setTimeout(renderDictResults, 180);
 }
 
+/* 例句展示行(有例句才渲染):英文原句+中文翻译,用于反馈卡/词典行 */
+function sentenceLineHtml(word) {
+  const s = sentencesOf(word);
+  if (!s || !s.length) return '';
+  return `<div class="ans-sent">${escapeHtml(s[0][0])}<span class="ans-sent-cn">${escapeHtml(s[0][1])}</span></div>`;
+}
+
 function renderDictResults() {
   const el = document.getElementById('dictList');
   const hint = document.getElementById('dictHint');
@@ -515,6 +522,7 @@ function renderDictResults() {
         </span>
       </div>
       <div class="list-def">${escapeHtml(r.def)}</div>
+      ${r.score === 0 ? sentenceLineHtml(r.w) : ''}
     </div></div>`;
   }).join('');
 }
@@ -905,6 +913,7 @@ function wrongReAnswer(idx, btnEl) {
         <div class="fb-title">${icon('circle-check')} 答对了！</div>
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+          ${sentenceLineHtml(word)}
       </div>
     `;
     revealFeedback(fbEl);
@@ -1127,6 +1136,7 @@ function recognizeAnswer(idx, btnEl) {
           <div class="fb-title">${icon('circle-check')} 答对了！</div>
           <div class="ans-word">${escapeHtml(word)}</div>
           <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+          ${sentenceLineHtml(word)}
         </div>`;
       revealFeedback(fb);
       showAnsFoot('继续 →', 'ok', advanceAfterWrong);
@@ -1862,6 +1872,7 @@ function wrongFeedbackHtml(word, title) {
         <span class="wp-ans">${escapeHtml(word)}</span>
         <span class="wp-def">${escapeHtml(WORD_MAP.get(word) || '')}</span>
       </div>
+      ${sentenceLineHtml(word)}
       ${memoOf(word) ? `<div class="wrong-memo">${icon('lightbulb')} ${escapeHtml(memoOf(word))}</div>` : ''}
     </div>
     <div class="wrong-actions">
@@ -2495,6 +2506,7 @@ function customSpellCheck() {
         <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+          ${sentenceLineHtml(word)}
       </div>
     `;
     revealFeedback(fbEl);
@@ -3170,6 +3182,7 @@ function dictCheck() {
         <div class="fb-title">${icon('circle-check')} 拼写正确！</div>
         <div class="ans-word">${escapeHtml(word)}</div>
         <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+          ${sentenceLineHtml(word)}
       </div>
     `;
     revealFeedback(fbEl);

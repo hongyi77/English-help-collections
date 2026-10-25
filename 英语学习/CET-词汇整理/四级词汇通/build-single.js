@@ -14,6 +14,7 @@ const OUT = path.join(ROOT, '英语词汇通_手机版.html');
  * 定义会自动跳过动态加载,file:// 下不存在 404 问题 */
 const FILES = ['vocab-data.js', 'vocab-extra.js', 'icons.js', 'fsrs.js', 'app.js', 'ui.js', 'pwa-register.js'];
 const LIBS_FILE = 'vocab-libs.js';
+const SENT_FILE = 'vocab-sentences.js';   // 与 vocab-libs 同理:index.html 无标签(懒加载),单文件版内联到词表数据之后
 
 let html = fs.readFileSync(SRC, 'utf8');
 
@@ -44,8 +45,9 @@ for (const f of FILES) {
   }
   let replacement = `<script>\n${safe}\n</script>`;
   if (f === 'vocab-data.js') {
-    // 扩展词库紧跟词表数据内联(见顶部 FILES 注释)
+    // 扩展词库/例句数据紧跟词表数据内联(见顶部 FILES 注释)
     replacement += `\n<script>\n${inlineJs(LIBS_FILE)}\n</script>`;
+    replacement += `\n<script>\n${inlineJs(SENT_FILE)}\n</script>`;
   }
   html = html.replace(tag, () => replacement);
 }
