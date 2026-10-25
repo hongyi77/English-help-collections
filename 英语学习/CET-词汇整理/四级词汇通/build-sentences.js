@@ -31,7 +31,12 @@ const merged = {};
 const dups = [];
 let bad = 0;
 for (const part of sandbox.VOCAB_SENTENCE_PARTS) {
-  for (const [w, sents] of Object.entries(part)) {
+  for (const [w, raw] of Object.entries(part)) {
+    // 归一化:兼容两种写法 —— [["en","cn"]](提取源)与 ["en","cn"](AI 生成源)
+    let sents = raw;
+    if (Array.isArray(raw) && raw.length === 2 && typeof raw[0] === 'string' && typeof raw[1] === 'string') {
+      sents = [raw];
+    }
     if (!WORD_RE.test(w) || !Array.isArray(sents) || !sents.length) { bad++; continue; }
     const ok = sents.every(s => Array.isArray(s) && s.length === 2
       && typeof s[0] === 'string' && s[0].trim()
