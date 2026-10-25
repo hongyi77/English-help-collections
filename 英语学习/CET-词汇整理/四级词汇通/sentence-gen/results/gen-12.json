@@ -1,162 +1,42 @@
 {
- "Either…or ……": [
-  "You can either stay at home or go shopping with us.",
-  "你要么待在家里,要么和我们一起去购物。"
- ],
- "take the subway": [
-  "I take the subway to school every morning because it is fast.",
-  "我每天早上乘地铁上学,因为很快。"
- ],
- "ride a bike": [
-  "My brother learned to ride a bike when he was six years old.",
-  "我哥哥六岁时学会了骑自行车。"
- ],
- "every day": [
-  "She drinks a glass of milk every day to stay healthy.",
-  "她每天喝一杯牛奶来保持健康。"
- ],
- "by bike": [
-  "It takes about twenty minutes to get to the park by bike.",
-  "骑自行车去公园大约需要二十分钟。"
- ],
- "think of": [
-  "What do you think of the new movie at the cinema?",
-  "你觉得电影院新上映的这部电影怎么样?"
- ],
- "between… and…": [
-  "The bank is between the library and the post office.",
-  "银行在图书馆和邮局之间。"
- ],
- "ropeway": [
-  "The ropeway carries visitors over the river to the mountain village.",
-  "索道载着游客越过河流,到达那个山村。"
- ],
- "come true": [
-  "If you work hard, your dream will come true one day.",
-  "如果你努力工作,你的梦想总有一天会实现。"
- ],
- "(be) on time": [
-  "Please be on time for the meeting tomorrow morning.",
-  "请明天早上准时参加会议。"
- ],
- "listen to…": [
-  "Students should listen to the teacher carefully in class.",
-  "学生上课应该认真听老师讲课。"
- ],
- "go out": [
-  "Tom can't go out with his friends on school nights.",
-  "汤姆在上学的晚上不能和朋友外出。"
- ],
- "do the dishes": [
-  "After dinner, I usually do the dishes for my parents.",
-  "晚饭后,我通常帮父母清洗餐具。"
- ],
- "make (one’s) bed": [
-  "He makes his bed quickly before he goes to school.",
-  "他上学前快速铺好自己的床。"
- ],
- "be strict (with sb)": [
-  "Our math teacher is strict with us, but we all like her.",
-  "我们的数学老师对我们要求严格,但我们都喜欢她。"
- ],
- "follow the rules": [
-  "Everyone in the library must follow the rules and keep quiet.",
-  "每个人在图书馆都必须遵守规则,保持安静。"
- ],
- "koala": [
-  "The koala sleeps for many hours during the day in the tree.",
-  "考拉白天在树上睡好几个小时。"
- ],
- "kind of": [
-  "I am kind of tired after running for two hours.",
-  "跑了两个小时后,我有点累了。"
- ],
- "South  Africa": [
-  "These lovely elephants come from South Africa, a big country in Africa.",
-  "这些可爱的大象来自南非,一个非洲大国。"
- ],
- "get lost": [
-  "The little boy got lost in the big shopping mall yesterday.",
-  "昨天小男孩在大型购物中心里迷路了。"
- ],
- "be in (great) danger": [
-  "Many wild animals are in great danger because forests are disappearing.",
-  "许多野生动物处于极大的危险之中,因为森林正在消失。"
- ],
- "cut down": [
-  "We should not cut down too many trees for paper.",
-  "我们不应该为了造纸砍伐太多树木。"
- ],
- "(be) made of": [
-  "This beautiful table is made of wood from old houses.",
-  "这张漂亮的桌子是由老房子的木头制成的。"
- ],
- "Julie": [
-  "Julie is my best friend, and she sits next to me in class.",
-  "朱莉是我最好的朋友,上课时坐在我旁边。"
- ],
- "Becky": [
-  "Becky often helps her mother clean the house on weekends.",
-  "贝姬周末经常帮妈妈打扫房子。"
- ],
- "Thai": [
-  "My new friend is Thai, and he speaks both Thai and English.",
-  "我的新朋友是泰国人,他既说泰语又说英语。"
- ],
- "read a newspaper": [
-  "My grandfather reads a newspaper every morning after breakfast.",
-  "我爷爷每天早饭后看报纸。"
- ],
- "make soup": [
-  "Mom is making chicken soup for us in the kitchen.",
-  "妈妈正在厨房里给我们做鸡汤。"
- ],
- "go to movies": [
-  "We often go to movies with our classmates on Saturday evenings.",
-  "我们经常在周六晚上和同学一起去看电影。"
- ],
- "eat out": [
-  "Our family likes to eat out at a small restaurant on Friday.",
-  "我们一家人喜欢周五出去,在一家小餐馆吃饭。"
- ],
- "drink  tea": [
-  "Many old people in China drink tea and chat in the afternoon.",
-  "中国许多老人下午喝茶聊天。"
- ],
- "the United States": [
-  "Her uncle moved to the United States to work two years ago.",
-  "她叔叔两年前搬到美国去工作了。"
- ],
- "Dragon Boat Festival": [
-  "People eat zongzi and watch boat races during the Dragon Boat Festival.",
-  "端午节期间,人们吃粽子、观看龙舟比赛。"
- ],
- "take a message": [
-  "Can I take a message for your brother? He is not at home now.",
-  "我可以给你哥哥捎个口信吗?他现在不在家。"
- ],
- "call(sb)back": [
-  "I will call you back as soon as I finish my homework.",
-  "我一做完作业就给你回电话。"
- ],
- "on(a)vacation": [
-  "My parents are on vacation at the beach this week.",
-  "我父母本周在海边度假。"
- ],
- "Boston": [
-  "It often snows in Boston during the cold winter months.",
-  "在寒冷的冬季,波士顿经常下雪。"
- ],
- "police station": [
-  "The lost child stayed at the police station until his parents came.",
-  "走失的孩子待在警察局里,直到他父母来接他。"
- ],
- "pay phone": [
-  "There is a pay phone next to the small supermarket.",
-  "小超市旁边有一个付费电话。"
- ],
- "across from": [
-  "The hospital is across from the school, so it is easy to find.",
-  "医院在学校对面,所以很容易找到。"
- ]
+  "Alexander Graham Bell": ["Alexander Graham Bell invented the telephone in 1876, and it changed how people communicate with each other.", "亚历山大•格雷厄姆•贝尔于1876年发明了电话，它改变了人们相互交流的方式。"],
+  "put on": ["He put on a lot of weight after eating fast food almost every day.", "在几乎每天吃快餐之后，他的体重增加了很多。"],
+  "lay out": ["She laid out the map on the table and showed us the best route.", "她把地图摊开摆在桌上，给我们指出了最佳路线。"],
+  "Chiang Mai": ["My cousin spent a week in Chiang Mai and fell in love with the quiet temples there.", "我表哥在清迈待了一个星期，并爱上了那里安静的寺庙。"],
+  "Valentine’s Day": ["He gave his mother a bunch of red flowers on Valentine’s Day this year.", "今年情人节那天，他送给妈妈一束红玫瑰。"],
+  "Charles  Dickens": ["Charles Dickens wrote many famous novels about the lives of poor children in England.", "查尔斯•狄更斯写了许多关于英国贫困儿童生活的著名小说。"],
+  "Jacob   Marley": ["In the story, Jacob Marley appears as a ghost and warns his old friend to change.", "在故事中，雅各布•马利化作幽灵出现，警告他的老朋友要改过自新。"],
+  "from time to time": ["I still meet my old classmates from time to time, though we now live far apart.", "虽然我们现在住得很远，但我仍不时和老同学们见面。"],
+  "deal with": ["Learning to deal with stress is an important skill for every student.", "学会应对压力是每个学生的一项重要技能。"],
+  "be proud of": ["Her parents were proud of her when she won first place in the competition.", "当她在比赛中获得第一名时，她的父母为她感到骄傲。"],
+  "boarding school": ["His parents sent him to a boarding school when he was ten years old.", "他十岁时，父母把他送进了一所寄宿学校。"],
+  "in person": ["You can apply for the job online, but you must sign the paper in person.", "你可以在网上申请这份工作，但必须亲自签署文件。"],
+  "take pride in": ["Good workers take pride in what they do, even in the smallest tasks.", "优秀的员工为自己所做的一切感到自豪，哪怕是最琐碎的工作。"],
+  "no matter": ["No matter how difficult the exam is, you should stay calm and confident.", "无论考试多么难，你都应该保持冷静和自信。"],
+  "San Francisco": ["They took a cable car to see the famous bridges of San Francisco last summer.", "去年夏天他们乘坐缆车去游览旧金山著名的桥梁。"],
+  "by accident": ["I found the old photo by accident while I was cleaning my desk.", "我在整理书桌时偶然发现了那张旧照片。"],
+  "take place": ["The sports meeting will take place next Friday if the weather is fine.", "如果天气好的话，运动会将于下周五举行。"],
+  "without doubt": ["This is without doubt the best movie I have seen this year.", "毫无疑问，这是我看过的今年最好的电影。"],
+  "all of a sudden": ["The sky was clear, but all of a sudden it started to rain heavily.", "天空原本晴朗，但突然之间下起了大雨。"],
+  "by mistake": ["Someone took my umbrella by mistake because the two umbrellas looked the same.", "有人错拿了我的伞，因为这两把伞看起来一模一样。"],
+  "divide ... into": ["The teacher divided the class into four small groups for the discussion.", "老师把全班分成四个小组进行讨论。"],
+  "the Olympics": ["Athletes from all over the world compete in the Olympics every four years.", "来自世界各地的运动员每四年参加一次奥林匹克运动会。"],
+  "look up to": ["Young players look up to their experienced teammates and learn from them every day.", "年轻队员钦佩经验丰富的队友，并每天向他们学习。"],
+  "Chelsea Lanmon": ["In the survey, Chelsea Lanmon said the most useful invention was the washing machine.", "在调查中，切尔西•兰曼说最有用的发明是洗衣机。"],
+  "Jayce  Coziar": ["Jayce Coziar believes shoes with special heels would make people walk more comfortably.", "杰斯•克里亚认为带特殊鞋跟的鞋子会让人们走路更舒服。"],
+  "Jamie Ellsworth": ["Jamie Ellsworth would like to invent a special pen that can write by itself.", "杰米•埃尔斯沃恩想发明一种能自动书写的特殊钢笔。"],
+  "Julie   Thompson": ["Julie Thompson said the car was the most helpful invention in her daily life.", "朱莉•汤普森说汽车是她日常生活中最有帮助的发明。"],
+  "Whitcomb   Judson": ["Whitcomb Judson invented an early kind of zipper for shoes in the 1890s.", "19世纪90年代，惠特科姆•贾德森发明了一种早期用于鞋子的拉链。"],
+  "Thomas  Watson": ["Thomas Watson heard Bell's voice through the first telephone and rushed to answer it.", "托马斯•沃森通过第一部电话听到了贝尔的声音，并赶紧过去接听。"],
+  "George   Crum": ["George Crum invented potato chips when a customer kept complaining about the thick fries.", "乔治•克拉姆在一位顾客不断抱怨薯条太厚时发明了薯片。"],
+  "James  Naismith": ["James Naismith invented basketball so that his students could play indoors in the cold winter.", "詹姆斯•奈史密斯发明了篮球，以便他的学生在寒冷的冬天能在室内运动。"],
+  "talk back": ["My parents get angry whenever I talk back to them at home.", "每当我在家里顶嘴时，父母就会生气。"],
+  "keep away from": ["You should keep away from the fire because it is really dangerous.", "你应该远离火，因为它真的很危险。"],
+  "make one’s own decision": ["Teenagers should be allowed to make their own decisions about their hobbies.", "应该允许青少年就自己的爱好做出决定。"],
+  "get in the way of": ["Don't let playing computer games get in the way of your studies.", "不要让玩电脑游戏妨碍你的学习。"],
+  "not only … but also": ["This dictionary is not only useful but also cheap, so many students buy it.", "这本词典不但有用而且便宜，所以很多学生都买它。"],
+  "J. K. Rowling": ["J. K. Rowling became famous after her story about a young wizard was published.", "J. K.罗琳在关于一位年轻巫师的故事出版后变得出名。"],
+  "Paul Stoker": ["Paul Stoker would like to invent a robot that can do all the housework.", "保罗•斯托克想发明一个能做所有家务的机器人。"],
+  "in that case": ["We may be a little late; in that case, please start dinner without us.", "我们可能会迟到一会儿；那样的话，请你们先吃饭，不用等我们。"],
+  "plenty of": ["Drink plenty of water every day, especially when you do sports.", "每天要喝大量的水，尤其是在运动的时候。"]
 }

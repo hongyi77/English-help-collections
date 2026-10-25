@@ -14,9 +14,9 @@ function sentenceOk(word, s) {
   if (cn.trim().length < 2 || cn.length > 60) return '中文翻译长度越界(2~60)';
   if (!/[\u4e00-\u9fff]/.test(cn)) return '中文翻译不含汉字';
   if (/[\u4e00-\u9fff]/.test(en)) return '英文句混入汉字';
-  // 词根匹配:允许屈折(复数/时态)与连字符书写差异(well-known/well known),取词干前缀比对
+  // 词根匹配:允许屈折(复数/时态)与书写差异(连字符/撇号/多词短语的空格,如 well-known/well known/hand over),两侧归一后取词干前缀比对
   const stem = word.toLowerCase().replace(/[^a-z]/g, '').slice(0, Math.max(4, word.length - 2));
-  if (!en.toLowerCase().replace(/[-']/g, '').includes(stem)) return '英文句未包含目标词(' + word + ')';
+  if (!en.toLowerCase().replace(/[\s-'\u2019]/g, '').includes(stem)) return '英文句未包含目标词(' + word + ')';
   return null;
 }
 
