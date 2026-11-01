@@ -589,12 +589,22 @@
   /* ---------- 列表双行卡片(词汇页/词典:单词+按钮一行,释义整行) ---------- */
   .list-item.two { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
   .li-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .li-head .list-word { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .li-head .list-word { flex: 1; min-width: 0; overflow-wrap: break-word; }
   .li-btns { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none; }
   /* 徽章置顶、缩小:不再夹在单词与释义中间,也不挤占长单词的宽度 */
   .li-meta { display: flex; flex-wrap: wrap; gap: 4px; }
   .li-meta .ms-badge { flex: none; font-size: 10px; padding: 2px 7px; }
   .list-item.two .list-def { flex: none; width: 100%; }
+  /* 列表遮挡:中英/遮汉译/遮单词;遮住后点该条单独揭示 */
+  .mask-btn {
+    display: inline-flex; align-items: center; gap: 4px; padding: 7px 9px; border-radius: 8px;
+    border: 1px solid var(--hairline); background: var(--card); color: var(--ink-soft);
+    font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .mask-btn.active { border-color: var(--ink-blue); color: var(--ink-blue); background: var(--blue-soft); }
+  .mask-btn .ic { width: 14px; height: 14px; }
+  .mask-def .list-def, .mask-word .list-word { filter: blur(5px); user-select: none; -webkit-user-select: none; cursor: pointer; transition: filter .12s; }
+  .mask-def .list-def.revealed, .mask-word .list-word.revealed { filter: none; user-select: text; -webkit-user-select: text; cursor: default; }
 
   /* ---------- 首页·错词重练入口 ---------- */
   .big-action.wrong-re .ba-ico { background: var(--red-soft); color: var(--pen-red); }
@@ -759,7 +769,7 @@
     </div>
   </div>
   <div class="wrap" id="seg-book" style="padding-top:0">
-    <div id="bookList"></div>
+    <div id="bookList" onclick="maskTap(event)"></div>
   </div>
   <div class="wrap" id="seg-master" style="display:none;padding-top:0">
     <div class="stats-grid">
@@ -784,14 +794,14 @@
     </div>
     <!-- 搜索框静态化:输入时不重建(否则每键丢焦点/打断输入法组词),列表区单独渲染进 masterList -->
     <div class="master-search-wrap"><input id="masterSearchInput" class="master-search" placeholder="搜索单词或释义…" oninput="onMasterSearch(this.value)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="在分类内搜索单词或释义"></div>
-    <div id="masterList"></div>
+    <div id="masterList" onclick="maskTap(event)"></div>
   </div>
   <div class="wrap" id="seg-history" style="display:none;padding-top:0">
     <div class="settings-card">
       <h3>选择日期</h3>
       <div id="historyDates"></div>
     </div>
-    <div id="historyDetail"></div>
+    <div id="historyDetail" onclick="maskTap(event)"></div>
   </div>
 </div>
 

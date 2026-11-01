@@ -2221,6 +2221,58 @@ console.log('\n[54] 扩展词库冷启动回退修复');
   g3('state = defaultState(); flushState();');
 })();
 
+/* ================= [55] 列表遮挡模式 + 生词本/学习记录标签置顶 ================= */
+console.log('\n[55] 列表遮挡模式(中英/遮汉译/遮单词)与标签置顶');
+(() => {
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+  const w = g('WORD_LIST[0]');
+  g(`learnWord('${w}'); toggleBook('${w}'); curWords()['${w}'].wrong = 6; saveState();`);
+  g('renderBook()');
+  const bookHtml = documentStub.getElementById('bookList').innerHTML;
+  ok(bookHtml.includes('li-meta') && bookHtml.indexOf('li-meta') < bookHtml.indexOf('li-head'), '生词本标签在单词上方(不挤占单词)');
+  ok(bookHtml.includes('mask-btn'), '生词本有遮挡按钮');
+
+  g(`curWords()['${w}'].stage = 5; saveState(); masterTab = 'mastered'; renderMasterList()`);
+  const masterHtml = documentStub.getElementById('masterList').innerHTML;
+  ok(masterHtml.includes('li-meta') && masterHtml.indexOf('li-meta') < masterHtml.indexOf('li-head'), '已掌握标签在单词上方');
+  ok(masterHtml.includes('mask-btn'), '掌握情况有遮挡按钮');
+
+  g(`(() => {
+    const dk = dateKey();
+    state.history[dk] = { learned: [['cet4','${w}']], reviewed: [], wrongs: [] };
+    historyDay = dk;
+    renderHistoryDetail(state.history[dk]);
+  })()`);
+  const histHtml = documentStub.getElementById('historyDetail').innerHTML;
+  ok(histHtml.includes('li-meta') && histHtml.indexOf('li-meta') < histHtml.indexOf('li-head'), '学习记录标签在单词上方(单词不再被挤成两行)');
+  ok(histHtml.includes('mask-btn'), '学习记录有遮挡按钮');
+
+  // 三态循环:中英 → 遮汉译 → 遮单词 → 中英
+  g('listMask = "none"; cycleListMask()');
+  ok(g('listMask') === 'def', '遮挡切换:中英 → 遮汉译');
+  g('renderBook()');
+  ok(documentStub.getElementById('bookList').innerHTML.includes('遮汉译'), '按钮显示当前「遮汉译」');
+  g('cycleListMask()');
+  ok(g('listMask') === 'word', '遮挡切换:遮汉译 → 遮单词');
+  g('cycleListMask()');
+  ok(g('listMask') === 'none', '遮挡切换:遮单词 → 中英');
+
+  // 遮汉译时点释义单独揭示/再点收起,点按钮不触发
+  g(`globalThis.__maskTarget = {
+    revealed: false,
+    classList: { toggle(c) { if (c === 'revealed') globalThis.__maskTarget.revealed = !globalThis.__maskTarget.revealed; } },
+    closest(sel) { if (sel === 'button' || sel === 'a') return null; if (sel === '.list-def') return globalThis.__maskTarget; return null; }
+  };
+  globalThis.__maskEv = { target: globalThis.__maskTarget };
+  listMask = 'def'; maskTap(__maskEv);`);
+  ok(g('__maskTarget.revealed') === true, '遮汉译:点释义展开该条');
+  g('maskTap(__maskEv)');
+  ok(g('__maskTarget.revealed') === false, '遮汉译:再点收起');
+  g('listMask = "none"; maskTap(__maskEv)');
+  ok(g('__maskTarget.revealed') === false, '中英模式点释义不误触');
+  g('listMask = "none"; state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

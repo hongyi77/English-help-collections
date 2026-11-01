@@ -439,6 +439,37 @@ function exportCustomLibFlow(key) {
 /* ---------------- 词汇 Tab（生词本/掌握情况/学习记录 分段） ---------------- */
 let vocabSeg = 'book';
 
+/* ---------------- 列表遮挡(生词本/掌握情况/学习记录共用) ----------------
+ * 参考主流背单词 App 的「隐藏释义/隐藏单词」:顶部一个三态切换,
+ * 遮住后点该词或释义单独揭示,方便自测;视图状态,不入存档。 */
+let listMask = 'none';   // none 中英 / def 遮汉译 / word 遮单词
+const LIST_MASK_LABELS = { none: '显示中英', def: '遮汉译', word: '遮单词' };
+
+function maskBtnHtml() {
+  const label = LIST_MASK_LABELS[listMask] || '显示中英';
+  return `<button class="mask-btn${listMask !== 'none' ? ' active' : ''}" onclick="cycleListMask()" title="切换遮挡：中英 / 遮汉译 / 遮单词" aria-label="切换遮挡，当前${label}">${icon('eye')} ${label}</button>`;
+}
+
+function cycleListMask() {
+  listMask = listMask === 'none' ? 'def' : (listMask === 'def' ? 'word' : 'none');
+  renderVocab();
+}
+
+function applyListMask(el) {
+  if (!el || !el.classList) return;
+  el.classList.toggle('mask-def', listMask === 'def');
+  el.classList.toggle('mask-word', listMask === 'word');
+}
+
+/* 遮挡态下点单词/释义,单独揭示该条;点按钮不触发 */
+function maskTap(e) {
+  if (listMask === 'none' || !e || !e.target || !e.target.closest) return;
+  const t = e.target;
+  if (t.closest('button') || t.closest('a')) return;
+  const target = t.closest(listMask === 'def' ? '.list-def' : '.list-word');
+  if (target && target.classList) target.classList.toggle('revealed');
+}
+
 function setVocabSeg(seg) {
   vocabSeg = seg;
   renderVocab();
@@ -3409,6 +3440,7 @@ function bookTimeOf(w) {
 
 function renderBook() {
   const el = document.getElementById('bookList');
+  applyListMask(el);
   const book = bookWords().slice();
   const words = curWords();
   if (bookOrder === 'wrong') {
@@ -3422,20 +3454,21 @@ function renderBook() {
   }
   // 顶部:总数 + 排序切换(与掌握情况工具栏同款布局)
   const head = `
-    <div class="list-card master-toolbar">
+    <div class="list-card master-toolbar" style="flex-wrap:wrap;gap:6px">
       <span style="font-size:14px;color:var(--ink-soft)">共 ${book.length} 词</span>
       <div class="cfg-chips" style="gap:6px">
         <button class="master-tab ${bookOrder === 'wrong' ? 'active' : ''}" onclick="setBookOrder('wrong')">错误次数</button>
         <button class="master-tab ${bookOrder === 'added' ? 'active' : ''}" onclick="setBookOrder('added')">添加顺序</button>
+        ${maskBtnHtml()}
       </div>
     </div>`;
   const rows = book.map(w => {
     const r = words[w] || {};
     const wrongN = r.wrong || 0;
     return `<div class="list-card"><div class="list-item two">
+      ${wrongN ? `<div class="li-meta"><span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span></div>` : ''}
       <div class="li-head">
         <span class="list-word">${escapeHtml(w)}</span>
-        ${wrongN ? `<span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span>` : ''}
         <span class="li-btns">
           <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
           ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
@@ -3509,6 +3542,7 @@ function onMasterSearch(v) {
 
 function renderMasterList() {
   const el = document.getElementById('masterList');
+  applyListMask(el);
   let words = wordsByClass(masterTab);
   const label = MASTER_TABS.find(t => t.cls === masterTab).label;
   const totalInClass = words.length;
@@ -3552,9 +3586,12 @@ function renderMasterList() {
     : '';
 
   el.innerHTML = `
-    <div class="list-card master-toolbar">
+    <div class="list-card master-toolbar" style="flex-wrap:wrap;gap:6px">
       <span style="font-size:14px;color:var(--ink-soft)">${label} · 共 ${totalInClass} 词${masterSearch ? ` · 匹配 ${words.length} 个` : ''}</span>
-      <button class="toolbar-btn" onclick="confirmResetClass('${masterTab}')">重置本分类全部</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${maskBtnHtml()}
+        <button class="toolbar-btn" onclick="confirmResetClass('${masterTab}')">重置本分类全部</button>
+      </div>
     </div>
     ${rows}
     ${moreBtn}
@@ -3695,12 +3732,13 @@ function setHistoryFilter(f) {
 
 function renderHistoryDetail(rec) {
   const el = document.getElementById('historyDetail');
+  applyListMask(el);
   const dayLabel = historyDay === learningDayKey() ? '今天' : historyDay;
   const total = rec.learned.length + rec.reviewed.length + rec.wrongs.length;
   // 类型筛选 chips:新学/复习/答错分开看
-  const chips = `<div class="cfg-chips" style="margin:14px 0 2px">${HISTORY_FILTERS.map(f =>
+  const chips = `<div class="cfg-chips" style="margin:14px 0 2px;align-items:center">${HISTORY_FILTERS.map(f =>
     `<button class="master-tab ${historyFilter === f.key ? 'active' : ''}" onclick="setHistoryFilter('${f.key}')">${f.label} <span class="mt-cnt">${f.key === 'all' ? total : rec[f.key].length}</span></button>`
-  ).join('')}</div>`;
+  ).join('')}${maskBtnHtml()}</div>`;
   const section = (title, list, cls) => {
     if (!list.length) return '';
     const rows = list.map(e => {
@@ -3712,10 +3750,9 @@ function renderHistoryDetail(rec) {
       const libTag = lib ? `<span class="dict-lib">${escapeHtml(LIBS[lib].name.replace('词汇', ''))}</span>` : '';
       const def = lib ? defInLib(lib, w) : (WORD_MAP.get(w) || '');
       return `<div class="list-card"><div class="list-item two">
+        <div class="li-meta">${libTag}<span class="ms-badge ${cls}">${title}</span></div>
         <div class="li-head">
           <span class="list-word">${escapeHtml(w)}</span>
-          ${libTag}
-          <span class="ms-badge ${cls}">${title}</span>
           <span class="li-btns">
             <button class="list-speak" title="发音" aria-label="朗读" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
           </span>
