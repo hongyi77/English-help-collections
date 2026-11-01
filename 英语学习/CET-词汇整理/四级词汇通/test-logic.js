@@ -2229,7 +2229,7 @@ console.log('\n[55] 列表遮挡模式(中英/遮汉译/遮单词)与标签置�
   g(`learnWord('${w}'); toggleBook('${w}'); curWords()['${w}'].wrong = 6; saveState();`);
   g('renderBook()');
   const bookHtml = documentStub.getElementById('bookList').innerHTML;
-  ok(bookHtml.includes('li-meta') && bookHtml.indexOf('li-meta') < bookHtml.indexOf('li-head'), '生词本标签在单词上方(不挤占单词)');
+  ok(!bookHtml.includes('li-meta') && bookHtml.indexOf('li-head') < bookHtml.indexOf('错 6'), '生词本恢复原格式(错N标签在单词行)');
   ok(bookHtml.includes('mask-btn'), '生词本有遮挡按钮');
 
   g(`curWords()['${w}'].stage = 5; saveState(); masterTab = 'mastered'; renderMasterList()`);
@@ -2241,11 +2241,12 @@ console.log('\n[55] 列表遮挡模式(中英/遮汉译/遮单词)与标签置�
     const dk = dateKey();
     state.history[dk] = { learned: [['cet4','${w}']], reviewed: [], wrongs: [] };
     historyDay = dk;
-    renderHistoryDetail(state.history[dk]);
+    renderHistory();
   })()`);
   const histHtml = documentStub.getElementById('historyDetail').innerHTML;
-  ok(histHtml.includes('li-meta') && histHtml.indexOf('li-meta') < histHtml.indexOf('li-head'), '学习记录标签在单词上方(单词不再被挤成两行)');
-  ok(histHtml.includes('mask-btn'), '学习记录有遮挡按钮');
+  ok(!histHtml.includes('li-meta') && histHtml.indexOf('li-head') < histHtml.indexOf('dict-lib'), '学习记录恢复原格式(词库/类型标签在单词行)');
+  ok(documentStub.getElementById('historyMask').innerHTML.includes('mask-btn'), '学习记录遮挡按钮在日期卡右上');
+  ok(histHtml.includes('全部') && histHtml.includes('新学') && histHtml.includes('复习') && histHtml.includes('答错') && !histHtml.includes('mask-btn'), '学习记录四个筛选 chip 同一行(遮挡按钮已移出)');
 
   // 三态循环:中英 → 遮汉译 → 遮单词 → 中英
   g('listMask = "none"; cycleListMask()');

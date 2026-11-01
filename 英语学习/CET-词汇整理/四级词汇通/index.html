@@ -798,8 +798,11 @@
   </div>
   <div class="wrap" id="seg-history" style="display:none;padding-top:0">
     <div class="settings-card">
-      <h3>选择日期</h3>
-      <div id="historyDates"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h3 style="margin:0">选择日期</h3>
+        <span id="historyMask"></span>
+      </div>
+      <div id="historyDates" style="margin-top:10px"></div>
     </div>
     <div id="historyDetail" onclick="maskTap(event)"></div>
   </div>

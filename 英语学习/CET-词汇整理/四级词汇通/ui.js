@@ -3466,9 +3466,9 @@ function renderBook() {
     const r = words[w] || {};
     const wrongN = r.wrong || 0;
     return `<div class="list-card"><div class="list-item two">
-      ${wrongN ? `<div class="li-meta"><span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span></div>` : ''}
       <div class="li-head">
         <span class="list-word">${escapeHtml(w)}</span>
+        ${wrongN ? `<span class="ms-badge ${wrongN >= 5 ? 'ms-due' : 'ms-learning'}">错 ${wrongN}</span>` : ''}
         <span class="li-btns">
           <button class="list-speak" title="发音" aria-label="朗读 ${escapeHtml(w)}" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
           ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
@@ -3654,6 +3654,8 @@ function renderHistory() {
   document.getElementById('historyDates').innerHTML = days.length
     ? `<div class="hist-dates">${tabsHtml}</div>`
     : '<p style="font-size:14px;color:var(--ink-soft)">还没有学习记录，开始学习吧</p>';
+  const maskBox = document.getElementById('historyMask');
+  if (maskBox) maskBox.innerHTML = maskBtnHtml();
   const strip = document.querySelector('.hist-dates');
   if (strip && strip.querySelector) {
     const act = strip.querySelector('.master-tab.active');
@@ -3736,9 +3738,9 @@ function renderHistoryDetail(rec) {
   const dayLabel = historyDay === learningDayKey() ? '今天' : historyDay;
   const total = rec.learned.length + rec.reviewed.length + rec.wrongs.length;
   // 类型筛选 chips:新学/复习/答错分开看
-  const chips = `<div class="cfg-chips" style="margin:14px 0 2px;align-items:center">${HISTORY_FILTERS.map(f =>
+  const chips = `<div class="cfg-chips" style="margin:14px 0 2px;flex-wrap:nowrap;overflow-x:auto">${HISTORY_FILTERS.map(f =>
     `<button class="master-tab ${historyFilter === f.key ? 'active' : ''}" onclick="setHistoryFilter('${f.key}')">${f.label} <span class="mt-cnt">${f.key === 'all' ? total : rec[f.key].length}</span></button>`
-  ).join('')}${maskBtnHtml()}</div>`;
+  ).join('')}</div>`;
   const section = (title, list, cls) => {
     if (!list.length) return '';
     const rows = list.map(e => {
@@ -3750,9 +3752,10 @@ function renderHistoryDetail(rec) {
       const libTag = lib ? `<span class="dict-lib">${escapeHtml(LIBS[lib].name.replace('词汇', ''))}</span>` : '';
       const def = lib ? defInLib(lib, w) : (WORD_MAP.get(w) || '');
       return `<div class="list-card"><div class="list-item two">
-        <div class="li-meta">${libTag}<span class="ms-badge ${cls}">${title}</span></div>
         <div class="li-head">
           <span class="list-word">${escapeHtml(w)}</span>
+          ${libTag}
+          <span class="ms-badge ${cls}">${title}</span>
           <span class="li-btns">
             <button class="list-speak" title="发音" aria-label="朗读" onclick="speakWord('${escapeAttr(w)}')">${icon('volume-2')}</button>
           </span>
