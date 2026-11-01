@@ -136,6 +136,8 @@ function refreshSettings() {
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
   const sfxBtn = document.getElementById('setSfx');
   if (sfxBtn) sfxBtn.textContent = state.settings.sfx ? '开' : '关';
+  const reviewAnsBtn = document.getElementById('setReviewAnswer');
+  if (reviewAnsBtn) reviewAnsBtn.textContent = state.settings.reviewShowAnswer ? '开' : '关';
   renderThemeSettings();
   renderAlgoSettings();
   renderVoiceSettings();
@@ -684,6 +686,15 @@ function setImportMsg(text, kind) {
  *   答错时：可自选是否加入生词本
  */
 let session = null;
+
+/* 词库切换统一收口(app.js setLibrary 回调):清掉旧会话/快扫/继续栏,
+ * 防止旧队列的单词被写进新词库 */
+function onLibrarySwitch() {
+  session = null;
+  quickRebuild = null;
+  hideAnsFoot();
+}
+
 /* 会话状态: { mode, queue, pending(识别队列), idx, correct, wrong,
  *   records: Map(word -> { errors, corrects, spellCorrects, done }),
  *   spellOn(是否进入拼写), phase('recognize'|'spell'|'done'),
@@ -1019,6 +1030,13 @@ function toggleSfx() {
   refreshSettings();
 }
 
+/* 复习答对后是否停留显示答案框(默认关;扫描复习快节奏不受影响) */
+function toggleReviewAnswer() {
+  state.settings.reviewShowAnswer = !state.settings.reviewShowAnswer;
+  saveState();
+  refreshSettings();
+}
+
 /* 反馈区滚入视野:出反馈后自动滚到可见(反馈在选项下方,选项保留可见时尤其需要) */
 function revealFeedback(fbEl) {
   if (fbEl && fbEl.scrollIntoView) {
@@ -1162,21 +1180,17 @@ function recognizeAnswer(idx, btnEl) {
     }
     if (session.mode === 'study') {
       // 新学:答对不直接跳词——绿框反馈(单词+释义)+底部继续,加深首因印象
-      const fb = document.getElementById('feedbackZone');
-      const card = fb.closest('.quiz-card');
-      if (card) card.classList.add('with-ans');
-      fb.innerHTML = `
-        <div class="feedback good">
-          <div class="fb-title">${icon('circle-check')} 答对了！</div>
-          <div class="ans-word">${escapeHtml(word)}</div>
-          <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
-          ${sentenceLineHtml(word)}
-        </div>`;
-      revealFeedback(fb);
-      showAnsFoot('继续 →', 'ok', advanceAfterWrong);
+      // 其余汉译选项也换成可点看态,点开看对应单词(纯展示,不写进度)
+      revealWrongOptions(host, session.q, -1);
+      showCorrectAnswerFeedback(word);
       return;
     }
-    // 复习:答对即刷新到下一个词，不停留(保持快节奏)
+    if (state.settings.reviewShowAnswer) {
+      // 复习可选:答对停留显示答案框(设置里打开,默认关)
+      showCorrectAnswerFeedback(word);
+      return;
+    }
+    // 复习默认:答对即刷新到下一个词，不停留(保持快节奏)
     session.answered = false;
     renderStudyRecognize();
     return;
@@ -1880,6 +1894,23 @@ function wrongStripHtml(word) {
       ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
     </button>
   </div>`;
+}
+
+/* 答对后的绿色答案框:新学固定显示;复习由 settings.reviewShowAnswer 开关控制 */
+function showCorrectAnswerFeedback(word) {
+  const fb = document.getElementById('feedbackZone');
+  if (!fb) { showAnsFoot('继续 →', 'ok', advanceAfterWrong); return; }
+  const card = fb.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  fb.innerHTML = `
+    <div class="feedback good">
+      <div class="fb-title">${icon('circle-check')} 答对了！</div>
+      <div class="ans-word">${escapeHtml(word)}</div>
+      <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      ${sentenceLineHtml(word)}
+    </div>`;
+  revealFeedback(fb);
+  showAnsFoot('继续 →', 'ok', advanceAfterWrong);
 }
 
 function showWrongFeedback(word, wrongText) {
@@ -3504,10 +3535,9 @@ function renderMasterList() {
       ? `<span class="ms-badge ms-due">顽固 · 错${(r && r.lapses) || 0} 次</span>`
       : (r && r.leech ? '<span class="ms-badge ms-due">顽固</span>' : '');
     return `<div class="list-card"><div class="list-item two">
+      <div class="li-meta">${leechBadge}<span class="ms-badge ${badgeCls}">${st.label}</span></div>
       <div class="li-head">
         <span class="list-word">${escapeHtml(w)}</span>
-        ${leechBadge}
-        <span class="ms-badge ${badgeCls}">${st.label}</span>
         <span class="li-btns">
           ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
           <button class="list-del" title="重置此单词" aria-label="重置 ${escapeHtml(w)}" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
@@ -3849,8 +3879,8 @@ function quickRemaining() {
   return unseenWords().length;
 }
 
-function openQuickPractice() { quickMode = 'practice'; go('screen-quick'); }
-function openQuickRebuild() { quickMode = 'rebuild'; go('screen-quick'); }
+function openQuickPractice() { session = null; quickRebuild = null; quickMode = 'practice'; go('screen-quick'); }
+function openQuickRebuild() { session = null; quickRebuild = null; quickMode = 'rebuild'; go('screen-quick'); }
 function setQuickMode(v) {
   if (v !== 'practice' && v !== 'rebuild') return;
   quickMode = v;
@@ -4135,11 +4165,22 @@ function forceSwUpdate() {
   }
 }
 
-/* 扩展词库延迟装载完成(app.js 的 lazyLoadVocabLibs 回调):
- * 刷新词库选择器/快扫题库行;停在词典页且有搜索词时重跑跨库搜索 */
+/* 扩展词库延迟装载完成(app.js 的 finishDeferredLibs 回调):
+ * 当前词库/词表/今日计数已在 app.js 恢复,这里把各页面刷新到新词库状态 */
 function onLibsReady() {
-  renderLibPicker();
+  refreshHome();
   if (dictQ) renderDictResults();
   renderQuickEntry();
+  const active = document.querySelector('.screen.active');
+  const id = active && active.id;
+  if (id === 'screen-home') {
+    const sub = document.getElementById('topSub');
+    if (sub) sub.textContent = LIBS[libKey()].name;
+  } else if (id === 'screen-settings') refreshSettings();
+  else if (id === 'screen-vocab') renderVocab();
+  else if (id === 'screen-dict') renderDictResults();
+  else if (id === 'screen-spell') renderSpellConfig();
+  else if (id === 'screen-dictate') renderDictConfig();
+  else if (id === 'screen-quick') renderQuickConfig();
 }
 

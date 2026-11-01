@@ -180,9 +180,18 @@ console.log('\n[6] 学习会话回归：出题→答对→提交');
   g(`session.records.get('${w}') && session.records.set('${w}', Object.assign(session.records.get('${w}'), { corrects: 1 }))`);
   // 直接调 recognizeAnswer 走正确选项
   const idx = g('session.q.options.findIndex(o => o.isAnswer)');
+  // 测试桩没有真实 DOM 解析:给 studyQuiz 挂一个 .options 子元素,验证答对后的揭示写入
+  const studyEl = documentStub.getElementById('studyQuiz');
+  const origQS = studyEl.querySelector;
+  const optionsEl = dummyEl('studyOptions');
+  studyEl.querySelector = sel => (sel === '.options' ? optionsEl : origQS(sel));
   g(`recognizeAnswer(${idx}, null)`);
   ok(g(`curWords()['${w}'] && curWords()['${w}'].stage`) === 1, '答对后 learnWord 提交（stage=1）');
   ok(g('curDaily().learnedToday').includes(w), '计入今日已学（当前词库）');
+  ok(g(`curWords()['${w}'].wrong`) === 0 && !g(`curWords()['${w}'].leech`), '新学答对不写错误/顽固标记');
+  ok(optionsEl.innerHTML.includes('opt correct') && (optionsEl.innerHTML.match(/opt dim/g) || []).length === 3, '新学答对后其余 3 个汉译选项可点看');
+  ok(optionsEl.innerHTML.includes('revealOpt('), '新学答对后干扰项绑定点看对应单词');
+  studyEl.querySelector = origQS;
 })();
 
 /* ================= 7. 设置缺省合并（autoSpeak） ================= */
@@ -426,6 +435,7 @@ console.log('\n[17] 词库切换：注册、进度隔离、UI 切换');
   g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g("libKey()") === 'cet4', '默认词库为 cet4');
   ok(g('Object.keys(LIBS).length') >= 5, `词库已注册（${g('Object.keys(LIBS).length')} 个）`);
+  ok(g('[...LIB_GROUPS.flatMap(g => g.libs)].filter(k => k !== "cet4").every(k => DEFERRED_LIB_KEYS.has(k))'), '延迟词库白名单覆盖全部内置扩展词库');
   ok(g('WORD_LIST.length') === g("LIBS['cet4'].words.length"), '启动词表与 cet4 一致');
   // 学习一个四级词，切到六级
   g("learnWord('hello')");
@@ -1125,6 +1135,7 @@ console.log('\n[30] 顽固词自动标记与取词/热力图与streak/听音辨�
   ok(documentStub.getElementById('masterTabs').innerHTML.includes('顽固词'), '掌握情况有顽固词分类 tab');
   g(`masterTab = 'leech'; renderMasterList();`);
   ok(documentStub.getElementById('masterList').innerHTML.includes('顽固 · 错5 次'), '顽固词列表行显示答错次数');
+  ok(documentStub.getElementById('masterList').innerHTML.includes('li-meta'), '掌握情况徽章独立成行(不挤占单词)');
   // ---- streak 连续学习天数 ----
   g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
   ok(g('streakInfo()') === 0, '无记录 streak=0');
@@ -1307,12 +1318,17 @@ console.log('\n[32] 选词器带入范围 + 按日期含复习/答错');
   let sh = documentStub.getElementById('spellQuiz').innerHTML;
   ok(sh.includes('新学 1') && sh.includes('复习 2') && sh.includes('答错 1'), '日期配置页信息行显示分项统计');
   ok(sh.includes('有学习记录的日子'), '月历图例更新(含复习/答错)');
-  // 只答错过的日子(当月非今天)月历也应高亮
+  // 只答错过的日子(非今天)月历也应高亮;每月 1 号没有"当月非今天"的过去日期,改看上个月最后一天
   const now32 = new Date();
-  const probe32 = new Date(now32.getFullYear(), now32.getMonth(), now32.getDate() === 1 ? 2 : 1);
+  const prevMonth32 = now32.getDate() === 1;
+  const probe32 = prevMonth32
+    ? new Date(now32.getFullYear(), now32.getMonth(), 0)
+    : new Date(now32.getFullYear(), now32.getMonth(), 1);
   const dkW = g(`dateKey(${probe32.getTime()})`);
   g(`state.history['${dkW}'] = { learned: [], reviewed: [], wrongs: [['cet4','${wD}']] };`);
-  g('calY = null; calM = null; renderSpellConfig()');
+  g(prevMonth32
+    ? `calY = ${probe32.getFullYear()}; calM = ${probe32.getMonth()}; renderSpellConfig()`
+    : 'calY = null; calM = null; renderSpellConfig()');
   sh = documentStub.getElementById('spellQuiz').innerHTML;
   const cellM = sh.match(new RegExp(`<button[^>]*setPracticeDate\\('spell','${dkW}'\\)[^>]*>`));
   ok(!!cellM && cellM[0].includes('has') && cellM[0].includes('title="1 词"'), '只答错过的日子月历也高亮');
@@ -2093,6 +2109,116 @@ console.log('\n[52] 错词重练不会按钮(揭示+重现+零进度写入)');
   g('wrongReNext()');
   ok(g('session.answered') === false, '继续后解锁下一题');
   g('session = null; saveState()');
+})();
+
+/* ================= [53] 复习答对绿框开关(默认关) ================= */
+console.log('\n[53] 复习答对绿框开关(默认关/开启停留)');
+(() => {
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+  g('refreshSettings()');
+  ok(g('state.settings.reviewShowAnswer') === false, '默认关闭复习绿框');
+  ok(documentStub.getElementById('setReviewAnswer').textContent === '关', '设置页按钮默认显示关');
+  g('toggleReviewAnswer()');
+  ok(g('state.settings.reviewShowAnswer') === true, '设置开关可打开');
+  ok(documentStub.getElementById('setReviewAnswer').textContent === '开', '设置页按钮同步为开');
+  g('toggleReviewAnswer()');
+  ok(g('state.settings.reviewShowAnswer') === false, '设置开关可关闭');
+
+  // 默认关:复习答对即推进(单词量 1 时直接进拼写询问)
+  g(`(() => {
+    const w = WORD_LIST[0];
+    learnWord(w);
+    curWords()[w].due = Date.now() - 1;
+    saveState();
+  })()`);
+  g('startReview()');
+  ok(g('session && session.mode') === 'review', '创建复习会话(默认关)');
+  g(`(() => {
+    const idx = session.q.options.findIndex(o => o.isAnswer);
+    recognizeAnswer(idx, null);
+  })()`);
+  ok(g('session.answered') === false && g('session.phase') === 'spellAsk', '默认关:复习答对即推进(进入拼写询问)');
+  g('session = null;');
+
+  // 开启:复习答对停留显示绿框,点继续才推进
+  g('state = defaultState(); state.settings.reviewShowAnswer = true; saveState();');
+  g(`(() => {
+    const w = WORD_LIST[0];
+    learnWord(w);
+    curWords()[w].due = Date.now() - 1;
+    saveState();
+    globalThis.__rvWord = w;
+  })()`);
+  g('startReview()');
+  g(`(() => {
+    const idx = session.q.options.findIndex(o => o.isAnswer);
+    recognizeAnswer(idx, null);
+  })()`);
+  ok(g('session.answered') === true, '开启后:复习答对停留(不自动下一题)');
+  ok(g(`curWords()[__rvWord].stage`) === 2, '复习答对仍正常提交进度(stage=2)');
+  ok(documentStub.getElementById('feedbackZone').innerHTML.includes('feedback good') && documentStub.getElementById('feedbackZone').innerHTML.includes('答对了'), '开启后:显示绿色答案框');
+  ok(typeof g('ansFootAction') === 'function', '开启后:底部继续栏挂起');
+  g('advanceAfterWrong()');
+  ok(g('session && session.phase') === 'spellAsk', '点继续后进入拼写询问');
+  ok(g(`curWords()[__rvWord].wrong`) === 0, '复习答对不写错误计数');
+  g('session = null; state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+})();
+
+/* ================= [54] 扩展词库冷启动:选择/词表/今日计数恢复 ================= */
+console.log('\n[54] 扩展词库冷启动回退修复');
+(() => {
+  const storage3 = new Map();
+  const doc3 = { getElementById: id => doc3._els[id] || (doc3._els[id] = dummyEl(id)), _els: {}, querySelectorAll: () => [], querySelector: () => null, createElement: t => dummyEl('_' + t), addEventListener() {}, body: dummyEl('body3') };
+  const sb3 = {
+    console, Math, Date, JSON, Object, Array, Map, Set, Infinity, parseInt, String, Number,
+    document: doc3,
+    localStorage: {
+      getItem: k => (storage3.has(k) ? storage3.get(k) : null),
+      setItem: (k, v) => storage3.set(k, String(v)),
+      removeItem: k => storage3.delete(k),
+    },
+    window: {}, setTimeout: () => 0, SpeechSynthesisUtterance: function (t) { this.text = t; },
+  };
+  sb3.window.speechSynthesis = { speak() {}, cancel() {} };
+  sb3.globalThis = sb3;
+  vm.createContext(sb3);
+
+  const w54 = 'intention';
+  const def54 = 'n. 打算，意图，目的';
+  const d54 = new Date(Date.now() - 5 * 60 * 60 * 1000);
+  const p54 = n => String(n).padStart(2, '0');
+  const dk54 = d54.getFullYear() + '-' + p54(d54.getMonth() + 1) + '-' + p54(d54.getDate());
+  const archive54 = {
+    today: d54.toDateString(),
+    settings: { lib: 'cet4_core', dailyNew: 20, dailyReview: 30 },
+    libs: { cet4_core: { words: { [w54]: { stage: 3, due: 1, right: 5, wrong: 0, inBook: false, created: 1 } }, learnedToday: [], reviewedToday: [] } },
+    history: { [dk54]: { learned: [['cet4_core', w54]], reviewed: [['cet4_core', w54]], wrongs: [] } },
+  };
+  storage3.set('cet4_study_state_v1', JSON.stringify(archive54));
+  vm.runInContext(fs.readFileSync(path.join(dir, 'vocab-data.js'), 'utf8'), sb3);
+  try { vm.runInContext(fs.readFileSync(path.join(dir, 'fsrs.js'), 'utf8'), sb3); } catch (e) { /* 可缺省 */ }
+  vm.runInContext(fs.readFileSync(path.join(dir, 'app.js'), 'utf8'), sb3);
+  const g3 = code => vm.runInContext(code, sb3);
+
+  ok(g3('state.settings.lib') === 'cet4_core', '冷启动:扩展词库选择不被回落 cet4');
+  ok(g3('libKey()') === 'cet4', '扩展词库尚未加载时 libKey 暂时回落 cet4(不崩)');
+  ok(g3('WORD_LIST.length') === g3('VOCAB.length'), '扩展词库尚未加载时词表仍是内置四级');
+
+  // 模拟 vocab-libs.js 加载完成
+  g3(`finishDeferredLibs({ cet4_core: { name: '四级核心词', words: [['${w54}', '${def54}']] } })`);
+  ok(g3('libKey()') === 'cet4_core', '词库装好后:当前词库恢复核心词');
+  ok(g3('WORD_LIST.length') === 1 && g3('WORD_LIST[0]') === w54, '词库装好后:词表切到核心词库');
+  ok(g3(`state.libs.cet4_core.words['${w54}'].stage`) === 3, '核心词学习进度保留');
+  ok(g3(`state.libs.cet4_core.learnedToday.includes('${w54}')`) === true, '今日新学计数恢复');
+  ok(g3(`state.libs.cet4_core.reviewedToday.includes('${w54}')`) === true, '今日复习计数恢复');
+  ok(g3(`JSON.parse(localStorage.getItem('cet4_study_state_v1')).settings.lib`) === 'cet4_core', '恢复后的词库选择已落盘');
+
+  // 无效扩展词库 key:装好后仍找不到 → 回落 cet4
+  g3(`state.settings.lib = 'cet6'`);
+  g3(`finishDeferredLibs({})`);
+  ok(g3('libKey()') === 'cet4' && g3('state.settings.lib') === 'cet4', '无效扩展词库 key 在装载后回落 cet4');
+
+  g3('state = defaultState(); flushState();');
 })();
 
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);

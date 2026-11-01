@@ -23,6 +23,7 @@ const DEFAULT_RATE = 0.9;   // 发音缺省语速(Edge/TTS 各播放链共用的
 /* 设置缺省值(旧存档缺字段时合并;自由拼写/听写配置也存这里) */
 const DEFAULT_SETTINGS = {
   dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
+  reviewShowAnswer: false,                                // 复习答对后停留显示答案框(默认关,保持复习快节奏)
   spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
   spellDate: '',                                          // 自由拼写:「按日期」范围选的日期(YYYY-MM-DD,空=未选)
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听力练习:范围 + 数量 + 听音写词的作答方式(judge判分/listen自查/auto自动轮播)
@@ -225,6 +226,15 @@ const LIB_GROUPS = [
   { label: '学段词汇', libs: ['primary', 'junior', 'senior'] },
   { label: '蝶变系列', libs: ['diebian', 'diebian_junior'] },
 ];
+
+/* 启动时 vocab-libs.js 是延迟加载的,这些内置扩展词库的 key 在 loadState 执行时
+ * 可能还不在 LIBS 里。冷启动校验不能把它们当无效 key 回落 cet4,否则用户每次
+ * 刷新/重开 PWA 都会丢当前词库选择。新增内置词库时同步这里。 */
+const DEFERRED_LIB_KEYS = new Set([
+  'cet4_core', 'cet4_lite', 'cet6', 'cet6_core', 'cet6_lite',
+  'zsb', 'ielts', 'toefl', 'primary', 'junior', 'senior',
+  'diebian', 'diebian_junior',
+]);
 
 /* 在指定词库里查单词释义 */
 function defInLib(lib, word) {
@@ -493,6 +503,8 @@ const curDaily = () => libDaily(libKey());
 /* 切换词库：仅切设置，进度天然隔离；调用方负责清掉进行中的会话 */
 function setLibrary(key) {
   if (!LIBS[key] || key === libKey()) return;
+  // UI 层统一收口:切库前清掉进行中的会话/快扫,防止旧队列把词写进新词库
+  if (typeof onLibrarySwitch === 'function') onLibrarySwitch();
   state.settings.lib = key;
   clearStudySnapshot();   // 快照绑定词库,切库即作废(别让 A 库的队列恢复到 B 库)
   saveState();
@@ -681,7 +693,8 @@ function loadState() {
     const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
     const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
     s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
-    if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
+    // 扩展词库延迟加载:LIBS 里暂时没有不代表 key 失效,不能回落 cet4
+    if (!LIBS[s.settings.lib] && !DEFERRED_LIB_KEYS.has(s.settings.lib)) s.settings.lib = 'cet4';
     // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
     if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
       s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
@@ -702,6 +715,7 @@ function loadState() {
     // 快扫答案校验与外观主题缺省校验
     s.settings.quickVerify = s.settings.quickVerify !== false;
     s.settings.sfx = s.settings.sfx !== false;
+    s.settings.reviewShowAnswer = s.settings.reviewShowAnswer === true;
     if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
     // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')。
     // 注意:这里必须用字面量数组,不能引用文件后段(line ~770)的 DATE_CATS——
@@ -1350,6 +1364,19 @@ rebuildWordData();
  * <script> 引用,首屏渲染完成后由这里动态插入加载,装好后 registerVocabLibs
  * 重建索引并回调 ui.js 的 onLibsReady 刷新界面。
  * 单文件手机版/测试环境已内联 VOCAB_LIBS 时(装在 app.js 之前)自动跳过。 */
+
+/* 延迟词库装好后的统一收尾:恢复当前词库 → 重建 WORD_LIST/WORD_MAP →
+ * 重算今日计数(loadState 执行时扩展词库还没到,这些计数会被对账清空) →
+ * 落盘 → 让 UI 刷新首页/设置/当前页。 */
+function finishDeferredLibs(libsObj) {
+  if (libsObj) registerVocabLibs(libsObj);
+  if (!LIBS[state.settings.lib]) state.settings.lib = 'cet4';
+  rebuildWordData();
+  reconcileDailyFromHistory(state);
+  flushState();
+  if (typeof onLibsReady === 'function') onLibsReady();
+}
+
 (function lazyLoadVocabLibs() {
   const needLibs = typeof VOCAB_LIBS === 'undefined';
   const needSent = typeof VOCAB_SENTENCES === 'undefined';
@@ -1362,8 +1389,7 @@ rebuildWordData();
       s.src = 'vocab-libs.js';
       s.onload = () => {
         if (typeof VOCAB_LIBS === 'undefined') return;
-        registerVocabLibs(VOCAB_LIBS);
-        if (typeof onLibsReady === 'function') onLibsReady();
+        finishDeferredLibs(VOCAB_LIBS);
       };
       document.head.appendChild(s);
     }

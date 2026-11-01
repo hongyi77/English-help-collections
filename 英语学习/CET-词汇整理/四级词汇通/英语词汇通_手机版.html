@@ -615,8 +615,11 @@
   /* ---------- 列表双行卡片(词汇页/词典:单词+按钮一行,释义整行) ---------- */
   .list-item.two { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
   .li-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .li-head .list-word { min-width: 0; }
+  .li-head .list-word { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .li-btns { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none; }
+  /* 徽章置顶、缩小:不再夹在单词与释义中间,也不挤占长单词的宽度 */
+  .li-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+  .li-meta .ms-badge { flex: none; font-size: 10px; padding: 2px 7px; }
   .list-item.two .list-def { flex: none; width: 100%; }
 
   /* ---------- 首页·错词重练入口 ---------- */
@@ -880,6 +883,12 @@
         <label>答题音效（答对/答错提示音）</label>
         <div class="set-ctrl">
           <button id="setSfx" onclick="toggleSfx()">开</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>复习答对后显示答案框<br><span style="font-size:12px;color:var(--ink-soft)">默认关；打开后复习答对也停留显示释义</span></label>
+        <div class="set-ctrl">
+          <button id="setReviewAnswer" onclick="toggleReviewAnswer()">关</button>
         </div>
       </div>
       <details class="doc-note"><summary>说明</summary><div class="note-body">每日目标在<b>早上 5 点</b>重置——凌晨 0~5 点的学习计入前一天，夜猫子过午夜进度不清零。</div></details>
@@ -54893,6 +54902,7 @@ const DEFAULT_RATE = 0.9;   // 发音缺省语速(Edge/TTS 各播放链共用的
 /* 设置缺省值(旧存档缺字段时合并;自由拼写/听写配置也存这里) */
 const DEFAULT_SETTINGS = {
   dailyNew: 20, dailyReview: 30, autoSpeak: true, lib: 'cet4',
+  reviewShowAnswer: false,                                // 复习答对后停留显示答案框(默认关,保持复习快节奏)
   spellScope: 'all', spellCount: 20, spellWords: [],      // 自由拼写:范围 + 数量 + 自选词单
   spellDate: '',                                          // 自由拼写:「按日期」范围选的日期(YYYY-MM-DD,空=未选)
   dictScope: 'all', dictCount: 10, dictMode: 'judge',     // 听力练习:范围 + 数量 + 听音写词的作答方式(judge判分/listen自查/auto自动轮播)
@@ -55095,6 +55105,15 @@ const LIB_GROUPS = [
   { label: '学段词汇', libs: ['primary', 'junior', 'senior'] },
   { label: '蝶变系列', libs: ['diebian', 'diebian_junior'] },
 ];
+
+/* 启动时 vocab-libs.js 是延迟加载的,这些内置扩展词库的 key 在 loadState 执行时
+ * 可能还不在 LIBS 里。冷启动校验不能把它们当无效 key 回落 cet4,否则用户每次
+ * 刷新/重开 PWA 都会丢当前词库选择。新增内置词库时同步这里。 */
+const DEFERRED_LIB_KEYS = new Set([
+  'cet4_core', 'cet4_lite', 'cet6', 'cet6_core', 'cet6_lite',
+  'zsb', 'ielts', 'toefl', 'primary', 'junior', 'senior',
+  'diebian', 'diebian_junior',
+]);
 
 /* 在指定词库里查单词释义 */
 function defInLib(lib, word) {
@@ -55363,6 +55382,8 @@ const curDaily = () => libDaily(libKey());
 /* 切换词库：仅切设置，进度天然隔离；调用方负责清掉进行中的会话 */
 function setLibrary(key) {
   if (!LIBS[key] || key === libKey()) return;
+  // UI 层统一收口:切库前清掉进行中的会话/快扫,防止旧队列把词写进新词库
+  if (typeof onLibrarySwitch === 'function') onLibrarySwitch();
   state.settings.lib = key;
   clearStudySnapshot();   // 快照绑定词库,切库即作废(别让 A 库的队列恢复到 B 库)
   saveState();
@@ -55551,7 +55572,8 @@ function loadState() {
     const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
     const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
     s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
-    if (!LIBS[s.settings.lib]) s.settings.lib = 'cet4';
+    // 扩展词库延迟加载:LIBS 里暂时没有不代表 key 失效,不能回落 cet4
+    if (!LIBS[s.settings.lib] && !DEFERRED_LIB_KEYS.has(s.settings.lib)) s.settings.lib = 'cet4';
     // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
     if (!hadDictMode || !['judge', 'listen', 'auto'].includes(s.settings.dictMode)) {
       s.settings.dictMode = legacyJudge === false ? 'listen' : 'judge';
@@ -55572,6 +55594,7 @@ function loadState() {
     // 快扫答案校验与外观主题缺省校验
     s.settings.quickVerify = s.settings.quickVerify !== false;
     s.settings.sfx = s.settings.sfx !== false;
+    s.settings.reviewShowAnswer = s.settings.reviewShowAnswer === true;
     if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
     // 按日期的内容分类(拼写/听力各自记忆,非法值回落'全部')。
     // 注意:这里必须用字面量数组,不能引用文件后段(line ~770)的 DATE_CATS——
@@ -56220,6 +56243,19 @@ rebuildWordData();
  * <script> 引用,首屏渲染完成后由这里动态插入加载,装好后 registerVocabLibs
  * 重建索引并回调 ui.js 的 onLibsReady 刷新界面。
  * 单文件手机版/测试环境已内联 VOCAB_LIBS 时(装在 app.js 之前)自动跳过。 */
+
+/* 延迟词库装好后的统一收尾:恢复当前词库 → 重建 WORD_LIST/WORD_MAP →
+ * 重算今日计数(loadState 执行时扩展词库还没到,这些计数会被对账清空) →
+ * 落盘 → 让 UI 刷新首页/设置/当前页。 */
+function finishDeferredLibs(libsObj) {
+  if (libsObj) registerVocabLibs(libsObj);
+  if (!LIBS[state.settings.lib]) state.settings.lib = 'cet4';
+  rebuildWordData();
+  reconcileDailyFromHistory(state);
+  flushState();
+  if (typeof onLibsReady === 'function') onLibsReady();
+}
+
 (function lazyLoadVocabLibs() {
   const needLibs = typeof VOCAB_LIBS === 'undefined';
   const needSent = typeof VOCAB_SENTENCES === 'undefined';
@@ -56232,8 +56268,7 @@ rebuildWordData();
       s.src = 'vocab-libs.js';
       s.onload = () => {
         if (typeof VOCAB_LIBS === 'undefined') return;
-        registerVocabLibs(VOCAB_LIBS);
-        if (typeof onLibsReady === 'function') onLibsReady();
+        finishDeferredLibs(VOCAB_LIBS);
       };
       document.head.appendChild(s);
     }
@@ -56387,6 +56422,8 @@ function refreshSettings() {
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
   const sfxBtn = document.getElementById('setSfx');
   if (sfxBtn) sfxBtn.textContent = state.settings.sfx ? '开' : '关';
+  const reviewAnsBtn = document.getElementById('setReviewAnswer');
+  if (reviewAnsBtn) reviewAnsBtn.textContent = state.settings.reviewShowAnswer ? '开' : '关';
   renderThemeSettings();
   renderAlgoSettings();
   renderVoiceSettings();
@@ -56935,6 +56972,15 @@ function setImportMsg(text, kind) {
  *   答错时：可自选是否加入生词本
  */
 let session = null;
+
+/* 词库切换统一收口(app.js setLibrary 回调):清掉旧会话/快扫/继续栏,
+ * 防止旧队列的单词被写进新词库 */
+function onLibrarySwitch() {
+  session = null;
+  quickRebuild = null;
+  hideAnsFoot();
+}
+
 /* 会话状态: { mode, queue, pending(识别队列), idx, correct, wrong,
  *   records: Map(word -> { errors, corrects, spellCorrects, done }),
  *   spellOn(是否进入拼写), phase('recognize'|'spell'|'done'),
@@ -57270,6 +57316,13 @@ function toggleSfx() {
   refreshSettings();
 }
 
+/* 复习答对后是否停留显示答案框(默认关;扫描复习快节奏不受影响) */
+function toggleReviewAnswer() {
+  state.settings.reviewShowAnswer = !state.settings.reviewShowAnswer;
+  saveState();
+  refreshSettings();
+}
+
 /* 反馈区滚入视野:出反馈后自动滚到可见(反馈在选项下方,选项保留可见时尤其需要) */
 function revealFeedback(fbEl) {
   if (fbEl && fbEl.scrollIntoView) {
@@ -57413,21 +57466,17 @@ function recognizeAnswer(idx, btnEl) {
     }
     if (session.mode === 'study') {
       // 新学:答对不直接跳词——绿框反馈(单词+释义)+底部继续,加深首因印象
-      const fb = document.getElementById('feedbackZone');
-      const card = fb.closest('.quiz-card');
-      if (card) card.classList.add('with-ans');
-      fb.innerHTML = `
-        <div class="feedback good">
-          <div class="fb-title">${icon('circle-check')} 答对了！</div>
-          <div class="ans-word">${escapeHtml(word)}</div>
-          <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
-          ${sentenceLineHtml(word)}
-        </div>`;
-      revealFeedback(fb);
-      showAnsFoot('继续 →', 'ok', advanceAfterWrong);
+      // 其余汉译选项也换成可点看态,点开看对应单词(纯展示,不写进度)
+      revealWrongOptions(host, session.q, -1);
+      showCorrectAnswerFeedback(word);
       return;
     }
-    // 复习:答对即刷新到下一个词，不停留(保持快节奏)
+    if (state.settings.reviewShowAnswer) {
+      // 复习可选:答对停留显示答案框(设置里打开,默认关)
+      showCorrectAnswerFeedback(word);
+      return;
+    }
+    // 复习默认:答对即刷新到下一个词，不停留(保持快节奏)
     session.answered = false;
     renderStudyRecognize();
     return;
@@ -58131,6 +58180,23 @@ function wrongStripHtml(word) {
       ${inBook ? icon('bookmark-check') + ' 已在生词本' : icon('bookmark-plus') + ' 加入生词本'}
     </button>
   </div>`;
+}
+
+/* 答对后的绿色答案框:新学固定显示;复习由 settings.reviewShowAnswer 开关控制 */
+function showCorrectAnswerFeedback(word) {
+  const fb = document.getElementById('feedbackZone');
+  if (!fb) { showAnsFoot('继续 →', 'ok', advanceAfterWrong); return; }
+  const card = fb.closest('.quiz-card');
+  if (card) card.classList.add('with-ans');
+  fb.innerHTML = `
+    <div class="feedback good">
+      <div class="fb-title">${icon('circle-check')} 答对了！</div>
+      <div class="ans-word">${escapeHtml(word)}</div>
+      <div class="ans-def">${escapeHtml(WORD_MAP.get(word) || '')}</div>
+      ${sentenceLineHtml(word)}
+    </div>`;
+  revealFeedback(fb);
+  showAnsFoot('继续 →', 'ok', advanceAfterWrong);
 }
 
 function showWrongFeedback(word, wrongText) {
@@ -59755,10 +59821,9 @@ function renderMasterList() {
       ? `<span class="ms-badge ms-due">顽固 · 错${(r && r.lapses) || 0} 次</span>`
       : (r && r.leech ? '<span class="ms-badge ms-due">顽固</span>' : '');
     return `<div class="list-card"><div class="list-item two">
+      <div class="li-meta">${leechBadge}<span class="ms-badge ${badgeCls}">${st.label}</span></div>
       <div class="li-head">
         <span class="list-word">${escapeHtml(w)}</span>
-        ${leechBadge}
-        <span class="ms-badge ${badgeCls}">${st.label}</span>
         <span class="li-btns">
           ${memoOf(w) ? `<button class="list-memo-btn" title="巧记" aria-label="查看巧记" onclick="toggleMemoRow('${escapeAttr(w)}', this)">${icon('lightbulb')}</button>` : ''}
           <button class="list-del" title="重置此单词" aria-label="重置 ${escapeHtml(w)}" onclick="confirmResetWord('${escapeAttr(w)}')">${icon('rotate-ccw')}</button>
@@ -60100,8 +60165,8 @@ function quickRemaining() {
   return unseenWords().length;
 }
 
-function openQuickPractice() { quickMode = 'practice'; go('screen-quick'); }
-function openQuickRebuild() { quickMode = 'rebuild'; go('screen-quick'); }
+function openQuickPractice() { session = null; quickRebuild = null; quickMode = 'practice'; go('screen-quick'); }
+function openQuickRebuild() { session = null; quickRebuild = null; quickMode = 'rebuild'; go('screen-quick'); }
 function setQuickMode(v) {
   if (v !== 'practice' && v !== 'rebuild') return;
   quickMode = v;
@@ -60386,12 +60451,23 @@ function forceSwUpdate() {
   }
 }
 
-/* 扩展词库延迟装载完成(app.js 的 lazyLoadVocabLibs 回调):
- * 刷新词库选择器/快扫题库行;停在词典页且有搜索词时重跑跨库搜索 */
+/* 扩展词库延迟装载完成(app.js 的 finishDeferredLibs 回调):
+ * 当前词库/词表/今日计数已在 app.js 恢复,这里把各页面刷新到新词库状态 */
 function onLibsReady() {
-  renderLibPicker();
+  refreshHome();
   if (dictQ) renderDictResults();
   renderQuickEntry();
+  const active = document.querySelector('.screen.active');
+  const id = active && active.id;
+  if (id === 'screen-home') {
+    const sub = document.getElementById('topSub');
+    if (sub) sub.textContent = LIBS[libKey()].name;
+  } else if (id === 'screen-settings') refreshSettings();
+  else if (id === 'screen-vocab') renderVocab();
+  else if (id === 'screen-dict') renderDictResults();
+  else if (id === 'screen-spell') renderSpellConfig();
+  else if (id === 'screen-dictate') renderDictConfig();
+  else if (id === 'screen-quick') renderQuickConfig();
 }
 
 
