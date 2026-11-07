@@ -1013,6 +1013,19 @@ function pickReviewWords(due, n) {
   return scored.slice(0, n).map(x => x.w);
 }
 
+/* 新学取词：冲刺期先抽未学高频词，不够再用其余未学词补齐；非冲刺期保持随机。
+ * 与复习排序不同，新词没有到期/顽固信号，直接用“高频优先”两段式。 */
+function pickNewWords(pool, n) {
+  if (!n || n <= 0) return [];
+  if (!sprintActive()) return pickRandom(pool, n);
+  const hf = highFreqSet();
+  const high = [], rest = [];
+  for (const w of pool) (hf.has(w) ? high : rest).push(w);
+  const picked = shuffle(high).slice(0, n);
+  if (picked.length < n) picked.push(...shuffle(rest).slice(0, n - picked.length));
+  return picked;
+}
+
 /* 积压概况：首页横幅与测试共用。over=超过两天日复习量；examOver=按当前速度考前清不完 */
 function backlogInfo() {
   const due = dueWords().length;

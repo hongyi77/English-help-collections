@@ -2434,6 +2434,41 @@ console.log('\n[57] 每日计划数量：滑杆 1..100');
   g('state = defaultState(); saveState();');
 })();
 
+/* ================= [58] 冲刺期新学优先高频 ================= */
+console.log('\n[58] 冲刺期新学优先高频');
+(() => {
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+  const core = g('LIBS.cet4_core ? LIBS.cet4_core.words.map(x => x[0]) : []');
+  const coreSet = new Set(core);
+  const list = g('WORD_LIST');
+  const hfWords = list.filter(w => coreSet.has(w)).slice(0, 3);
+  const lfWords = list.filter(w => !coreSet.has(w)).slice(0, 3);
+  ok(hfWords.length >= 2 && lfWords.length >= 2, `高频/非高频样本可用（${hfWords.length}/${lfWords.length}）`);
+
+  const pool2 = [...hfWords.slice(0, 2), ...lfWords.slice(0, 2)];
+  const pool2Lit = JSON.stringify(pool2);
+  const normal = g(`pickNewWords(${pool2Lit}, 2)`);
+  ok(normal.length === 2 && normal.every(w => pool2.includes(w)), '非冲刺期新学仍随机取 2 词');
+
+  g(`state.settings.examDate = dateKey(Date.now() + 10 * DAY_MS); saveState();`);
+  const sprintPick = g(`pickNewWords(${pool2Lit}, 2)`);
+  ok(sprintPick.length === 2 && sprintPick.every(w => coreSet.has(w)), '冲刺期优先抽 2 个未学高频词');
+
+  const pool3 = [hfWords[0], lfWords[0], lfWords[1]];
+  const fill = g(`pickNewWords(${JSON.stringify(pool3)}, 3)`);
+  ok(fill.length === 3 && fill[0] === hfWords[0] && new Set(fill).size === 3, '高频不足时用其余未学词补齐');
+
+  const noHf = g(`pickNewWords(${JSON.stringify(lfWords)}, 2)`);
+  ok(noHf.length === 2 && noHf.every(w => lfWords.includes(w)), '池内无高频词时正常回退');
+
+  // 接入 startStudy：冲刺期队列应全部是未学高频词
+  g('state = defaultState(); state.settings.dailyNew = 2; state.settings.examDate = dateKey(Date.now() + 10 * DAY_MS); saveState(); localStorage.removeItem("cet4_study_snapshot_v2"); startStudy();');
+  const q = g('session.queue');
+  ok(q.length === 2 && q.every(w => coreSet.has(w)), 'startStudy 冲刺期新学队列全为高频词');
+
+  g('session = null; state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

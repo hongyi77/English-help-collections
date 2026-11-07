@@ -84,7 +84,7 @@ function renderExamCountdown() {
   if (!e) { el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = 'flex';
   let txt;
-  if (e.days > 0) txt = `距考试 ${e.days} 天` + (sprintActive() && highFreqSet().size ? ' · 冲刺模式：优先高频词' : '');
+  if (e.days > 0) txt = `距考试 ${e.days} 天` + (sprintActive() && highFreqSet().size ? ' · 冲刺模式：新学/复习优先高频词' : '');
   else if (e.days === 0) txt = '今天考试，加油';
   else txt = `考试已过 ${-e.days} 天`;
   el.innerHTML = `${icon('calendar-days')}<span>${txt}</span>`;
@@ -922,7 +922,7 @@ function startStudy() {
   }
   const unseen = unseenWords();
   const n = Math.min(g.remaining, unseen.length);
-  const picked = pickRandom(unseen, n);
+  const picked = pickNewWords(unseen, n);
   session = makeSession('study', picked);
   go('screen-study');
   renderStudyRecognize();
