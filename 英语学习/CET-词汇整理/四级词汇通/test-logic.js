@@ -2406,6 +2406,34 @@ console.log('\n[56] P0 复习调度优化（到期优先/配额/积压/考试冲
   g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
+/* ================= [57] 每日计划数量：滑杆 1..100 ================= */
+console.log('\n[57] 每日计划数量：滑杆 1..100');
+(() => {
+  g('state = defaultState(); saveState();');
+
+  g('onDailySliderInput("dailyNew", "1")');
+  ok(g('state.settings.dailyNew') === 1, '滑杆到最小值 1');
+  g('onDailySliderInput("dailyReview", "100")');
+  ok(g('state.settings.dailyReview') === 100, '滑杆到最大值 100');
+  g('onDailySliderInput("dailyNew", "7")');
+  ok(g('state.settings.dailyNew') === 7, '滑杆保留任意整数 7');
+  g('onDailySliderInput("dailyNew", "999")');
+  ok(g('state.settings.dailyNew') === 100, '越界 999 钳到 100');
+  g('onDailySliderInput("dailyNew", "0")');
+  ok(g('state.settings.dailyNew') === 1, '越界 0 钳到 1');
+
+  g('resetDailyPlan()');
+  ok(g('state.settings.dailyNew') === 20 && g('state.settings.dailyReview') === 30, '恢复默认 20/30');
+
+  g('state.settings.dailyNew = 1; state.settings.dailyReview = 100; syncDailyCountUI("dailyNew"); syncDailyCountUI("dailyReview");');
+  ok(Number(documentStub.getElementById('setNewRange').value) === 1, '新学滑杆值同步');
+  ok(Number(documentStub.getElementById('setReviewRange').value) === 100, '复习滑杆值同步');
+  ok(documentStub.getElementById('setNewValue').textContent === 1, '新学当前值标签同步');
+  ok(documentStub.getElementById('setReviewValue').textContent === 100, '复习当前值标签同步');
+
+  g('state = defaultState(); saveState();');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

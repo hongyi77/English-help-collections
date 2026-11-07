@@ -162,8 +162,8 @@ function renderGoalCard() {
 
 /* ---------------- 设置 ---------------- */
 function refreshSettings() {
-  document.getElementById('setNew').textContent = state.settings.dailyNew;
-  document.getElementById('setReview').textContent = state.settings.dailyReview;
+  syncDailyCountUI('dailyNew');
+  syncDailyCountUI('dailyReview');
   const examInput = document.getElementById('examDateInput');
   if (examInput) examInput.value = state.settings.examDate || '';
   const speakBtn = document.getElementById('setSpeak');
@@ -649,11 +649,46 @@ function doSwitchLib() {
   closeSwitchLib();
 }
 
-function adjSetting(key, delta) {
-  const v = state.settings[key] + delta;
+/* 每日计划数量：滑杆 1..100，步长 1，单行显示；不再有固定步长 + 边界夹取 */
+const DAILY_DEFAULTS = { dailyNew: 20, dailyReview: 30 };
+
+function dailyRangeIds(key) {
+  return key === 'dailyNew'
+    ? { range: 'setNewRange', out: 'setNewValue' }
+    : { range: 'setReviewRange', out: 'setReviewValue' };
+}
+
+function syncDailyCountUI(key) {
+  const v = state.settings[key];
+  const ids = dailyRangeIds(key);
+  const range = document.getElementById(ids.range);
+  if (range) {
+    range.value = v;
+    if (range.style && typeof range.style.setProperty === 'function') {
+      range.style.setProperty('--pct', ((v - 1) / 99 * 100) + '%');
+    }
+  }
+  const out = document.getElementById(ids.out);
+  if (out) out.textContent = v;
+}
+
+function setDailyCount(key, v) {
+  if (!(key in DAILY_DEFAULTS)) return;
   state.settings[key] = clampSettingInt(v, state.settings[key]);
   saveState();
-  refreshSettings();
+  syncDailyCountUI(key);
+}
+
+function onDailySliderInput(key, v) {
+  setDailyCount(key, v);
+}
+
+function resetDailyPlan() {
+  state.settings.dailyNew = DAILY_DEFAULTS.dailyNew;
+  state.settings.dailyReview = DAILY_DEFAULTS.dailyReview;
+  saveState();
+  syncDailyCountUI('dailyNew');
+  syncDailyCountUI('dailyReview');
 }
 
 /* 考试日期：格式无效直接忽略；清空=''。只影响首页倒计时和冲刺排序，不写学习记录。 */
