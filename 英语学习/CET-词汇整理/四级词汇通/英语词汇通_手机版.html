@@ -148,6 +148,17 @@
   .goal-status { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
   .goal-status.done { color: var(--green); font-weight: 600; }
 
+  /* ---------- 首页 · 考试倒计时 / 复习积压 ---------- */
+  .exam-countdown { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--ink-blue); background: var(--blue-soft); border-radius: 10px; padding: 8px 11px; margin-bottom: var(--sp-3); }
+  .exam-countdown svg { width: 14px; height: 14px; flex: none; }
+  .backlog-banner { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 12px; padding: 10px 12px; margin-bottom: var(--sp-3); font-size: 13px; line-height: 1.6; color: var(--ink); }
+  .backlog-line svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 3px; }
+  .backlog-line + .backlog-line { margin-top: 4px; }
+  .backlog-line.warn { color: var(--pen-red); }
+  .backlog-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .backlog-actions button { flex: 1; padding: 7px 0; border-radius: 8px; border: 1px solid var(--hairline); background: var(--card); color: var(--ink); font-size: 13px; cursor: pointer; }
+  .backlog-actions button:active { background: var(--paper); }
+
   /* ---------- 首页 · 数量徽章 ---------- */
   .badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .badge.new { background: var(--blue-soft); color: var(--ink-blue); }
@@ -715,6 +726,8 @@
         <span class="goal-status" id="goalReviewStatus">今日无待复习</span>
       </div>
     </div>
+    <div id="examCountdown" class="exam-countdown" style="display:none"></div>
+    <div id="backlogBanner" class="backlog-banner" style="display:none"></div>
     <div class="study-actions">
       <button class="big-action primary" onclick="startStudy()">
         <span class="ba-ico" data-icon="book-open"></span>
@@ -810,7 +823,10 @@
       <details class="doc-note"><summary>说明</summary><div class="note-body">近半年，每格一天 · 颜色越深学得越多 · 点格子看当天记录</div></details>
     </div>
     <div class="settings-card">
-      <h3>按分类查看并重置</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+        <h3 style="margin:0">按分类查看并重置</h3>
+        <button class="toolbar-btn" onclick="openMasteredCheck()">抽查已掌握</button>
+      </div>
       <div id="masterTabs"></div>
       <details class="doc-note"><summary>说明</summary><div class="note-body" style="font-size:13px;line-height:1.7">
         复习答错累计 5 次的词自动标记为「顽固词」，可单独查看或到自由拼写/听写里选「顽固词」范围专项练；<br>
@@ -884,6 +900,14 @@
           <button onclick="adjSetting('dailyReview',-5)">−</button>
           <span id="setReview">30</span>
           <button onclick="adjSetting('dailyReview',5)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>考试日期<br><span style="font-size:12px;color:var(--ink-soft)">首页显示倒计时；考前 45 天冲刺优先高频词</span></label>
+        <div class="set-ctrl" style="gap:6px">
+          <input id="examDateInput" type="date" onchange="setExamDate(this.value)"
+                 style="padding:6px 8px;border:1px solid var(--hairline);border-radius:8px;background:var(--paper);color:var(--ink);font-size:13px;max-width:138px">
+          <button onclick="clearExamDate()" title="清除考试日期">清除</button>
         </div>
       </div>
       <div class="set-row">
@@ -54933,7 +54957,15 @@ const DEFAULT_SETTINGS = {
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
   reviewAlgo: 'ebbinghaus',                               // 复习调度算法:'ebbinghaus'固定间隔 / 'fsrs'自适应
   fsrsRetention: 0.9,                                     // FSRS 目标记忆保持率(0.85/0.9/0.95)
+  examDate: '',                                            // 考试日期 YYYY-MM-DD(空=未设置);考前 45 天进入冲刺优先
+  checkCount: 20,                                          // 掌握词抽查每轮数量(0=全部)
 };
+
+/* 设置里的每日数量钳制:UI 的 adjSetting 与导入/读档共用同一口径 */
+function clampSettingInt(v, dflt) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(1, Math.min(100, Math.round(n))) : dflt;
+}
 
 /* 自定义拼写/听写/听音辨义的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
 const SCOPES = [
@@ -54969,6 +55001,16 @@ for (const k of Object.keys(LIBS)) {
   LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
 }
 
+/* 四级高频词集合（cet4_core 1250 词）：考前冲刺排序用。
+ * 扩展词库是延迟加载的，加载完成后由 registerVocabLibs 清缓存重建。 */
+let HIGH_FREQ_CACHE = null;
+function highFreqSet() {
+  if (HIGH_FREQ_CACHE) return HIGH_FREQ_CACHE;
+  const core = LIBS.cet4_core;
+  HIGH_FREQ_CACHE = new Set(core ? core.words.map(([w]) => w) : []);
+  return HIGH_FREQ_CACHE;
+}
+
 /* 扩展词库装载(vocab-libs.js 延迟载入后调用):合并词库并补齐索引。
  * 首屏只加载内置四级词库,1MB 的扩展词库不阻塞可交互(见文件底部 lazyLoadVocabLibs) */
 function registerVocabLibs(libsObj) {
@@ -54978,6 +55020,7 @@ function registerVocabLibs(libsObj) {
     LIB_WORD_SETS[k] = new Set(LIBS[k].words.map(([w]) => w));
     LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
   }
+  HIGH_FREQ_CACHE = null;   // cet4_core 可能刚随扩展词库到位
 }
 
 /* ---------------- 自建词库 ----------------
@@ -55585,6 +55628,11 @@ function loadState() {
     const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
     const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
     s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
+    // 每日数量统一钳制(旧档/手改档可能越界；UI ± 每次 5 也是同一口径 1..100)
+    s.settings.dailyNew = clampSettingInt(s.settings.dailyNew, 20);
+    s.settings.dailyReview = clampSettingInt(s.settings.dailyReview, 30);
+    const chk = Number(s.settings.checkCount);
+    s.settings.checkCount = [0, 20, 50, 100].includes(chk) ? chk : 20;
     // 扩展词库延迟加载:LIBS 里暂时没有不代表 key 失效,不能回落 cet4
     if (!LIBS[s.settings.lib] && !DEFERRED_LIB_KEYS.has(s.settings.lib)) s.settings.lib = 'cet4';
     // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
@@ -55690,6 +55738,8 @@ function sanitizeWordRecord(r) {
     // 顽固词字段(可选,旧档/导入缺省即无标记)
     lapses: num(r.lapses),
     leech: r.leech === true,
+    // 掌握词最近一次抽查时间(可选,0=从未抽查)
+    lastCheck: num(r.lastCheck),
   };
   // FSRS 记忆状态(可选,s 为正数、d 为数值才保留,防止导入档注入畸形状态)
   const fs = r.fsrs;
@@ -55729,14 +55779,15 @@ function importProgress(json) {
       importedCount++;
     }
   }
-  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准
+  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准。
+  // 用 Object.assign 保留本地其余设置(音源/算法/拼写/听力/考试日期等)，只覆盖每日数量。
   if (incoming.settings) {
-    state.settings = {
-      dailyNew: Math.max(state.settings.dailyNew, incoming.settings.dailyNew || 0),
-      dailyReview: Math.max(state.settings.dailyReview, incoming.settings.dailyReview || 0),
+    state.settings = Object.assign({}, state.settings, {
+      dailyNew: clampSettingInt(Math.max(state.settings.dailyNew, Number(incoming.settings.dailyNew) || 0), state.settings.dailyNew),
+      dailyReview: clampSettingInt(Math.max(state.settings.dailyReview, Number(incoming.settings.dailyReview) || 0), state.settings.dailyReview),
       autoSpeak: state.settings.autoSpeak,
       lib: libKey(),
-    };
+    });
   }
   // 合并历史记录
   if (incoming.history) {
@@ -55833,6 +55884,84 @@ function dueWords() {
     const r = curWords()[w];
     return r && r.stage >= 1 && r.stage < STAGE_MASTERED && effectiveDue(r) <= now;
   });
+}
+
+/* 今日复习剩余额度：已复习词数按去重词计，和首页进度条同一口径 */
+function reviewQuota() {
+  return Math.max(0, state.settings.dailyReview - curDaily().reviewedToday.length);
+}
+
+/* 考试日期信息：days=距今天数（0=今天，负数=已过）；无效日期返回 null */
+function examInfo() {
+  const v = state.settings.examDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return null;
+  const [y, m, d] = v.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  if (target.getFullYear() !== y || target.getMonth() !== m - 1 || target.getDate() !== d) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return { date: v, days: Math.round((target.getTime() - today.getTime()) / DAY_MS) };
+}
+
+/* 冲刺期：考前 45 天内（含考试当天），复习排序叠加高频/顽固权重 */
+function sprintActive() {
+  const e = examInfo();
+  return !!e && e.days >= 0 && e.days <= 45;
+}
+
+/* 复习取词：到期越久越优先；冲刺期四级高频词 +7 天、顽固词 +5 天等效权重。
+ * 不随机打散全部池子——积压时先清最老的，避免“刚到期”和“超期一个月”同概率。 */
+function pickReviewWords(due, n) {
+  if (!n || n <= 0) return [];
+  const now = Date.now();
+  const hf = sprintActive() ? highFreqSet() : null;
+  const scored = due.map(w => {
+    const r = curWords()[w] || {};
+    const d = effectiveDue(r);
+    let score = Math.max(0, (now - d) / DAY_MS);
+    if (hf) {
+      if (hf.has(w)) score += 7;
+      if (r.leech) score += 5;
+    }
+    return { w, score, due: d };
+  });
+  scored.sort((a, b) => b.score - a.score || a.due - b.due || a.w.localeCompare(b.w));
+  return scored.slice(0, n).map(x => x.w);
+}
+
+/* 积压概况：首页横幅与测试共用。over=超过两天日复习量；examOver=按当前速度考前清不完 */
+function backlogInfo() {
+  const due = dueWords().length;
+  const cap = Math.max(1, state.settings.dailyReview);
+  const e = examInfo();
+  const examCapacity = e && e.days >= 0 ? (e.days + 1) * cap : null;
+  return {
+    due,
+    cap,
+    days: Math.ceil(due / cap),
+    exam: e,
+    examCapacity,
+    over: due > cap * 2,
+    examOver: !!(e && e.days >= 0 && due > examCapacity),
+  };
+}
+
+/* 掌握词抽查顺序：冲刺期先高频，再“最久没抽查”（lastCheck 越小越先），
+ * 用顺序轮转保证已掌握词不会被反复抽同几个。 */
+function masteredCheckPool() {
+  const hf = sprintActive() ? highFreqSet() : null;
+  const list = masteredWords().slice();
+  list.sort((a, b) => {
+    if (hf) {
+      const ha = hf.has(a) ? 1 : 0, hb = hf.has(b) ? 1 : 0;
+      if (ha !== hb) return hb - ha;
+    }
+    const la = (curWords()[a] || {}).lastCheck || 0;
+    const lb = (curWords()[b] || {}).lastCheck || 0;
+    if (la !== lb) return la - lb;
+    return a.localeCompare(b);
+  });
+  return list;
 }
 
 function bookWords() {
@@ -56082,6 +56211,21 @@ function reviewWrong(word, addBook) {
   recordReviewed(word);
   recordWrong(word);
   saveState();
+}
+
+/* 掌握词抽查：认识只记抽查时间，不动 stage/due/每日计数；
+ * 不认识走复习答错通道——stage 5 → 3、10 分钟后回正常复习队列。 */
+function masteredCheckKnown(word) {
+  const r = curWords()[word];
+  if (!r) return;
+  r.lastCheck = Date.now();
+  saveState();
+}
+function masteredCheckWrong(word) {
+  const r = curWords()[word];
+  if (!r) return;
+  r.lastCheck = Date.now();
+  reviewWrong(word, true);
 }
 
 function toggleBook(word) {
@@ -56371,6 +56515,38 @@ function refreshHome() {
   if (dictEntry) dictEntry.style.display = canSpeakHere() ? 'flex' : 'none';
   renderLibPicker();
   renderGoalCard();
+  renderExamCountdown();
+  renderBacklogBanner();
+}
+
+/* 考前倒计时：设置考试日期后显示；冲刺期(45 天内)提示优先高频词 */
+function renderExamCountdown() {
+  const el = document.getElementById('examCountdown');
+  if (!el) return;
+  const e = examInfo();
+  if (!e) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'flex';
+  let txt;
+  if (e.days > 0) txt = `距考试 ${e.days} 天` + (sprintActive() && highFreqSet().size ? ' · 冲刺模式：优先高频词' : '');
+  else if (e.days === 0) txt = '今天考试，加油';
+  else txt = `考试已过 ${-e.days} 天`;
+  el.innerHTML = `${icon('calendar-days')}<span>${txt}</span>`;
+}
+
+/* 复习积压提示：超过两天日复习量才打扰；有考试日期时再判断考前能否清完 */
+function renderBacklogBanner() {
+  const el = document.getElementById('backlogBanner');
+  if (!el) return;
+  const b = backlogInfo();
+  if (!b.over) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="backlog-line">${icon('hourglass')} 复习积压 <b>${b.due}</b> 词，按每天 ${b.cap} 词约需 <b>${b.days}</b> 天清完。建议暂停或减半新词。</div>
+    ${b.examOver ? `<div class="backlog-line warn">距考试 ${b.exam.days} 天，按当前速度考前复习不完（可复习约 ${b.examCapacity} 词）。冲刺模式会优先高频词。</div>` : ''}
+    <div class="backlog-actions">
+      <button onclick="startReview()">去复习</button>
+      <button onclick="go('screen-settings')">调整计划</button>
+    </div>`;
 }
 
 function setTabBadge(id, n) {
@@ -56410,7 +56586,7 @@ function renderGoalCard() {
     revBar.style.width = revPct + '%';
   }
   if (g.reviewedToday >= state.settings.dailyReview) {
-    revStatus.textContent = '复习目标达成 ✓';
+    revStatus.textContent = g.dueToday > 0 ? `目标达成 · 还有 ${g.dueToday} 到期` : '复习目标达成 ✓';
     revStatus.className = 'goal-status done';
   } else if (g.dueToday > 0) {
     revStatus.textContent = `有到期复习 · 已复习 ${g.reviewedToday}/${state.settings.dailyReview}`;
@@ -56431,6 +56607,8 @@ function renderGoalCard() {
 function refreshSettings() {
   document.getElementById('setNew').textContent = state.settings.dailyNew;
   document.getElementById('setReview').textContent = state.settings.dailyReview;
+  const examInput = document.getElementById('examDateInput');
+  if (examInput) examInput.value = state.settings.examDate || '';
   const speakBtn = document.getElementById('setSpeak');
   if (speakBtn) speakBtn.textContent = !canSpeakHere() ? '不支持' : (state.settings.autoSpeak ? '开' : '关');
   const sfxBtn = document.getElementById('setSfx');
@@ -56916,10 +57094,21 @@ function doSwitchLib() {
 
 function adjSetting(key, delta) {
   const v = state.settings[key] + delta;
-  state.settings[key] = Math.max(1, Math.min(100, v));
+  state.settings[key] = clampSettingInt(v, state.settings[key]);
   saveState();
   refreshSettings();
 }
+
+/* 考试日期：格式无效直接忽略；清空=''。只影响首页倒计时和冲刺排序，不写学习记录。 */
+function setExamDate(v) {
+  const val = (v || '').trim();
+  if (val && !/^\d{4}-\d{2}-\d{2}$/.test(val)) return;
+  state.settings.examDate = val;
+  saveState();
+  refreshSettings();
+  refreshHome();
+}
+function clearExamDate() { setExamDate(''); }
 
 function toggleAutoSpeak() {
   if (!canSpeakHere()) return;   // 无任何发声途径时按钮显示「不支持」，不可切换
@@ -57175,7 +57364,7 @@ function allLearnedHtml() {
   `;
 }
 
-function startReview() {
+function startReview(force) {
   session = null; quickRebuild = null;   // 互斥:清掉旧会话/快扫,防残留状态接管键盘
   document.getElementById('studyQuiz').innerHTML = '';   // 清学习屏残留旧题卡,防隐藏屏 .opt 被数字键误触(串答)
   const due = dueWords();
@@ -57186,11 +57375,34 @@ function startReview() {
     go('screen-review');
     return;
   }
-  const n = Math.min(state.settings.dailyReview, due.length);
-  const picked = pickRandom(due, n);
+  // 每日额度：默认只抽“今日还没复习到的份额”；force=true 时按每组上限再来一组
+  const quota = force ? state.settings.dailyReview : reviewQuota();
+  if (quota <= 0) {
+    const el = document.getElementById('reviewQuiz');
+    el.innerHTML = reviewQuotaDoneHtml(due.length);
+    go('screen-review');
+    return;
+  }
+  const n = Math.min(quota, due.length);
+  const picked = pickReviewWords(due, n);
   session = makeSession('review', picked);
   go('screen-review');
   renderStudyRecognize();
+}
+
+/* 今日目标已完成但仍有到期词：允许用户主动再来一组，不偷偷自动超量 */
+function reviewQuotaDoneHtml(dueN) {
+  const done = curDaily().reviewedToday.length;
+  return `
+    <div class="quiz-card session-done">
+      <div class="icon">${icon('circle-check')}</div>
+      <h2>今日复习目标已完成</h2>
+      <p>今天已复习 ${done} 词${dueN > 0 ? `，还有 <b>${dueN}</b> 个到期词` : ''}。<br>还想继续可以再来一组；明天会按计划继续。</p>
+      <div class="modal-btns" style="max-width:320px;margin:0 auto;flex-direction:column;gap:10px">
+        ${dueN > 0 ? `<button class="next-btn" onclick="startReview(true)">再来一组（最多 ${state.settings.dailyReview} 词）</button>` : ''}
+        <button class="btn-ghost" style="width:100%;padding:12px;border-radius:12px" onclick="goHome()">回到首页</button>
+      </div>
+    </div>`;
 }
 
 function noReviewHtml() {
@@ -60211,8 +60423,8 @@ document.addEventListener('keydown', e => {
  *   主页「快速复习」= 纯练习模式,认识/不认识只计次,不写任何用户数据;
  *   设置「进度快速重建」= 重建模式,写入学习进度(认识=stage2/2天后,不认识=stage1/明天来)。
  * 配置页可选题库(全局切换)+范围(含自选词单,复用拼写/听写的选词器);即标即存随时续扫。 */
-let quickMode = 'practice';   // 'practice' 纯练习 | 'rebuild' 写入进度
-let quickRebuild = null;      // 会话 {list, i, known, unknown, write}
+let quickMode = 'practice';   // 'practice' 纯练习 | 'rebuild' 写入进度 | 'check' 掌握词抽查
+let quickRebuild = null;      // 会话 {list, i, known, unknown, write, check}
 
 function quickRemaining() {
   return unseenWords().length;
@@ -60220,6 +60432,7 @@ function quickRemaining() {
 
 function openQuickPractice() { session = null; quickRebuild = null; quickMode = 'practice'; go('screen-quick'); }
 function openQuickRebuild() { session = null; quickRebuild = null; quickMode = 'rebuild'; go('screen-quick'); }
+function openMasteredCheck() { session = null; quickRebuild = null; quickMode = 'check'; go('screen-quick'); }
 function setQuickMode(v) {
   if (v !== 'practice' && v !== 'rebuild') return;
   quickMode = v;
@@ -60235,6 +60448,7 @@ function setQuickVerify(v) {
 function renderQuickConfig() {
   const el = document.getElementById('quickQuiz');
   if (!el) return;
+  if (quickMode === 'check') { renderMasteredCheckConfig(el); return; }
   const mode = quickMode;
   const pool = practicePool('quick');
   // 重建模式只扫还没有学习记录的词(已排期的不重复打扰)
@@ -60266,14 +60480,60 @@ function renderQuickConfig() {
     </div>`;
 }
 
+/* 掌握词抽查配置页：只对当前词库的 stage5 词；数量可选 20/50/100/全部 */
+function renderMasteredCheckConfig(el) {
+  const total = masteredWords().length;
+  const cnt = state.settings.checkCount;
+  const n = cnt === 0 ? total : Math.min(total, cnt);
+  const sprint = sprintActive() && highFreqSet().size > 0;
+  el.innerHTML = `
+    <div class="quiz-card" style="text-align:left;margin-bottom:100px">
+      <span class="quiz-type">${icon('circle-check')} 掌握词抽查</span>
+      ${docNoteHtml('从当前词库的<b>已掌握</b>词里按「最久没抽查」优先抽取。认识=只记录抽查时间，不改排期；不认识=打回复习队列（stage 3，10 分钟后重现）。' + (sprint ? '<br>冲刺期会优先抽四级高频词。' : ''))}
+      <div class="cfg-title">数量</div>
+      <div class="cfg-chips" style="margin-bottom:2px">
+        ${[20, 50, 100].map(v => `<button class="master-tab ${cnt === v ? 'active' : ''}" onclick="setCheckCount(${v})">${v}</button>`).join('')}
+        <button class="master-tab ${cnt === 0 ? 'active' : ''}" onclick="setCheckCount(0)">全部</button>
+      </div>
+      <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-top:8px">当前词库已掌握 <b>${total}</b> 词，本次抽 <b>${n}</b> 词。</p>
+    </div>
+    <div class="practice-foot">
+      <span class="picker-count">共 <b>${n}</b> 词</span>
+      <button class="next-btn" onclick="startMasteredCheck()" ${total ? '' : 'disabled'}>开始抽查</button>
+    </div>`;
+}
+
+function setCheckCount(v) {
+  const n = Number(v);
+  state.settings.checkCount = [0, 20, 50, 100].includes(n) ? n : 20;
+  saveState();
+  renderQuickConfig();
+}
+
 function startQuickSweep() {
   session = null;   // 快扫没有 session:清掉可能残留的学习会话,防全局键盘快捷键把快扫卡片覆盖成答题卡
   let list = practicePool('quick');
   if (quickMode === 'rebuild') list = list.filter(w => !curWords()[w]);
   if (!list.length) return;
   quickRebuild = {
-    list: shuffle(list), i: 0, known: 0, unknown: 0, write: quickMode === 'rebuild',
+    list: shuffle(list), i: 0, known: 0, unknown: 0, write: quickMode === 'rebuild', check: false,
     verify: state.settings.quickVerify !== false,   // 两段式:先自评再翻面校验
+    revealed: false, selfKnown: false, retried: 0,
+  };
+  go('screen-study');
+  renderQuickRebuild();
+}
+
+/* 掌握词抽查：按 masteredCheckPool 顺序取前 N，不写 stage/due（答错才走 reviewWrong） */
+function startMasteredCheck() {
+  session = null;
+  const pool = masteredCheckPool();
+  if (!pool.length) return;
+  const cnt = state.settings.checkCount;
+  const n = cnt === 0 ? pool.length : Math.min(pool.length, cnt);
+  quickRebuild = {
+    list: pool.slice(0, n), i: 0, known: 0, unknown: 0,
+    write: false, check: true, verify: true,
     revealed: false, selfKnown: false, retried: 0,
   };
   go('screen-study');
@@ -60305,14 +60565,18 @@ function renderQuickRebuild() {
   const q = quickRebuild;
   if (!q) return;
   if (q.i >= q.list.length) {
+    const title = q.check ? '抽查完成' : (q.write ? '这一轮扫完了' : '本轮结束');
+    const note = q.check
+      ? `忘记 ${q.unknown} 词已打回复习队列（stage 3，10 分钟后重现）。`
+      : (q.write
+        ? '不认识的词明天会出现在复习里,反复过几轮就补回来了。'
+        : '纯练习,学习数据没有任何变化。');
     el.innerHTML = `
       <div class="quiz-card session-done">
         <div class="icon">${icon('circle-check')}</div>
-        <h2>${q.write ? '这一轮扫完了' : '本轮结束'}</h2>
-        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词${q.retried ? ` · 改判记错 ${q.retried} 次` : ''}<br>${q.write
-          ? '不认识的词明天会出现在复习里,反复过几轮就补回来了。'
-          : '纯练习,学习数据没有任何变化。'}</p>
-        <button class="next-btn" onclick="startQuickSweep()">再来一轮</button>
+        <h2>${title}</h2>
+        <p>认识 ${q.known} 词 · 不认识 ${q.unknown} 词${q.retried ? ` · 改判记错 ${q.retried} 次` : ''}<br>${note}</p>
+        <button class="next-btn" onclick="${q.check ? 'openMasteredCheck()' : 'startQuickSweep()'}">${q.check ? '再抽一组' : '再来一轮'}</button>
         <button class="btn-ghost" style="width:100%;margin-top:10px;padding:12px;border-radius:12px" onclick="quickExit()">完成,回主页</button>
       </div>`;
     return;
@@ -60320,7 +60584,7 @@ function renderQuickRebuild() {
   const w = q.list[q.i];
   const def = WORD_MAP.get(w) || '';
   const speakBtn = canSpeakHere() ? `<button class="speak-btn" title="发音" aria-label="朗读" onclick="speakQuickWord()">${icon('volume-2')}</button>` : '';
-  const head = `<span class="quiz-type">${icon('sparkles')} ${q.write ? '进度重建' : '快速复习'} ${q.i + 1} / ${q.list.length}</span>`;
+  const head = `<span class="quiz-type">${icon(q.check ? 'circle-check' : 'sparkles')} ${q.check ? '掌握词抽查' : (q.write ? '进度重建' : '快速复习')} ${q.i + 1} / ${q.list.length}</span>`;
   const prompt = `<p class="quiz-prompt">${escapeHtml(w)}${speakBtn}</p>`;
   const skipRow = `
     <div class="wrong-actions" style="margin-top:10px">
@@ -60335,9 +60599,11 @@ function renderQuickRebuild() {
         ${head}
         ${prompt}
         <p style="text-align:center;color:var(--ink-soft);font-size:15px;margin:0 0 8px">${escapeHtml(def)}</p>
-        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.write
-          ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
-          : '这个词认识吗？（纯练习，不影响进度）'}</p>
+        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.check
+          ? '已掌握词抽查：不认识=打回复习队列，认识=只记录抽查时间'
+          : (q.write
+            ? '这个词你之前学过吗？认识=按 2 天后排期，不认识=明天再来'
+            : '这个词认识吗？（纯练习，不影响进度）')}</p>
         <div class="wrong-actions">
           <button class="next-btn" style="background:var(--amber)" onclick="quickAnswer(false)">不认识</button>
           <button class="next-btn" style="background:var(--green)" onclick="quickAnswer(true)">认识</button>
@@ -60369,9 +60635,13 @@ function renderQuickRebuild() {
         ${head}
         ${prompt}
         <div class="${flipCls}">${escapeHtml(def)}</div>
-        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.selfKnown
-          ? '和你记的一样吗？不一样就点「记错了」，这个词稍后会再出现'
-          : '对照汉译记住它，点下一个继续'}</p>
+        <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 6px">${q.check
+          ? (q.selfKnown
+            ? '和你记的一样吗？不一样就点「记错了」，会打回复习队列'
+            : '点「下一个」后会打回复习队列，10 分钟后再考你')
+          : (q.selfKnown
+            ? '和你记的一样吗？不一样就点「记错了」，这个词稍后会再出现'
+            : '对照汉译记住它，点下一个继续')}</p>
         <div class="wrong-actions">${actions}</div>
         ${skipRow}
       </div>`;
@@ -60396,24 +60666,29 @@ function quickConfirmNext() {
   quickApplyAnswer(q.selfKnown);
 }
 
-/* 两段式·第二段「记错了」:自评作废按不认识处理,该词追加到队尾稍后重现 */
+/* 两段式·第二段「记错了」:自评作废按不认识处理。
+ * 普通快扫把该词追加到队尾稍后重现；掌握抽查不追加（已打回复习队列，10 分钟后正常重现）。 */
 function quickMarkWrong() {
   const q = quickRebuild;
   if (!q) return;
   const w = q.list[q.i];
   quickApplyAnswer(false);
-  q.list.push(w);
+  if (!q.check) q.list.push(w);
   q.retried++;
 }
 
-/* 快扫作答落账:重建模式写进度,练习模式只计次;单段模式的 quickAnswer 与
- * 两段式确认走同一入口 */
+/* 快扫作答落账:重建模式写进度，练习模式只计次，掌握抽查认识只记时间/不认识打回复习;
+ * 单段模式的 quickAnswer 与两段式确认走同一入口 */
 function quickApplyAnswer(known) {
   const q = quickRebuild;
   if (!q) return;
   sfxPlay(known ? 'ok' : 'bad');
   const w = q.list[q.i];
-  if (q.write) quickMark(w, known);
+  if (q.check) {
+    if (known) masteredCheckKnown(w); else masteredCheckWrong(w);
+  } else if (q.write) {
+    quickMark(w, known);
+  }
   if (known) q.known++; else q.unknown++;
   q.i++;
   q.revealed = false;

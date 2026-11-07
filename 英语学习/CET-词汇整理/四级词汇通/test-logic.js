@@ -2274,6 +2274,138 @@ console.log('\n[55] 列表遮挡模式(中英/遮汉译/遮单词)与标签置�
   g('listMask = "none"; state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
 })();
 
+/* ================= [56] P0 复习调度优化 ================= */
+console.log('\n[56] P0 复习调度优化（到期优先/配额/积压/考试冲刺/掌握抽查）');
+(() => {
+  const DAY = 24 * 60 * 60 * 1000;
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+
+  // 新增设置缺省
+  ok(g('state.settings.examDate') === '' && g('state.settings.checkCount') === 20, '新增设置缺省：考试日期空 / 抽查 20 词');
+
+  // 到期优先：超期 10 天 > 2 天 > 1 天
+  const [w10, w2, w1] = g('WORD_LIST.slice(0, 3)');
+  g(`(() => {
+    const [a,b,c] = WORD_LIST.slice(0,3);
+    const now = Date.now();
+    curWords()[a] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - 10*DAY_MS };
+    curWords()[b] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - 2*DAY_MS };
+    curWords()[c] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - 1*DAY_MS };
+    saveState();
+  })()`);
+  const picked = g('pickReviewWords(dueWords(), 2)');
+  ok(picked.length === 2 && picked[0] === w10 && picked[1] === w2, '到期优先：超期最久的两个先取');
+
+  // 冲刺期：同超期时四级高频词优先
+  const core = g('LIBS.cet4_core ? LIBS.cet4_core.words.map(x => x[0]) : []');
+  const coreSet = new Set(core);
+  const hfWord = g('WORD_LIST').find(x => coreSet.has(x));
+  const lfWord = g('WORD_LIST').find(x => !coreSet.has(x));
+  ok(!!hfWord && !!lfWord, `高频/非高频样本可用（核心库 ${core.length} 词）`);
+  g(`(() => {
+    const now = Date.now();
+    curWords()['${hfWord}'] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - 1*DAY_MS };
+    curWords()['${lfWord}'] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - 1*DAY_MS };
+    state.settings.examDate = dateKey(now + 10*DAY_MS);
+    saveState();
+  })()`);
+  ok(g('sprintActive()') === true, '考前 10 天进入冲刺期');
+  const exPick = g(`pickReviewWords(['${lfWord}','${hfWord}'], 1)`);
+  ok(exPick[0] === hfWord, '冲刺期高频词优先于同超期的非高频词');
+  const ei = g('examInfo()');
+  ok(ei && ei.days === 10, `考试倒计时天数正确（${ei && ei.days}）`);
+  g('setExamDate("")');
+  ok(g('sprintActive()') === false, '清除考试日期后退出冲刺期');
+
+  // 复习额度：默认只抽今日剩余份额，force 才再来一组
+  g('state = defaultState(); state.settings.dailyReview = 5; saveState();');
+  g(`(() => {
+    const [a,b,c] = WORD_LIST.slice(0,3);
+    const now = Date.now();
+    [a,b,c].forEach(w => { curWords()[w] = { stage:1, right:1, wrong:0, inBook:false, created:now, due:now - DAY_MS }; });
+    curDaily().reviewedToday = [WORD_LIST[10], WORD_LIST[11]];
+    saveState();
+  })()`);
+  ok(g('reviewQuota()') === 3, '今日剩余额度 = 5 - 2');
+  g('startReview()');
+  ok(g('session && session.queue.length') === 3, '默认只抽剩余额度 3 词');
+  g('session = null; curDaily().reviewedToday = WORD_LIST.slice(10, 15); saveState();');
+  documentStub.getElementById('reviewQuiz').innerHTML = '';
+  g('startReview()');
+  const quotaHtml = documentStub.getElementById('reviewQuiz').innerHTML;
+  ok(g('session') === null && quotaHtml.includes('今日复习目标已完成'), '额度用完显示目标完成页，不偷偷超量');
+  g('startReview(true)');
+  ok(g('session && session.queue.length') === 3, '「再来一组」按每日上限抽 3 词');
+  g('session = null;');
+
+  // 积压与考前容量
+  g('state.settings.dailyReview = 1; state.settings.examDate = dateKey(Date.now() + DAY_MS); saveState();');
+  const bi = g('backlogInfo()');
+  ok(bi.over === true && bi.due === 3 && bi.days === 3, '积压检测：3 词 / 日上限 1 → 3 天清完');
+  ok(bi.examOver === true && bi.examCapacity === 2, '考前 1 天只能复习 2 词 → 提示清不完');
+  documentStub.getElementById('backlogBanner').innerHTML = '';
+  documentStub.getElementById('examCountdown').innerHTML = '';
+  g('refreshHome()');
+  const banner = documentStub.getElementById('backlogBanner').innerHTML;
+  const countdown = documentStub.getElementById('examCountdown').innerHTML;
+  ok(banner.includes('复习积压') && banner.includes('考前复习不完'), '首页积压横幅渲染（含考前容量警告）');
+  ok(countdown.includes('距考试 1 天'), '首页考试倒计时渲染');
+
+  // 导入口径：每日数量钳制 1..100，且不再清空本地其他设置
+  g('state = defaultState(); state.settings.examDate = "2026-12-12"; saveState();');
+  g(`importProgress(JSON.stringify({ app:'cet4-vocab', state:{ settings:{ dailyNew:999, dailyReview:999 }, libs:{}, history:{} } }))`);
+  ok(g('state.settings.dailyNew') === 100 && g('state.settings.dailyReview') === 100, '导入每日数量钳制到 100');
+  ok(g('state.settings.examDate') === '2026-12-12', '导入不再清空本地考试日期等其他设置');
+  g(`localStorage.setItem(STATE_KEY, JSON.stringify({ settings: { dailyNew: 0, dailyReview: 999 }, libs: {}, history: {} })); state = loadState();`);
+  ok(g('state.settings.dailyNew') === 1 && g('state.settings.dailyReview') === 100, '读档每日数量钳制到 1..100');
+
+  // 旧档兼容：没有 examDate/checkCount/lastCheck 的存档，升级后必须原样保留进度
+  g(`localStorage.setItem(STATE_KEY, JSON.stringify({
+    settings: { dailyNew: 25, dailyReview: 40, lib: 'cet4' },
+    libs: { cet4: { words: { hello: { stage: 2, right: 3, wrong: 1, due: 123, inBook: true, created: 111 } }, learnedToday: ['hello'], reviewedToday: [] } },
+    today: todayStr(),
+    history: { [dateKey()]: { learned: [['cet4','hello']], reviewed: [], wrongs: [] } }
+  })); state = loadState();`);
+  ok(g('state.settings.examDate') === '' && g('state.settings.checkCount') === 20, '旧档缺新设置字段：自动补默认值');
+  ok(g('state.settings.dailyNew') === 25 && g('state.settings.dailyReview') === 40, '旧档每日计划原样保留');
+  ok(g('curWords()["hello"] && curWords()["hello"].stage') === 2 && g('curWords()["hello"].lastCheck') === undefined, '旧单词记录原样保留，lastCheck 缺省不写入');
+
+  // 掌握词抽查：最久未抽查优先；认识只记时间，不认识打回 stage3
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+  const [m1, m2, m3] = g('WORD_LIST.slice(10, 13)');
+  g(`(() => {
+    const [a,b,c] = WORD_LIST.slice(10,13);
+    const now = Date.now();
+    curWords()[a] = { stage:5, right:5, wrong:0, inBook:false, created:now, due:Infinity, lastCheck:1000 };
+    curWords()[b] = { stage:5, right:5, wrong:0, inBook:false, created:now, due:Infinity, lastCheck:2000 };
+    curWords()[c] = { stage:5, right:5, wrong:0, inBook:false, created:now, due:Infinity, lastCheck:3000 };
+    saveState();
+  })()`);
+  const checkPool = g('masteredCheckPool()');
+  ok(checkPool[0] === m1 && checkPool[1] === m2 && checkPool[2] === m3, '掌握抽查：最久未抽查优先');
+  g(`masteredCheckKnown('${m1}')`);
+  ok(g(`curWords()['${m1}'].lastCheck`) > 3000 && g(`curWords()['${m1}'].stage`) === 5, '抽查认识：只更新 lastCheck，stage 不变');
+  g(`masteredCheckWrong('${m2}')`);
+  const r2 = g(`curWords()['${m2}']`);
+  ok(r2.stage === 3 && r2.due - Date.now() <= 10 * 60 * 1000 + 50 && r2.inBook === true, '抽查不认识：打回 stage3 / 10 分钟后复习 / 进生词本');
+  const keepCheck = g(`sanitizeWordRecord({ stage:5, due:Infinity, lastCheck:12345 })`);
+  ok(keepCheck.lastCheck === 12345, '导入消毒保留 lastCheck');
+
+  // 抽查配置页与会话
+  g('state.settings.checkCount = 2; saveState(); openMasteredCheck();');
+  ok(documentStub.getElementById('quickQuiz').innerHTML.includes('掌握词抽查'), '抽查配置页渲染');
+  g('startMasteredCheck()');
+  const q56 = g('quickRebuild');
+  ok(q56 && q56.check === true && q56.list.length === 2, '抽查会话：2 词且为 check 模式');
+  const cw = q56.list[0];
+  g('quickApplyAnswer(true)');
+  ok(g(`curWords()['${cw}'].lastCheck`) > 0, '抽查作答「认识」写入 lastCheck');
+  g('setCheckCount(50)');
+  ok(g('state.settings.checkCount') === 50, '抽查数量可切换');
+
+  g('state = defaultState(); saveState(); localStorage.removeItem("cet4_study_snapshot_v2");');
+})();
+
 console.log(`\n========== 结果: ${pass} 通过, ${fail} 失败 ==========`);
 
   process.exit(fail ? 1 : 0);

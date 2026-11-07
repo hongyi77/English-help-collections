@@ -41,7 +41,15 @@ const DEFAULT_SETTINGS = {
   edgeVoiceEn: 'en-US-AriaNeural', edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',  // Edge 朗读音色(男女声自选)
   reviewAlgo: 'ebbinghaus',                               // 复习调度算法:'ebbinghaus'固定间隔 / 'fsrs'自适应
   fsrsRetention: 0.9,                                     // FSRS 目标记忆保持率(0.85/0.9/0.95)
+  examDate: '',                                            // 考试日期 YYYY-MM-DD(空=未设置);考前 45 天进入冲刺优先
+  checkCount: 20,                                          // 掌握词抽查每轮数量(0=全部)
 };
+
+/* 设置里的每日数量钳制:UI 的 adjSetting 与导入/读档共用同一口径 */
+function clampSettingInt(v, dflt) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(1, Math.min(100, Math.round(n))) : dflt;
+}
 
 /* 自定义拼写/听写/听音辨义的取词范围('custom' 为用户自选词单,取词表由 ui 层按模式提供) */
 const SCOPES = [
@@ -77,6 +85,16 @@ for (const k of Object.keys(LIBS)) {
   LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
 }
 
+/* 四级高频词集合（cet4_core 1250 词）：考前冲刺排序用。
+ * 扩展词库是延迟加载的，加载完成后由 registerVocabLibs 清缓存重建。 */
+let HIGH_FREQ_CACHE = null;
+function highFreqSet() {
+  if (HIGH_FREQ_CACHE) return HIGH_FREQ_CACHE;
+  const core = LIBS.cet4_core;
+  HIGH_FREQ_CACHE = new Set(core ? core.words.map(([w]) => w) : []);
+  return HIGH_FREQ_CACHE;
+}
+
 /* 扩展词库装载(vocab-libs.js 延迟载入后调用):合并词库并补齐索引。
  * 首屏只加载内置四级词库,1MB 的扩展词库不阻塞可交互(见文件底部 lazyLoadVocabLibs) */
 function registerVocabLibs(libsObj) {
@@ -86,6 +104,7 @@ function registerVocabLibs(libsObj) {
     LIB_WORD_SETS[k] = new Set(LIBS[k].words.map(([w]) => w));
     LIB_DEF_MAPS[k] = new Map(LIBS[k].words);
   }
+  HIGH_FREQ_CACHE = null;   // cet4_core 可能刚随扩展词库到位
 }
 
 /* ---------------- 自建词库 ----------------
@@ -693,6 +712,11 @@ function loadState() {
     const hadVoiceSrc = s.settings && s.settings.voiceSrc != null;
     const legacyOnlineVoice = s.settings ? s.settings.onlineVoice : undefined;
     s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings);
+    // 每日数量统一钳制(旧档/手改档可能越界；UI ± 每次 5 也是同一口径 1..100)
+    s.settings.dailyNew = clampSettingInt(s.settings.dailyNew, 20);
+    s.settings.dailyReview = clampSettingInt(s.settings.dailyReview, 30);
+    const chk = Number(s.settings.checkCount);
+    s.settings.checkCount = [0, 20, 50, 100].includes(chk) ? chk : 20;
     // 扩展词库延迟加载:LIBS 里暂时没有不代表 key 失效,不能回落 cet4
     if (!LIBS[s.settings.lib] && !DEFERRED_LIB_KEYS.has(s.settings.lib)) s.settings.lib = 'cet4';
     // 旧存档只有 dictJudge(bool):迁移为 dictMode 三态(judge/listen/auto)
@@ -798,6 +822,8 @@ function sanitizeWordRecord(r) {
     // 顽固词字段(可选,旧档/导入缺省即无标记)
     lapses: num(r.lapses),
     leech: r.leech === true,
+    // 掌握词最近一次抽查时间(可选,0=从未抽查)
+    lastCheck: num(r.lastCheck),
   };
   // FSRS 记忆状态(可选,s 为正数、d 为数值才保留,防止导入档注入畸形状态)
   const fs = r.fsrs;
@@ -837,14 +863,15 @@ function importProgress(json) {
       importedCount++;
     }
   }
-  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准
+  // 合并设置：保留两者较大值，避免覆盖用户已调好的计划；词库选择以本地为准。
+  // 用 Object.assign 保留本地其余设置(音源/算法/拼写/听力/考试日期等)，只覆盖每日数量。
   if (incoming.settings) {
-    state.settings = {
-      dailyNew: Math.max(state.settings.dailyNew, incoming.settings.dailyNew || 0),
-      dailyReview: Math.max(state.settings.dailyReview, incoming.settings.dailyReview || 0),
+    state.settings = Object.assign({}, state.settings, {
+      dailyNew: clampSettingInt(Math.max(state.settings.dailyNew, Number(incoming.settings.dailyNew) || 0), state.settings.dailyNew),
+      dailyReview: clampSettingInt(Math.max(state.settings.dailyReview, Number(incoming.settings.dailyReview) || 0), state.settings.dailyReview),
       autoSpeak: state.settings.autoSpeak,
       lib: libKey(),
-    };
+    });
   }
   // 合并历史记录
   if (incoming.history) {
@@ -941,6 +968,84 @@ function dueWords() {
     const r = curWords()[w];
     return r && r.stage >= 1 && r.stage < STAGE_MASTERED && effectiveDue(r) <= now;
   });
+}
+
+/* 今日复习剩余额度：已复习词数按去重词计，和首页进度条同一口径 */
+function reviewQuota() {
+  return Math.max(0, state.settings.dailyReview - curDaily().reviewedToday.length);
+}
+
+/* 考试日期信息：days=距今天数（0=今天，负数=已过）；无效日期返回 null */
+function examInfo() {
+  const v = state.settings.examDate;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return null;
+  const [y, m, d] = v.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
+  if (target.getFullYear() !== y || target.getMonth() !== m - 1 || target.getDate() !== d) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return { date: v, days: Math.round((target.getTime() - today.getTime()) / DAY_MS) };
+}
+
+/* 冲刺期：考前 45 天内（含考试当天），复习排序叠加高频/顽固权重 */
+function sprintActive() {
+  const e = examInfo();
+  return !!e && e.days >= 0 && e.days <= 45;
+}
+
+/* 复习取词：到期越久越优先；冲刺期四级高频词 +7 天、顽固词 +5 天等效权重。
+ * 不随机打散全部池子——积压时先清最老的，避免“刚到期”和“超期一个月”同概率。 */
+function pickReviewWords(due, n) {
+  if (!n || n <= 0) return [];
+  const now = Date.now();
+  const hf = sprintActive() ? highFreqSet() : null;
+  const scored = due.map(w => {
+    const r = curWords()[w] || {};
+    const d = effectiveDue(r);
+    let score = Math.max(0, (now - d) / DAY_MS);
+    if (hf) {
+      if (hf.has(w)) score += 7;
+      if (r.leech) score += 5;
+    }
+    return { w, score, due: d };
+  });
+  scored.sort((a, b) => b.score - a.score || a.due - b.due || a.w.localeCompare(b.w));
+  return scored.slice(0, n).map(x => x.w);
+}
+
+/* 积压概况：首页横幅与测试共用。over=超过两天日复习量；examOver=按当前速度考前清不完 */
+function backlogInfo() {
+  const due = dueWords().length;
+  const cap = Math.max(1, state.settings.dailyReview);
+  const e = examInfo();
+  const examCapacity = e && e.days >= 0 ? (e.days + 1) * cap : null;
+  return {
+    due,
+    cap,
+    days: Math.ceil(due / cap),
+    exam: e,
+    examCapacity,
+    over: due > cap * 2,
+    examOver: !!(e && e.days >= 0 && due > examCapacity),
+  };
+}
+
+/* 掌握词抽查顺序：冲刺期先高频，再“最久没抽查”（lastCheck 越小越先），
+ * 用顺序轮转保证已掌握词不会被反复抽同几个。 */
+function masteredCheckPool() {
+  const hf = sprintActive() ? highFreqSet() : null;
+  const list = masteredWords().slice();
+  list.sort((a, b) => {
+    if (hf) {
+      const ha = hf.has(a) ? 1 : 0, hb = hf.has(b) ? 1 : 0;
+      if (ha !== hb) return hb - ha;
+    }
+    const la = (curWords()[a] || {}).lastCheck || 0;
+    const lb = (curWords()[b] || {}).lastCheck || 0;
+    if (la !== lb) return la - lb;
+    return a.localeCompare(b);
+  });
+  return list;
 }
 
 function bookWords() {
@@ -1190,6 +1295,21 @@ function reviewWrong(word, addBook) {
   recordReviewed(word);
   recordWrong(word);
   saveState();
+}
+
+/* 掌握词抽查：认识只记抽查时间，不动 stage/due/每日计数；
+ * 不认识走复习答错通道——stage 5 → 3、10 分钟后回正常复习队列。 */
+function masteredCheckKnown(word) {
+  const r = curWords()[word];
+  if (!r) return;
+  r.lastCheck = Date.now();
+  saveState();
+}
+function masteredCheckWrong(word) {
+  const r = curWords()[word];
+  if (!r) return;
+  r.lastCheck = Date.now();
+  reviewWrong(word, true);
 }
 
 function toggleBook(word) {
